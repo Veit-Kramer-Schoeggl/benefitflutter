@@ -1,0 +1,244 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:benefitflutter/core/config/theme.dart';
+import 'package:benefitflutter/core/config/repository_config.dart';
+import 'package:benefitflutter/core/seed/seed_service.dart';
+import 'package:benefitflutter/core/seed/seed_config.dart';
+import 'package:benefitflutter/presentation/screens/splash/splash_screen.dart';
+import 'package:benefitflutter/presentation/screens/auth/login_screen.dart';
+import 'package:benefitflutter/presentation/screens/auth/register_screen.dart';
+import 'package:benefitflutter/presentation/screens/auth/email_verification_screen.dart';
+import 'package:benefitflutter/presentation/screens/auth/forgot_password_screen.dart';
+import 'package:benefitflutter/presentation/screens/auth/reset_password_screen.dart';
+import 'package:benefitflutter/presentation/screens/security/app_lock_screen.dart';
+import 'package:benefitflutter/presentation/navigation/main_navigation.dart';
+import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/benefit_provider.dart';
+import 'package:benefitflutter/providers/progress_provider.dart';
+import 'package:benefitflutter/providers/connectivity_provider.dart';
+import 'package:benefitflutter/providers/activity_provider.dart';
+import 'package:benefitflutter/providers/health_platform_provider.dart';
+import 'package:benefitflutter/providers/app_lock_provider.dart';
+import 'package:benefitflutter/features/shared/utils/connectivity_service.dart';
+import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
+import 'package:benefitflutter/features/auth/data/auth_service.dart';
+import 'package:benefitflutter/features/auth/data/token_storage.dart';
+import 'package:benefitflutter/core/deep_link/deep_link_handler.dart';
+
+/// Global navigator key for deep link navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  // Initialize Flutter bindings for async operations
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Seed database with test data in debug mode
+  if (SeedConfig.isEnabled) {
+    try {
+      final seedService = await SeedService.create(
+        userRepository: RepositoryConfig.getUserRepository(),
+        sessionRepository: RepositoryConfig.getSessionRepository(),
+        benefitRepository: RepositoryConfig.getBenefitRepository(),
+      );
+      await seedService.seedIfNeeded();
+    } catch (e) {
+      debugPrint('Failed to seed database: $e');
+      // Don't block app startup on seed failure
+    }
+  }
+
+  // Initialize sensor manager
+  final sensorManager = SensorManager();
+  await sensorManager.initialize();
+
+  // Initialize auth dependencies
+  final tokenStorage = SecureTokenStorage();
+  final authService = MockAuthService();
+
+  // Initialize deep link handler
+  final deepLinkHandler = DeepLinkHandler(navigatorKey: navigatorKey);
+  await deepLinkHandler.initialize();
+
+  runApp(
+    // MultiProvider wraps the app to provide state management
+    MultiProvider(
+      providers: [
+        // User Provider - MUST BE FIRST - manages authentication state
+        ChangeNotifierProvider(
+          create: (_) => UserProvider(
+            repository: RepositoryConfig.getUserRepository(),
+            authService: authService,
+            tokenStorage: tokenStorage,
+          ),
+        ),
+        // Benefit Provider - manages benefit screen state
+        // Uses ProxyProvider to receive userId from UserProvider
+        ChangeNotifierProxyProvider<UserProvider, BenefitProvider>(
+          create: (_) => BenefitProvider(
+            RepositoryConfig.getBenefitRepository(),
+          ),
+          update: (_, userProvider, benefitProvider) {
+            benefitProvider?.updateUserId(userProvider.userId);
+            return benefitProvider!;
+          },
+        ),
+        // Progress Provider - manages progress screen state
+        // Uses ProxyProvider to receive userId from UserProvider
+        ChangeNotifierProxyProvider<UserProvider, ProgressProvider>(
+          create: (_) => ProgressProvider(
+            RepositoryConfig.getSessionRepository(),
+          ),
+          update: (_, userProvider, progressProvider) {
+            progressProvider?.updateUserId(userProvider.userId);
+            return progressProvider!;
+          },
+        ),
+        // Connectivity Provider - monitors network connectivity status
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityProvider(
+            ConnectivityService(),
+          ),
+        ),
+        // Activity Provider - manages activity tracking sessions
+        // Uses ProxyProvider to receive userId from UserProvider
+        ChangeNotifierProxyProvider<UserProvider, ActivityProvider>(
+          create: (_) => ActivityProvider(
+            RepositoryConfig.getSessionRepository(),
+            sensorManager: sensorManager,
+          ),
+          update: (_, userProvider, activityProvider) {
+            activityProvider?.updateUserId(userProvider.userId);
+            return activityProvider!;
+          },
+        ),
+        // Health Platform Provider - manages health platform integration
+        ChangeNotifierProvider(
+          create: (_) => HealthPlatformProvider(),
+        ),
+        // App Lock Provider - manages biometric app lock
+        ChangeNotifierProvider(
+          create: (_) => AppLockProvider(),
+        ),
+      ],
+      child: const BeneFitApp(),
+    ),
+  );
+}
+
+/// Root application widget with lifecycle observer
+class BeneFitApp extends StatefulWidget {
+  const BeneFitApp({super.key});
+
+  @override
+  State<BeneFitApp> createState() => _BeneFitAppState();
+}
+
+class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Initialize app lock provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppLockProvider>().initialize();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final appLockProvider = context.read<AppLockProvider>();
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App going to background
+        appLockProvider.onAppPaused();
+        break;
+      case AppLifecycleState.resumed:
+        // App returning to foreground
+        _handleAppResumed();
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    final appLockProvider = context.read<AppLockProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    // Only check lock if user is authenticated
+    if (!userProvider.isAuthenticated) return;
+
+    // Check if activity tracking is active (don't lock during tracking)
+    final activityProvider = context.read<ActivityProvider>();
+    final isTracking = activityProvider.isTracking || activityProvider.isPaused;
+
+    await appLockProvider.onAppResumed(isTrackingActive: isTracking);
+  }
+
+  void _handlePasswordRequired() {
+    // Navigate to login screen and reset lock state after successful login
+    final appLockProvider = context.read<AppLockProvider>();
+    final userProvider = context.read<UserProvider>();
+
+    // Logout and go to login screen
+    userProvider.logout();
+    appLockProvider.reset();
+    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppLockProvider>(
+      builder: (context, appLockProvider, child) {
+        return MaterialApp(
+          // Navigator key for deep link handling
+          navigatorKey: navigatorKey,
+
+          // App metadata
+          title: 'BeneFit',
+          debugShowCheckedModeBanner: false,
+
+          // Theme
+          theme: AppTheme.lightTheme,
+
+          // Show lock screen overlay when locked
+          builder: (context, child) {
+            if (appLockProvider.isLocked) {
+              return AppLockScreen(
+                onPasswordRequired: _handlePasswordRequired,
+              );
+            }
+            return child ?? const SizedBox.shrink();
+          },
+
+          // Routing configuration
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const SplashScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/verify': (context) => const EmailVerificationScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
+            '/reset-password': (context) => const ResetPasswordScreen(),
+            '/home': (context) => const MainNavigationScreen(),
+          },
+
+          // Handle unknown routes
+          onUnknownRoute: (settings) {
+            return MaterialPageRoute(
+              builder: (context) => const SplashScreen(),
+            );
+          },
+        );
+      },
+    );
+  }
+}

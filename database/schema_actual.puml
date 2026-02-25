@@ -1,0 +1,314 @@
+@startuml schema_actual
+
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i>x</i>
+!define not_null(x) <b>x</b>
+
+title BeneFit Movement Tracking App - IMPLEMENTED DATABASE SCHEMA\nDatabase Version 11 - Last updated: 2025-02-24
+
+skinparam entity {
+  BackgroundColor #90EE90
+}
+
+' ==================================================================================
+' CORE USER MANAGEMENT
+' ==================================================================================
+
+entity "users" as users {
+  primary_key(id) : TEXT
+  --
+  not_null(name) : TEXT
+  not_null(email) : TEXT
+  display_name : TEXT
+  gender : TEXT
+  date_of_birth : INTEGER (timestamp)
+  timezone : TEXT
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' SESSION MANAGEMENT
+' ==================================================================================
+
+entity "sessions" as sessions {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(tracking_mode) : TEXT
+  not_null(activity_type) : TEXT
+  not_null(status) : TEXT
+  not_null(start_time) : INTEGER (timestamp)
+  end_time : INTEGER (timestamp)
+  duration_seconds : INTEGER
+  distance_meters : REAL
+  tracking_date : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+  --
+  ' Wearable data (v4)
+  avg_heart_rate : INTEGER
+  max_heart_rate : INTEGER
+  min_heart_rate : INTEGER
+  avg_heart_rate_variability : REAL
+  total_steps : INTEGER
+  avg_cadence : REAL
+  calories_burned : REAL
+  heart_rate_zones : TEXT (JSON)
+  has_wearable_data : INTEGER
+  connected_device_ids : TEXT (JSON)
+}
+
+entity "gps_points" as gps_points {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  not_null(latitude) : REAL
+  not_null(longitude) : REAL
+  altitude : REAL
+  accuracy_meters : REAL
+  speed_meters_per_second : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' BENEFITS SYSTEM
+' ==================================================================================
+
+entity "benefits" as benefits {
+  primary_key(id) : TEXT
+  --
+  not_null(title) : TEXT
+  not_null(description) : TEXT
+  not_null(discount_amount) : REAL
+  required_distance : INTEGER
+  required_sessions : INTEGER
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "user_benefits" as user_benefits {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  foreign_key(not_null(benefit_id)) : TEXT
+  foreign_key(not_null(session_id)) : TEXT
+  not_null(earned_at) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' USER PROFILE
+' ==================================================================================
+
+entity "user_biometrics_reported" as biometrics_reported {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(report_date) : INTEGER (timestamp)
+  height_cm : INTEGER
+  weight_kg : REAL
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "user_preferences" as user_preferences {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT <<unique>>
+  default_location_city : TEXT
+  not_null(distance_unit) : TEXT
+  not_null(temperature_unit) : TEXT
+  not_null(weight_unit) : TEXT
+  not_null(theme) : TEXT
+  not_null(language) : TEXT
+  timezone : TEXT
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' WEARABLE INTEGRATION (v4)
+' ==================================================================================
+
+entity "wearable_devices" as wearable_devices {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(name) : TEXT
+  not_null(device_type) : TEXT
+  not_null(integration_source) : TEXT
+  not_null(connection_status) : TEXT
+  not_null(capabilities) : TEXT (JSON)
+  last_sync_time : INTEGER (timestamp)
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "session_biometric_data" as session_biometric_data {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  foreign_key(device_id) : TEXT
+  not_null(sensor_type) : TEXT
+  not_null(value) : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  accuracy : REAL
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+entity "session_motion_data" as session_motion_data {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  foreign_key(device_id) : TEXT
+  not_null(sensor_type) : TEXT
+  not_null(value) : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  accuracy : REAL
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+entity "session_sensor_summary" as session_sensor_summary {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT <<unique>>
+  avg_heart_rate : REAL
+  max_heart_rate : REAL
+  min_heart_rate : REAL
+  avg_heart_rate_variability : REAL
+  heart_rate_zones : TEXT (JSON)
+  total_steps : INTEGER
+  avg_cadence : REAL
+  avg_power : REAL
+  calories_burned : REAL
+  data_sources : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "health_platform_data" as health_platform_data {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(data_type) : TEXT
+  not_null(value) : TEXT
+  not_null(start_time) : INTEGER (timestamp)
+  not_null(end_time) : INTEGER (timestamp)
+  source_app : TEXT
+  metadata : TEXT (JSON)
+  not_null(synced_at) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' SYNC QUEUE
+' ==================================================================================
+
+entity "sync_queue" as sync_queue {
+  primary_key(id) : INTEGER <<autoincrement>>
+  --
+  not_null(entity_type) : TEXT
+  not_null(entity_id) : TEXT
+  not_null(operation) : TEXT
+  not_null(data) : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  retry_count : INTEGER
+  last_error : TEXT
+}
+
+' ==================================================================================
+' CONTINUOUS TRACKING (v11)
+' ==================================================================================
+
+entity "continuous_tracking_config" as continuous_config {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT <<unique>>
+  not_null(is_enabled) : INTEGER (boolean)
+  not_null(reset_points) : TEXT (JSON array)
+  not_null(activity_detection) : TEXT
+  not_null(gps_interval_seconds) : INTEGER
+  not_null(min_displacement_meters) : INTEGER
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "continuous_tracking_state" as continuous_state {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT <<unique>>
+  not_null(is_active) : INTEGER (boolean)
+  not_null(is_paused_for_manual) : INTEGER (boolean)
+  foreign_key(current_session_id) : TEXT
+  started_at : INTEGER (timestamp)
+  last_data_received : INTEGER (timestamp)
+  current_detected_activity : TEXT
+  detection_confidence : REAL
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "activity_segments" as activity_segments {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  not_null(activity_type) : TEXT
+  not_null(start_time) : INTEGER (timestamp)
+  end_time : INTEGER (timestamp)
+  distance_meters : REAL
+  not_null(detection_source) : TEXT
+  confidence : REAL
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' RELATIONSHIPS
+' ==================================================================================
+
+users ||--o{ sessions : "has many"
+users ||--o{ user_benefits : "earns"
+users ||--o{ biometrics_reported : "reports"
+users ||--|| user_preferences : "has one"
+users ||--o{ wearable_devices : "owns"
+users ||--o{ health_platform_data : "syncs"
+
+sessions ||--o{ gps_points : "tracks location"
+sessions ||--o{ session_biometric_data : "captures biometrics"
+sessions ||--o{ session_motion_data : "captures motion"
+sessions ||--|| session_sensor_summary : "summarized by"
+
+benefits ||--o{ user_benefits : "awarded to users"
+
+wearable_devices ||--o{ session_biometric_data : "provides data"
+wearable_devices ||--o{ session_motion_data : "provides data"
+
+' Continuous tracking (v11)
+users ||--|| continuous_config : "has config"
+users ||--|| continuous_state : "has state"
+continuous_state }o--|| sessions : "current session"
+sessions ||--o{ activity_segments : "has segments"
+
+' ==================================================================================
+' LEGEND
+' ==================================================================================
+
+legend right
+  **16 Tables Implemented**
+
+  **Database Version: 11**
+  **SQLite (via sqflite)**
+
+  Timestamps stored as
+  INTEGER (milliseconds since epoch)
+
+  See database/schema_planned.puml
+  for future planned tables
+endlegend
+
+@enduml

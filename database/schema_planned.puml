@@ -1,0 +1,457 @@
+@startuml schema_planned
+
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i>x</i>
+!define not_null(x) <b>x</b>
+
+title BeneFit Movement Tracking App - COMPLETE DATABASE SCHEMA\n(Implemented + Planned) - Last updated: 2025-02-24
+
+' Color coding for implementation status
+skinparam class {
+  BackgroundColor<<implemented>> #90EE90
+  BackgroundColor<<planned>> #FFE4B5
+}
+
+' ==================================================================================
+' CORE USER MANAGEMENT (IMPLEMENTED)
+' ==================================================================================
+
+entity "users" as users <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  not_null(name) : TEXT
+  not_null(email) : TEXT
+  not_null(password_hash) : TEXT (SHA-256, v7/v10)
+  display_name : TEXT
+  gender : TEXT
+  date_of_birth : INTEGER (timestamp)
+  timezone : TEXT
+  profile_image_path : TEXT (v5)
+  is_verified : INTEGER (v6)
+  verification_status : TEXT (v6)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+  --
+  <color:gray>' PLANNED EXTENSIONS:</color>
+  <color:gray>last_login : INTEGER</color>
+  <color:gray>is_active : INTEGER</color>
+  <color:gray>verified_at : INTEGER</color>
+  <color:gray>data_sharing_consent : INTEGER</color>
+  <color:gray>analytics_consent : INTEGER</color>
+}
+
+' ==================================================================================
+' SESSION MANAGEMENT (IMPLEMENTED)
+' ==================================================================================
+
+entity "sessions" as sessions <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(tracking_mode) : TEXT
+  not_null(activity_type) : TEXT
+  not_null(status) : TEXT
+  not_null(start_time) : INTEGER (timestamp)
+  end_time : INTEGER (timestamp)
+  duration_seconds : INTEGER
+  distance_meters : REAL
+  tracking_date : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+  --
+  ' Wearable data (v4)
+  avg_heart_rate : INTEGER
+  max_heart_rate : INTEGER
+  min_heart_rate : INTEGER
+  avg_heart_rate_variability : REAL
+  total_steps : INTEGER
+  avg_cadence : REAL
+  calories_burned : REAL
+  heart_rate_zones : TEXT (JSON)
+  has_wearable_data : INTEGER
+  connected_device_ids : TEXT (JSON)
+  --
+  <color:gray>' PLANNED EXTENSIONS:</color>
+  <color:gray>current_pace_seconds_per_km : INTEGER</color>
+  <color:gray>privacy_level : TEXT</color>
+  <color:gray>processing_skipped : TEXT (JSON)</color>
+}
+
+entity "gps_points" as gps_points <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  not_null(latitude) : REAL
+  not_null(longitude) : REAL
+  altitude : REAL
+  accuracy_meters : REAL
+  speed_meters_per_second : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' BENEFITS SYSTEM (IMPLEMENTED)
+' ==================================================================================
+
+entity "benefits" as benefits <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  not_null(title) : TEXT
+  not_null(description) : TEXT
+  not_null(discount_amount) : REAL
+  required_distance : INTEGER
+  required_sessions : INTEGER
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "user_benefits" as user_benefits <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  foreign_key(not_null(benefit_id)) : TEXT
+  foreign_key(not_null(session_id)) : TEXT
+  not_null(earned_at) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' USER PROFILE (IMPLEMENTED)
+' ==================================================================================
+
+entity "user_biometrics_reported" as biometrics_reported <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(report_date) : INTEGER (timestamp)
+  height_cm : INTEGER
+  weight_kg : REAL
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+  --
+  <color:gray>' PLANNED EXTENSIONS:</color>
+  <color:gray>body_fat_percentage : REAL</color>
+  <color:gray>sleep_hours : REAL</color>
+  <color:gray>blood_pressure_systolic : INTEGER</color>
+  <color:gray>blood_pressure_diastolic : INTEGER</color>
+}
+
+entity "user_preferences" as user_preferences <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT <<unique>>
+  default_location_city : TEXT
+  not_null(distance_unit) : TEXT
+  not_null(temperature_unit) : TEXT
+  not_null(weight_unit) : TEXT
+  not_null(theme) : TEXT
+  not_null(language) : TEXT
+  timezone : TEXT
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+  --
+  <color:gray>' PLANNED EXTENSIONS:</color>
+  <color:gray>default_location_lat : REAL</color>
+  <color:gray>default_location_lng : REAL</color>
+  <color:gray>location_privacy : TEXT</color>
+  <color:gray>pace_format : TEXT</color>
+  <color:gray>data_collection_settings : TEXT (JSON)</color>
+  <color:gray>notification_settings : TEXT (JSON)</color>
+}
+
+' ==================================================================================
+' WEARABLE INTEGRATION (IMPLEMENTED - v4)
+' ==================================================================================
+
+entity "wearable_devices" as wearable_devices <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(name) : TEXT
+  not_null(device_type) : TEXT
+  not_null(integration_source) : TEXT
+  not_null(connection_status) : TEXT
+  not_null(capabilities) : TEXT (JSON)
+  last_sync_time : INTEGER (timestamp)
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "session_biometric_data" as session_biometric_data <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  foreign_key(device_id) : TEXT
+  not_null(sensor_type) : TEXT
+  not_null(value) : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  accuracy : REAL
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+entity "session_motion_data" as session_motion_data <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT
+  foreign_key(device_id) : TEXT
+  not_null(sensor_type) : TEXT
+  not_null(value) : REAL
+  not_null(timestamp) : INTEGER (timestamp)
+  accuracy : REAL
+  metadata : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+entity "session_sensor_summary" as session_sensor_summary <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(session_id)) : TEXT <<unique>>
+  avg_heart_rate : REAL
+  max_heart_rate : REAL
+  min_heart_rate : REAL
+  avg_heart_rate_variability : REAL
+  heart_rate_zones : TEXT (JSON)
+  total_steps : INTEGER
+  avg_cadence : REAL
+  avg_power : REAL
+  calories_burned : REAL
+  data_sources : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  not_null(updated_at) : INTEGER (timestamp)
+}
+
+entity "health_platform_data" as health_platform_data <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(not_null(user_id)) : TEXT
+  not_null(data_type) : TEXT
+  not_null(value) : TEXT
+  not_null(start_time) : INTEGER (timestamp)
+  not_null(end_time) : INTEGER (timestamp)
+  source_app : TEXT
+  metadata : TEXT (JSON)
+  not_null(synced_at) : INTEGER (timestamp)
+  not_null(created_at) : INTEGER (timestamp)
+}
+
+' ==================================================================================
+' SYNC QUEUE (IMPLEMENTED)
+' ==================================================================================
+
+entity "sync_queue" as sync_queue <<implemented>> {
+  primary_key(id) : INTEGER <<autoincrement>>
+  --
+  not_null(entity_type) : TEXT
+  not_null(entity_id) : TEXT
+  not_null(operation) : TEXT
+  not_null(data) : TEXT (JSON)
+  not_null(created_at) : INTEGER (timestamp)
+  retry_count : INTEGER
+  last_error : TEXT
+}
+
+' ==================================================================================
+' PLANNED TABLES (NOT YET IMPLEMENTED)
+' ==================================================================================
+
+entity "session_stream_data" as stream_data <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(session_id) : TEXT
+  not_null(timestamp) : INTEGER
+  --
+  latitude : REAL
+  longitude : REAL
+  elevation : REAL
+  heart_rate_avg : INTEGER
+  heart_rate_current : INTEGER
+  session_status : TEXT
+  privacy_level : TEXT
+  created_at : INTEGER
+}
+
+entity "session_batch_data" as batch_data <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(session_id) : TEXT
+  not_null(upload_timestamp) : INTEGER
+  not_null(data_start_time) : INTEGER
+  not_null(data_end_time) : INTEGER
+  gps_track_data : TEXT (JSON)
+  accelerometer_data : TEXT (JSON)
+  active_segments : TEXT (JSON)
+  privacy_level : TEXT
+  created_at : INTEGER
+}
+
+entity "session_analysis" as session_analysis <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(session_id) : TEXT <<unique>>
+  declared_activity : TEXT
+  detected_activity : TEXT
+  validation_confidence : REAL
+  not_null(fitness_score_contribution) : REAL
+  total_ascent_meters : REAL
+  total_descent_meters : REAL
+  analysis_completed_at : INTEGER
+  created_at : INTEGER
+}
+
+entity "user_fitness_scores" as fitness_scores <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT <<unique>>
+  not_null(lifetime_score) : REAL
+  not_null(last_updated) : INTEGER
+  daily_average_30d : REAL
+  weekly_average_4w : REAL
+  calculation_version : TEXT
+  recalculation_needed : INTEGER
+  created_at : INTEGER
+  updated_at : INTEGER
+}
+
+entity "daily_fitness_contributions" as daily_contributions <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT
+  not_null(contribution_date) : INTEGER
+  not_null(daily_score) : REAL
+  not_null(session_count) : INTEGER
+  activity_type_breakdown : TEXT (JSON)
+  created_at : INTEGER
+  updated_at : INTEGER
+}
+
+entity "user_biometrics_measured" as biometrics_measured <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT
+  not_null(measurement_date) : INTEGER
+  max_heart_rate_achieved : INTEGER
+  resting_heart_rate : INTEGER
+  vo2_max_estimate : REAL
+  best_pace_5k_seconds : INTEGER
+  measurement_confidence : REAL
+  data_source : TEXT
+  created_at : INTEGER
+}
+
+entity "continuous_tracking_config" as continuous_config <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT <<unique>>
+  not_null(is_enabled) : INTEGER
+  not_null(reset_points) : TEXT (JSON)
+  not_null(activity_detection) : TEXT
+  not_null(gps_interval_seconds) : INTEGER
+  not_null(min_displacement_meters) : INTEGER
+  not_null(created_at) : INTEGER
+  not_null(updated_at) : INTEGER
+}
+
+entity "continuous_tracking_state" as continuous_tracking <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT <<unique>>
+  not_null(is_active) : INTEGER
+  not_null(is_paused_for_manual) : INTEGER
+  foreign_key(current_session_id) : TEXT
+  started_at : INTEGER
+  last_data_received : INTEGER
+  current_detected_activity : TEXT
+  detection_confidence : REAL
+  not_null(updated_at) : INTEGER
+}
+
+entity "activity_segments" as activity_segments <<implemented>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(session_id) : TEXT
+  not_null(activity_type) : TEXT
+  not_null(start_time) : INTEGER
+  end_time : INTEGER
+  distance_meters : REAL
+  not_null(detection_source) : TEXT
+  confidence : REAL
+  not_null(created_at) : INTEGER
+  not_null(updated_at) : INTEGER
+}
+
+entity "continuous_tracking_data" as continuous_data <<planned>> {
+  primary_key(id) : TEXT
+  --
+  foreign_key(user_id) : TEXT
+  not_null(timestamp) : INTEGER
+  latitude : REAL
+  longitude : REAL
+  detected_activity : TEXT
+  detection_confidence : REAL
+  step_count : INTEGER
+  background_heart_rate : INTEGER
+  privacy_level : TEXT
+  created_at : INTEGER
+}
+
+' ==================================================================================
+' RELATIONSHIPS - IMPLEMENTED
+' ==================================================================================
+
+users ||--o{ sessions : "has many"
+users ||--o{ user_benefits : "earns"
+users ||--o{ biometrics_reported : "reports"
+users ||--|| user_preferences : "has one"
+users ||--o{ wearable_devices : "owns"
+users ||--o{ health_platform_data : "syncs"
+
+sessions ||--o{ gps_points : "tracks location"
+sessions ||--o{ session_biometric_data : "captures biometrics"
+sessions ||--o{ session_motion_data : "captures motion"
+sessions ||--|| session_sensor_summary : "summarized by"
+
+benefits ||--o{ user_benefits : "awarded to users"
+
+wearable_devices ||--o{ session_biometric_data : "provides data"
+wearable_devices ||--o{ session_motion_data : "provides data"
+
+' ==================================================================================
+' RELATIONSHIPS - PLANNED
+' ==================================================================================
+
+users ||--|| fitness_scores : "has score"
+users ||--o{ daily_contributions : "earns daily"
+users ||--o{ biometrics_measured : "measures"
+users ||--|| continuous_config : "has config"
+users ||--|| continuous_tracking : "has state"
+users ||--o{ continuous_data : "generates"
+sessions ||--o{ activity_segments : "has segments"
+
+sessions ||--o{ stream_data : "streams"
+sessions ||--o{ batch_data : "batches"
+sessions ||--|| session_analysis : "analyzed by"
+
+' ==================================================================================
+' LEGEND
+' ==================================================================================
+
+legend right
+  |= Color |= Status |
+  | <#90EE90> | Implemented |
+  | <#FFE4B5> | Planned |
+
+  **Database Version: 11**
+  **SQLite (via sqflite)**
+
+  Timestamps stored as
+  INTEGER (milliseconds since epoch)
+
+  Passwords stored as SHA-256 hashes
+  (64 hex characters)
+endlegend
+
+@enduml

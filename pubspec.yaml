@@ -1,0 +1,176 @@
+name: benefitflutter
+description: "The new Flutter BeneFit"
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: any
+
+  # State management
+  provider: any
+
+  # Local database
+  sqflite: any
+  path: any
+
+  # Network connectivity detection
+  connectivity_plus: any
+
+  # Local storage for seed flag tracking
+  shared_preferences: any
+
+  # select profile
+  image_picker: any
+
+  # UUID generation for session IDs
+  uuid: any
+
+  # Date formatting
+  intl: any
+
+  # Location tracking
+  geolocator: any
+
+  # Permission handling
+  permission_handler: any
+
+  # Health platform integration (Health Connect + HealthKit)
+  health: any
+
+  # Bluetooth Low Energy for direct wearable connections
+  flutter_blue_plus: any
+
+  # URL launcher for opening external apps (Play Store, Settings)
+  url_launcher: any
+
+  # HTTP client with interceptors for API calls
+  dio: any
+
+  # Secure storage for JWT tokens
+  flutter_secure_storage: any
+
+  # Password hashing
+  crypto: any
+
+  # Biometric authentication (fingerprint, Face ID)
+  local_auth: any
+
+  path_provider: any
+
+  # QR Code package
+  qr_flutter: any
+
+  # Map for session detaill screen
+  flutter_map: any
+  latlong2: any
+
+  # Deep link handling for password reset URLs
+  app_links: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: any
+
+  # Tool for generating launcher icons
+  flutter_launcher_icons: any
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # Assets - shared across all platforms (Android, iOS, Web, Desktop)
+  assets:
+    - assets/images/logos/
+    - assets/images/backgrounds/community/
+    - assets/images/backgrounds/activity/
+    - assets/images/backgrounds/progress/
+    - assets/images/backgrounds/benefit/
+    - assets/images/backgrounds/profile/
+    - assets/images/icons/activity/
+    - assets/images/icons/progress/
+    - assets/images/icons/benefit/
+    - assets/images/icons/profile/
+    - assets/images/icons/community/
+    - assets/images/icons/splash/
+    - assets/images/icons/auth/
+    - assets/images/icons/shared/
+    - assets/images/runners/
+    - assets/data/
+    # Note: Fonts are declared in the fonts section below
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
+# Launcher icon configuration
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logos/logo_launcher_round.webp"
+  adaptive_icon_background: "#78BA3F"  # Brand green
+  adaptive_icon_foreground: "assets/images/logos/logo_launcher_foreground.webp"
