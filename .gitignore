@@ -2,6 +2,9 @@
 *.class
 *.log
 
+# PMA junior award submission — separate deliverable, not part of the code repo
+/pma_junior_award/
+
 # Prod env config (may contain real Sentry DSN) — see config/prod.example.json
 /config/prod.json
 *.pyc
