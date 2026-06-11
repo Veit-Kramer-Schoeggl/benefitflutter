@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/core/seed/seed_service.dart';
 import 'package:benefitflutter/core/seed/seed_config.dart';
 import 'package:benefitflutter/core/config/repository_config.dart';
@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Check if currently locked out and start timer if needed
   Future<void> _checkLockoutStatus() async {
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     final isLocked = await userProvider.rateLimiter.isLockedOut();
 
     if (isLocked) {
@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // Clear any previous errors
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     userProvider.clearError();
 
     // Attempt login
@@ -243,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Consumer<UserProvider>(
+        child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),

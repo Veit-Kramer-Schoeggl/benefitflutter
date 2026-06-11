@@ -10,7 +10,8 @@ import 'package:benefitflutter/features/user/domain/user.dart';
 import 'package:benefitflutter/features/user/domain/user_biometrics_reported.dart';
 import 'package:benefitflutter/features/user/domain/user_preferences.dart';
 import 'package:benefitflutter/features/security/services/biometric_service.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
+import 'package:benefitflutter/providers/profile_provider.dart';
 import 'package:benefitflutter/providers/app_lock_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:benefitflutter/presentation/screens/wearable/device_connection_screen.dart';
@@ -81,21 +82,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       setState(() => _isLoading = true);
 
-      // Get current user from UserProvider (the logged-in user)
-      final userProvider = context.read<UserProvider>();
-      _currentUser = userProvider.currentUser;
+      // Identity from AuthProvider; editable profile data from ProfileProvider.
+      final authProvider = context.read<AuthProvider>();
+      final profileProvider = context.read<ProfileProvider>();
+      _currentUser = authProvider.currentUser;
 
       if (_currentUser == null) {
         throw Exception('No user logged in');
       }
 
       // Load latest biometrics
-      _currentBiometrics = await userProvider.getLatestBiometrics(
+      _currentBiometrics = await profileProvider.getLatestBiometrics(
         _currentUser!.id,
       );
 
       // Load preferences
-      _currentPreferences = await userProvider.getPreferences(_currentUser!.id);
+      _currentPreferences = await profileProvider.getPreferences(
+        _currentUser!.id,
+      );
 
       // Update UI state
       setState(() {
@@ -161,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         displayName: displayName,
         gender: selectedGender != null ? _parseGender(selectedGender!) : null,
       );
-      await context.read<UserProvider>().updateUser(updatedUser);
+      await context.read<ProfileProvider>().updateUser(updatedUser);
 
       // Update or create biometrics if height/weight changed
       final heightCm = _parseHeight(selectedHeight);
@@ -177,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           createdAt: _currentBiometrics?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        await context.read<UserProvider>().saveBiometrics(biometrics);
+        await context.read<ProfileProvider>().saveBiometrics(biometrics);
       }
 
       // Update or create preferences (country)
@@ -186,7 +190,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           defaultLocationCity: country,
           updatedAt: DateTime.now(),
         );
-        await context.read<UserProvider>().savePreferences(updatedPreferences);
+        await context.read<ProfileProvider>().savePreferences(
+          updatedPreferences,
+        );
       } else {
         // Create new preferences
         final newPreferences = UserPreferences(
@@ -196,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        await context.read<UserProvider>().savePreferences(newPreferences);
+        await context.read<ProfileProvider>().savePreferences(newPreferences);
       }
 
       setState(() => _isSaving = false);
@@ -515,8 +521,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Perform logout
     if (mounted) {
-      final userProvider = context.read<UserProvider>();
-      await userProvider.logout();
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.logout();
 
       // Navigate to login screen
       if (mounted) {
@@ -561,7 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedUser = _currentUser!.copyWith(profileImagePath: savedPath);
 
       // Save to DB
-      await context.read<UserProvider>().updateUser(updatedUser);
+      await context.read<ProfileProvider>().updateUser(updatedUser);
 
       // Update local state
       setState(() {
@@ -891,7 +897,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isSaving = true);
 
         final updatedUser = _currentUser!.copyWith(email: newEmail);
-        await context.read<UserProvider>().updateUser(updatedUser);
+        await context.read<ProfileProvider>().updateUser(updatedUser);
 
         setState(() {
           _currentUser = updatedUser;
@@ -948,7 +954,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         verificationStatus: "verified",
       );
 
-      await context.read<UserProvider>().updateUser(updatedUser);
+      await context.read<ProfileProvider>().updateUser(updatedUser);
 
       setState(() {
         _currentUser = updatedUser;
@@ -1099,8 +1105,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       });
 
                       // Use provider to change password (handles auth service + database)
-                      final userProvider = this.context.read<UserProvider>();
-                      final success = await userProvider.changePassword(
+                      final authProvider = this.context.read<AuthProvider>();
+                      final success = await authProvider.changePassword(
                         currentPassword: currentPw,
                         newPassword: newPw,
                       );
@@ -1109,14 +1115,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         setDialogState(() {
                           isLoading = false;
                           newPasswordError =
-                              userProvider.error ?? "Error saving password";
+                              authProvider.error ?? "Error saving password";
                         });
                         return;
                       }
 
                       // Success - refresh local user and close dialog
                       setState(() {
-                        _currentUser = userProvider.currentUser;
+                        _currentUser = authProvider.currentUser;
                       });
 
                       Navigator.pop(dialogContext);
@@ -1210,12 +1216,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Request deletion code
     setState(() => _isSaving = true);
-    final userProvider = context.read<UserProvider>();
-    final deletionCode = await userProvider.requestAccountDeletion();
+    final authProvider = context.read<AuthProvider>();
+    final deletionCode = await authProvider.requestAccountDeletion();
     setState(() => _isSaving = false);
 
     if (deletionCode == null) {
-      _showError(userProvider.error ?? "Failed to request deletion");
+      _showError(authProvider.error ?? "Failed to request deletion");
       return;
     }
 
@@ -1260,7 +1266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: isLoading
                   ? null
                   : () {
-                      this.context.read<UserProvider>().clearPendingDeletion();
+                      this.context.read<AuthProvider>().clearPendingDeletion();
                       Navigator.pop(dialogContext);
                     },
               child: const Text("Cancel"),
@@ -1291,15 +1297,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         codeError = null;
                       });
 
-                      final userProvider = this.context.read<UserProvider>();
-                      final success = await userProvider.confirmAccountDeletion(
+                      final authProvider = this.context.read<AuthProvider>();
+                      final success = await authProvider.confirmAccountDeletion(
                         code,
                       );
 
                       if (!success) {
                         setDialogState(() {
                           isLoading = false;
-                          codeError = userProvider.error ?? "Invalid code";
+                          codeError = authProvider.error ?? "Invalid code";
                         });
                         return;
                       }

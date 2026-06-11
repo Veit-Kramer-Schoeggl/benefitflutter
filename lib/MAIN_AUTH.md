@@ -10,19 +10,27 @@
 
 This document explains how the main.dart routing setup works and how authentication is integrated.
 
+> **Provider note (Phase 1 / Round 2):** Authentication state lives in **`AuthProvider`**
+> (`lib/providers/auth_provider.dart`), which replaced the former monolithic `UserProvider`.
+> A sibling **`ProfileProvider`** (`lib/providers/profile_provider.dart`) owns editable
+> profile data and is **not** involved in the auth gate below — it is wired as
+> `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>` and syncs profile edits back
+> into `AuthProvider` via `setCurrentUser(...)`. Everything in this document concerns the
+> auth/session flow, which is `AuthProvider`'s responsibility.
+
 ## How the Auth Gate Works (Step by Step)
 
 ### Conceptual Overview
 
 Think of it like a **decision tree**:
 1. App starts → Shows Splash Screen
-2. Splash initializes `UserProvider` and checks: "Is user authenticated?"
+2. Splash initializes `AuthProvider` and checks: "Is user authenticated?"
 3. **If YES** → Navigate to `/home` (main app with 5 tabs)
 4. **If NO** → Navigate to `/login` (login screen)
 5. After successful login → Navigate to `/home`
 
 Authentication is fully implemented: the splash screen restores any stored
-session via `UserProvider.initialize()` and routes accordingly. A separate
+session via `AuthProvider.initialize()` and routes accordingly. A separate
 runtime **app-lock overlay** (biometric/password) can re-gate the app after it
 returns from the background.
 
@@ -44,8 +52,8 @@ main() async
   ├─> DeepLinkHandler(navigatorKey).initialize()
   └─> runApp(
         MultiProvider(
-          providers: [ UserProvider (FIRST), BenefitProvider, ProgressProvider,
-                       ConnectivityProvider, ActivityProvider,
+          providers: [ AuthProvider (FIRST), ProfileProvider, BenefitProvider,
+                       ProgressProvider, ConnectivityProvider, ActivityProvider,
                        HealthPlatformProvider, AppLockProvider ],
           child: const BeneFitApp(),       // StatefulWidget, not MaterialApp directly
         ),
@@ -87,9 +95,9 @@ SplashScreen loads
       └─> _checkAuthAndNavigate()
           ├─> _status = 'Loading...'          (~500ms delay)
           ├─> _status = 'Checking session...'
-          ├─> await context.read<UserProvider>().initialize()  (restores stored session)
+          ├─> await context.read<AuthProvider>().initialize()  (restores stored session)
           │
-          └─> Navigate based on userProvider.isAuthenticated:
+          └─> Navigate based on authProvider.isAuthenticated:
               ├─ If true → show 'Welcome back, <name>!' (~500ms), then
               │            Navigator.pushReplacementNamed('/home')
               └─ If false → Navigator.pushReplacementNamed('/login')
@@ -148,7 +156,7 @@ lib/
 │   │   └── ...                            # activity, benefit, community, profile, progress, ...
 │   └── navigation/
 │       └── main_navigation.dart           # 5-tab navigation
-├── providers/                             # UserProvider, AppLockProvider, ...
+├── providers/                             # AuthProvider, ProfileProvider, AppLockProvider, ...
 └── features/auth/data/
     ├── auth_service.dart                  # AuthService / MockAuthService
     └── token_storage.dart                 # SecureTokenStorage (FlutterSecureStorage)
@@ -165,9 +173,9 @@ User opens app
   ↓
 SplashScreen shows ('Loading...' → 'Checking session...')
   ↓
-UserProvider.initialize() restores stored tokens from SecureTokenStorage
+AuthProvider.initialize() restores stored tokens from SecureTokenStorage
   ↓
-userProvider.isAuthenticated == true
+authProvider.isAuthenticated == true
   ↓
 'Welcome back, <name>!' (~500ms)
   ↓
@@ -183,13 +191,13 @@ User opens app
   ↓
 SplashScreen shows
   ↓
-UserProvider.initialize() finds no valid stored session
+AuthProvider.initialize() finds no valid stored session
   ↓
-userProvider.isAuthenticated == false
+authProvider.isAuthenticated == false
   ↓
 Navigator.pushReplacementNamed('/login')
   ↓
-User enters credentials → userProvider.login(email, password)
+User enters credentials → authProvider.login(email, password)
   ↓
 Login successful → tokens saved to SecureTokenStorage
   ↓
@@ -198,7 +206,7 @@ Navigator.pushReplacementNamed('/home')
 
 Token persistence uses **`SecureTokenStorage`** (Flutter Secure Storage), not
 `SharedPreferences`. Tokens are stored as a single JSON blob under the key
-`auth_tokens`. At startup, `UserProvider.initialize()` refreshes expired access
+`auth_tokens`. At startup, `AuthProvider.initialize()` refreshes expired access
 tokens via `AuthService.refreshToken(...)`; on a refresh failure it clears the
 stored tokens and nulls the current user, so `isAuthenticated` becomes `false`
 and the splash screen subsequently routes to `/login`. (An `AuthInterceptor`
@@ -290,8 +298,8 @@ final sessionId = ModalRoute.of(context)!.settings.arguments as String;
 ### The Auth Check Implementation
 
 The auth check lives in `SplashScreen._checkAuthAndNavigate()` and delegates the
-actual session restore to `UserProvider`. The splash screen never touches tokens
-or the network directly — it asks `UserProvider` whether the user is
+actual session restore to `AuthProvider`. The splash screen never touches tokens
+or the network directly — it asks `AuthProvider` whether the user is
 authenticated.
 
 ```dart
@@ -301,14 +309,14 @@ Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(milliseconds: 500));
 
     setState(() => _status = 'Checking session...');
-    final userProvider = context.read<UserProvider>();
-    await userProvider.initialize(); // restores tokens from SecureTokenStorage
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.initialize(); // restores tokens from SecureTokenStorage
 
     if (mounted) {
-      final isAuthenticated = userProvider.isAuthenticated;
+      final isAuthenticated = authProvider.isAuthenticated;
       if (isAuthenticated) {
         setState(() =>
-            _status = 'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!');
+            _status = 'Welcome back, ${authProvider.currentUser?.name ?? 'User'}!');
         await Future.delayed(const Duration(milliseconds: 500));
       }
       Navigator.of(context).pushReplacementNamed(
@@ -326,7 +334,7 @@ Future<void> _checkAuthAndNavigate() async {
 }
 ```
 
-`UserProvider.initialize()` is where the real work happens: it reads stored
+`AuthProvider.initialize()` is where the real work happens: it reads stored
 tokens via `SecureTokenStorage`, validates/refreshes them through `AuthService`,
 and exposes `isAuthenticated` / `currentUser`. The splash screen stays thin.
 
@@ -360,11 +368,11 @@ back to the `SplashScreen`.
 **This routing setup gives you:**
 
 1. ✅ **Professional routing** - Named routes, centralized
-2. ✅ **Real auth gate** - Splash restores the session via `UserProvider.initialize()`
+2. ✅ **Real auth gate** - Splash restores the session via `AuthProvider.initialize()`
 3. ✅ **Clean navigation** - `pushReplacement`, no back to splash/login
 4. ✅ **Scalable** - Easy to add new screens
-5. ✅ **Secure persistence** - Tokens in `SecureTokenStorage`; `UserProvider.initialize()` refreshes expired tokens at startup and clears them on failure (splash then routes to `/login`)
+5. ✅ **Secure persistence** - Tokens in `SecureTokenStorage`; `AuthProvider.initialize()` refreshes expired tokens at startup and clears them on failure (splash then routes to `/login`)
 6. ✅ **Runtime lock** - `AppLockProvider` overlays the app after backgrounding
 
-**The beauty:** Authentication is centralized in `UserProvider`; screens and the
+**The beauty:** Authentication is centralized in `AuthProvider`; screens and the
 splash gate just read `isAuthenticated`, so the routing layer stays simple.

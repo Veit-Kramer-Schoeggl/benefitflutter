@@ -45,12 +45,16 @@ The BeneFit authentication system provides secure user login, registration, sess
 
 ## Key Components
 
-### UserProvider
-Central state management for authentication:
-- Manages current user state
-- Handles login/logout operations
+### AuthProvider
+Central state management for authentication and identity (the single source of identity truth):
+- Manages current user state and `userId`
+- Handles login/logout operations and all auth/account flows
 - Persists session across app restarts
 - Propagates user ID to dependent providers
+
+> Editable profile data (name/biometrics/preferences) is owned by a separate `ProfileProvider`, which
+> persists changes to the repository and then calls `AuthProvider.setCurrentUser(...)` to sync the
+> in-memory identity. (`AuthProvider` + `ProfileProvider` replaced the former monolithic `UserProvider`.)
 
 ### Token Management
 Secure storage and automatic refresh:

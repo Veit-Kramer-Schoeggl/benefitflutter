@@ -15,7 +15,8 @@ import 'package:benefitflutter/presentation/screens/auth/forgot_password_screen.
 import 'package:benefitflutter/presentation/screens/auth/reset_password_screen.dart';
 import 'package:benefitflutter/presentation/screens/security/app_lock_screen.dart';
 import 'package:benefitflutter/presentation/navigation/main_navigation.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
+import 'package:benefitflutter/providers/profile_provider.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/providers/progress_provider.dart';
 import 'package:benefitflutter/providers/connectivity_provider.dart';
@@ -136,31 +137,37 @@ Future<void> _bootstrap() async {
     // MultiProvider wraps the app to provide state management
     MultiProvider(
       providers: [
-        // User Provider - MUST BE FIRST - manages authentication state
+        // Auth Provider - MUST BE FIRST - identity, sessions, account flows
         ChangeNotifierProvider(
-          create: (_) => UserProvider(
+          create: (_) => AuthProvider(
             repository: RepositoryConfig.getUserRepository(),
             authService: authService,
             tokenStorage: tokenStorage,
           ),
         ),
-        // Benefit Provider - manages benefit screen state
-        // Uses ProxyProvider to receive userId from UserProvider
-        ChangeNotifierProxyProvider<UserProvider, BenefitProvider>(
+        // Profile Provider - editable profile data; reads identity from AuthProvider
+        ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
+          create: (_) => ProfileProvider(RepositoryConfig.getUserRepository()),
+          update: (_, authProvider, profileProvider) {
+            profileProvider!.attachAuth(authProvider);
+            return profileProvider;
+          },
+        ),
+        // Benefit Provider - receives userId from AuthProvider
+        ChangeNotifierProxyProvider<AuthProvider, BenefitProvider>(
           create: (_) =>
               BenefitProvider(RepositoryConfig.getBenefitRepository()),
-          update: (_, userProvider, benefitProvider) {
-            benefitProvider?.updateUserId(userProvider.userId);
+          update: (_, authProvider, benefitProvider) {
+            benefitProvider?.updateUserId(authProvider.userId);
             return benefitProvider!;
           },
         ),
-        // Progress Provider - manages progress screen state
-        // Uses ProxyProvider to receive userId from UserProvider
-        ChangeNotifierProxyProvider<UserProvider, ProgressProvider>(
+        // Progress Provider - receives userId from AuthProvider
+        ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>(
           create: (_) =>
               ProgressProvider(RepositoryConfig.getSessionRepository()),
-          update: (_, userProvider, progressProvider) {
-            progressProvider?.updateUserId(userProvider.userId);
+          update: (_, authProvider, progressProvider) {
+            progressProvider?.updateUserId(authProvider.userId);
             return progressProvider!;
           },
         ),
@@ -168,15 +175,14 @@ Future<void> _bootstrap() async {
         ChangeNotifierProvider(
           create: (_) => ConnectivityProvider(ConnectivityService()),
         ),
-        // Activity Provider - manages activity tracking sessions
-        // Uses ProxyProvider to receive userId from UserProvider
-        ChangeNotifierProxyProvider<UserProvider, ActivityProvider>(
+        // Activity Provider - receives userId from AuthProvider
+        ChangeNotifierProxyProvider<AuthProvider, ActivityProvider>(
           create: (_) => ActivityProvider(
             RepositoryConfig.getSessionRepository(),
             sensorManager: sensorManager,
           ),
-          update: (_, userProvider, activityProvider) {
-            activityProvider?.updateUserId(userProvider.userId);
+          update: (_, authProvider, activityProvider) {
+            activityProvider?.updateUserId(authProvider.userId);
             return activityProvider!;
           },
         ),
@@ -236,10 +242,10 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
 
   Future<void> _handleAppResumed() async {
     final appLockProvider = context.read<AppLockProvider>();
-    final userProvider = context.read<UserProvider>();
+    final authProvider = context.read<AuthProvider>();
 
     // Only check lock if user is authenticated
-    if (!userProvider.isAuthenticated) return;
+    if (!authProvider.isAuthenticated) return;
 
     // Check if activity tracking is active (don't lock during tracking)
     final activityProvider = context.read<ActivityProvider>();
@@ -251,10 +257,10 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
   void _handlePasswordRequired() {
     // Navigate to login screen and reset lock state after successful login
     final appLockProvider = context.read<AppLockProvider>();
-    final userProvider = context.read<UserProvider>();
+    final authProvider = context.read<AuthProvider>();
 
     // Logout and go to login screen
-    userProvider.logout();
+    authProvider.logout();
     appLockProvider.reset();
     navigatorKey.currentState?.pushNamedAndRemoveUntil(
       '/login',

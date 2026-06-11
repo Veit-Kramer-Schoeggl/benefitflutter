@@ -304,16 +304,16 @@ class ProgressProvider extends ChangeNotifier {
 **File**: `lib/main.dart`
 
 > **Status (implemented):** `ProgressProvider` is registered as a
-> `ChangeNotifierProxyProvider<UserProvider, ProgressProvider>` so it receives
-> the current `userId` from `UserProvider` and reloads activities when the user
+> `ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>` so it receives
+> the current `userId` from `AuthProvider` and reloads activities when the user
 > changes. (The simpler `ChangeNotifierProvider` originally planned below was
 > superseded by the proxy approach.)
 
 ```dart
 MultiProvider(
   providers: [
-    // ... UserProvider must be registered first ...
-    ChangeNotifierProxyProvider<UserProvider, ProgressProvider>(
+    // ... AuthProvider must be registered first ...
+    ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>(
       create: (_) => ProgressProvider(
         RepositoryConfig.getSessionRepository(),
       ),

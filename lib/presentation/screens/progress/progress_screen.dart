@@ -8,7 +8,7 @@ import 'package:benefitflutter/presentation/screens/progress/widgets/activities_
 import 'package:benefitflutter/core/config/theme.dart';
 import 'package:benefitflutter/presentation/screens/session/session_detail_screen.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -34,7 +34,7 @@ class _ProgressScreenState extends State<ProgressScreen>
     _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = context.read<UserProvider>().userId;
+      final userId = context.read<AuthProvider>().userId;
       context.read<ProgressProvider>().updateUserId(userId);
     });
   }

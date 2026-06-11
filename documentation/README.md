@@ -53,7 +53,7 @@ Each topic has two documentation types:
 |-------|-----------|----------|-------------|
 | Provider Pattern | [PROVIDER_GUIDE.md](../lib/presentation/PROVIDER_GUIDE.md) | [PROVIDER_GUIDE_OVERVIEW.md](guides/PROVIDER_GUIDE_OVERVIEW.md) | State management |
 | Auth Widgets | [WIDGETS.md](../lib/features/auth/widgets/WIDGETS.md) | [AUTH_WIDGETS_OVERVIEW.md](widgets/AUTH_WIDGETS_OVERVIEW.md) | Password fields, validation |
-| Auth Provider | [AUTH_PROVIDER_PLAN.md](../lib/providers/AUTH_PROVIDER_PLAN.md) | [AUTH_OVERVIEW.md](architecture/AUTH_OVERVIEW.md) | UserProvider implementation |
+| Auth Provider | [AUTH_PROVIDER_PLAN.md](../lib/providers/AUTH_PROVIDER_PLAN.md) | [AUTH_OVERVIEW.md](architecture/AUTH_OVERVIEW.md) | AuthProvider implementation (identity/session); profile editing in ProfileProvider |
 
 ## Additional Documents
 

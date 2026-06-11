@@ -8,16 +8,26 @@
 
 # Authentication Provider Implementation Plan
 
-> **Status (implemented):** This plan has been carried out and significantly extended.
-> The centralized provider exists as **`UserProvider`** in `lib/providers/user_provider.dart`
-> (there is no `AuthProvider` class — `UserProvider` fulfills that role). It is registered
-> **first** in the `MultiProvider` in `lib/main.dart` and is consumed by
-> `ProgressProvider`, `ActivityProvider`, and `BenefitProvider` via
-> `ChangeNotifierProxyProvider`/`updateUserId(...)`. Real authentication (login, register,
-> email verification, token storage, password reset, account deletion, rate limiting) is
-> now implemented on top of `AuthService`/`TokenStorage`, going well beyond the original
-> test-user scope below. The code examples in this document are the original PLAN drafts and
-> may not match the final API exactly — see "Implementation notes" annotations.
+> **Status (implemented, split in Phase 1 / Round 2):** This plan has been carried out,
+> significantly extended, and then **split into two providers**. The former monolithic
+> `UserProvider` (`lib/providers/user_provider.dart`, now removed) has been divided into:
+> - **`AuthProvider`** (`lib/providers/auth_provider.dart`) — identity & sessions: the
+>   current `User`, `userId`, tokens, `isAuthenticated`, plus all auth/account flows
+>   (login, logout, session refresh, register, email verification, password reset,
+>   account deletion, `changePassword`, rate limiting). It is the **single source of
+>   identity truth** and exposes `setCurrentUser(User)` / `refreshUser()` so the profile
+>   layer can sync edits back. Registered **first** in `MultiProvider` (`lib/main.dart`).
+> - **`ProfileProvider`** (`lib/providers/profile_provider.dart`) — editable profile data
+>   (profile fields via `updateUser`, biometrics, preferences). Wired as
+>   `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`; it writes to the
+>   `UserRepository` first (durable) and then calls `AuthProvider.setCurrentUser(...)`.
+>
+> `ProgressProvider`, `ActivityProvider`, and `BenefitProvider` now consume **`AuthProvider`**
+> via `ChangeNotifierProxyProvider<AuthProvider, …>`/`updateUserId(authProvider.userId)`.
+> Real authentication is implemented on top of `AuthService`/`TokenStorage`, going well beyond
+> the original test-user scope below. The code examples in this document are the original PLAN
+> drafts (which used a single `UserProvider`) and do not match the final API exactly — read
+> them as historical design context; the shipped API is `AuthProvider` + `ProfileProvider`.
 
 ## Problem Statement
 The original problem this plan addressed: the app used hardcoded user IDs scattered across
@@ -72,10 +82,11 @@ class UserProvider extends ChangeNotifier {
 }
 ```
 
-> **Implementation note:** In the shipped `UserProvider`, `isAuthenticated` is a computed
-> getter (`_currentUser != null && _currentTokens != null`), not a stored `_isAuthenticated`
-> field, and `_isLoading` defaults to `false`. The constructor takes injected dependencies —
-> `UserProvider({required UserRepository repository, required AuthService authService,
+> **Implementation note:** In the shipped `AuthProvider` (formerly `UserProvider`),
+> `isAuthenticated` is a computed getter (`_currentUser != null && _currentTokens != null`),
+> not a stored `_isAuthenticated` field, and `_isLoading` defaults to `false`. The constructor
+> takes injected dependencies —
+> `AuthProvider({required UserRepository repository, required AuthService authService,
 > required TokenStorage tokenStorage, RateLimiterService? rateLimiter})` — and the implemented
 > `login`/`logout`/`refreshSession` return `Future<bool>`/`Future<void>` rather than the
 > signatures sketched above.
@@ -107,10 +118,11 @@ MultiProvider(
 )
 ```
 
-> **Implementation note:** The shipped `MultiProvider` (`lib/main.dart`, lines ~64-124)
-> registers `UserProvider` first with injected dependencies (no `..initialize()` chained in
-> `create`), followed by `BenefitProvider`, `ProgressProvider`, `ActivityProvider` (all via
-> `ChangeNotifierProxyProvider<UserProvider, …>` calling `updateUserId(userProvider.userId)`),
+> **Implementation note:** The shipped `MultiProvider` (`lib/main.dart`) registers
+> `AuthProvider` first with injected dependencies (no `..initialize()` chained in `create`),
+> then `ProfileProvider` (as `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`),
+> followed by `BenefitProvider`, `ProgressProvider`, `ActivityProvider` (all via
+> `ChangeNotifierProxyProvider<AuthProvider, …>` calling `updateUserId(authProvider.userId)`),
 > plus plain `ChangeNotifierProvider`s for `ConnectivityProvider`, `HealthPlatformProvider`,
 > and `AppLockProvider`.
 
@@ -360,7 +372,7 @@ if (userId == null) return LoadingOrLoginWidget();
 ## Phase 5: Future Enhancements
 
 ### 5.1 Real Authentication — IMPLEMENTED
-- Integrate with UserRepository ✅ (`UserProvider` wraps `UserRepository`)
+- Integrate with UserRepository ✅ (`AuthProvider`/`ProfileProvider` wrap `UserRepository`)
 - Add login/register methods ✅ (`login`, `register`, `verifyEmail`, plus password reset /
   account deletion / change password)
 - Add token management ✅ (`AuthTokens` + `TokenStorage`/`SecureTokenStorage`,
@@ -373,9 +385,9 @@ if (userId == null) return LoadingOrLoginWidget();
 - Protect screens that require authentication (routing via named routes in `main.dart`)
 - Redirect to login if not authenticated ✅ (the `SplashScreen`
   (`lib/presentation/screens/splash/splash_screen.dart` ~44-45) navigates to `/login` after
-  `userProvider.initialize()` when not authenticated). Note: the only `navigatorKey` → `/login`
+  `authProvider.initialize()` when not authenticated). Note: the only `navigatorKey` → `/login`
   navigation in the live app is the app-lock flow `_handlePasswordRequired()` in `main.dart`,
-  not an auth-failure flow; `UserProvider.handleAuthFailure()` exists but is **not** currently
+  not an auth-failure flow; `AuthProvider.handleAuthFailure()` exists but is **not** currently
   called anywhere.
 - Handle token expiration ⚠️ (`AuthInterceptor` implements refresh-on-401 with a `needsRefresh`
   5-min window, but it is **not** wired into the live app — it is never instantiated/registered,

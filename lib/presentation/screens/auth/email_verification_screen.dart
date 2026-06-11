@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
 
 /// Email verification screen - enter 6-digit code
@@ -30,7 +30,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
 
     // Clear any previous errors
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     userProvider.clearError();
 
     // Attempt verification
@@ -44,7 +44,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   /// Handle back button - clear pending registration
   void _handleBack() {
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     userProvider.clearPendingRegistration();
     userProvider.clearError();
     Navigator.of(context).pop();
@@ -63,7 +63,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ),
       ),
       body: SafeArea(
-        child: Consumer<UserProvider>(
+        child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
             // Redirect if no pending registration (and not just verified)
             if (userProvider.pendingRegistrationUserId == null &&

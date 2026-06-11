@@ -497,7 +497,7 @@ Complete the session timeout service from Sprint 6 security.
 - [ ] Complete `session_timeout_service.dart`
 - [ ] Warning dialog component
 - [ ] Updated `main.dart` with gesture detector
-- [ ] Integration with `UserProvider` for logout
+- [ ] Integration with `AuthProvider` for logout
 - [ ] Unit tests for timeout logic
 - [ ] Integration tests for full flow
 

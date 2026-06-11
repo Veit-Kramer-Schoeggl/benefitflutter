@@ -12,7 +12,7 @@ class ProgressProvider extends ChangeNotifier {
 
   final SessionRepository _sessionRepository;
 
-  // Dynamic user ID (set via ProxyProvider from UserProvider)
+  // Dynamic user ID (set via ProxyProvider from AuthProvider)
   String? _userId;
 
   // List of manually entered activities (for persistence)
@@ -41,7 +41,7 @@ class ProgressProvider extends ChangeNotifier {
   // ===================== USER ID MANAGEMENT =====================
 
   /// Updates the user ID and reloads activities when user changes.
-  /// Called by ProxyProvider when UserProvider's userId changes.
+  /// Called by ProxyProvider when AuthProvider's userId changes.
   void updateUserId(String? newUserId) {
     if (_userId != newUserId) {
       _userId = newUserId;

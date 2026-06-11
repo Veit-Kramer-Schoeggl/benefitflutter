@@ -6,8 +6,6 @@ import 'package:benefitflutter/features/user/data/user_repository.dart';
 import 'package:benefitflutter/features/auth/data/auth_service.dart';
 import 'package:benefitflutter/features/auth/data/token_storage.dart';
 import 'package:benefitflutter/features/auth/domain/auth_tokens.dart';
-import 'package:benefitflutter/features/user/domain/user_biometrics_reported.dart';
-import 'package:benefitflutter/features/user/domain/user_preferences.dart';
 import 'package:benefitflutter/features/security/services/rate_limiter_service.dart';
 
 /// Provider for user authentication state management
@@ -17,13 +15,13 @@ import 'package:benefitflutter/features/security/services/rate_limiter_service.d
 /// - Session persistence via TokenStorage (secure)
 /// - Current user state for other providers
 /// - Token refresh handling
-class UserProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier {
   final UserRepository _repository;
   final AuthService _authService;
   final TokenStorage _tokenStorage;
   final RateLimiterService _rateLimiter;
 
-  UserProvider({
+  AuthProvider({
     required UserRepository repository,
     required AuthService authService,
     required TokenStorage tokenStorage,
@@ -132,11 +130,11 @@ class UserProvider extends ChangeNotifier {
       final tokens = await _tokenStorage.getTokens();
 
       if (tokens != null) {
-        AppLogger.d('UserProvider: Found stored tokens');
+        AppLogger.d('AuthProvider: Found stored tokens');
 
         // Check if tokens are expired
         if (tokens.isExpired) {
-          AppLogger.d('UserProvider: Tokens expired, attempting refresh');
+          AppLogger.d('AuthProvider: Tokens expired, attempting refresh');
           try {
             final newTokens = await _authService.refreshToken(
               tokens.refreshToken,
@@ -144,7 +142,7 @@ class UserProvider extends ChangeNotifier {
             await _tokenStorage.saveTokens(newTokens);
             _currentTokens = newTokens;
           } catch (e) {
-            AppLogger.e('UserProvider: Token refresh failed - $e');
+            AppLogger.e('AuthProvider: Token refresh failed - $e');
             await _tokenStorage.clearTokens();
             _currentUser = null;
             _currentTokens = null;
@@ -162,17 +160,17 @@ class UserProvider extends ChangeNotifier {
         if (userId != null) {
           _currentUser = await _repository.getUserById(userId);
           AppLogger.d(
-            'UserProvider: Restored session for ${_currentUser?.name}',
+            'AuthProvider: Restored session for ${_currentUser?.name}',
           );
         }
       } else {
-        AppLogger.d('UserProvider: No stored session found');
+        AppLogger.d('AuthProvider: No stored session found');
         _currentUser = null;
       }
 
       _error = null;
     } catch (e) {
-      AppLogger.e('UserProvider: Error initializing - $e');
+      AppLogger.e('AuthProvider: Error initializing - $e');
       _error = 'Failed to restore session: $e';
       _currentUser = null;
       _currentTokens = null;
@@ -266,7 +264,7 @@ class UserProvider extends ChangeNotifier {
         _currentUser = await _repository.getUserById(result.userId!);
       } catch (e) {
         // User exists in auth but not in local database
-        AppLogger.e('UserProvider: User not found in database - $e');
+        AppLogger.e('AuthProvider: User not found in database - $e');
         _error = 'No account found with this email';
         await _tokenStorage.clearTokens();
         _currentTokens = null;
@@ -287,13 +285,13 @@ class UserProvider extends ChangeNotifier {
       // Reset rate limiter on successful login
       await _rateLimiter.resetOnSuccess();
 
-      AppLogger.d('UserProvider: Login successful for ${_currentUser!.name}');
+      AppLogger.d('AuthProvider: Login successful for ${_currentUser!.name}');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      AppLogger.e('UserProvider: Login error - $e');
+      AppLogger.e('AuthProvider: Login error - $e');
       // Record failed attempt for unexpected errors
       await _rateLimiter.recordFailedAttempt();
       // Show user-friendly error instead of technical details
@@ -322,7 +320,7 @@ class UserProvider extends ChangeNotifier {
       try {
         await _authService.logout(_currentTokens?.accessToken);
       } catch (e) {
-        AppLogger.e('UserProvider: Server logout failed (ignored) - $e');
+        AppLogger.e('AuthProvider: Server logout failed (ignored) - $e');
       }
 
       // Clear secure storage
@@ -333,9 +331,9 @@ class UserProvider extends ChangeNotifier {
       _currentTokens = null;
       _error = null;
 
-      AppLogger.d('UserProvider: Logout successful');
+      AppLogger.d('AuthProvider: Logout successful');
     } catch (e) {
-      AppLogger.e('UserProvider: Logout error - $e');
+      AppLogger.e('AuthProvider: Logout error - $e');
       // Still clear local state even if storage fails
       _currentUser = null;
       _currentTokens = null;
@@ -362,50 +360,20 @@ class UserProvider extends ChangeNotifier {
       await _tokenStorage.saveTokens(newTokens);
       _currentTokens = newTokens;
       notifyListeners();
-      AppLogger.d('UserProvider: Session refreshed');
+      AppLogger.d('AuthProvider: Session refreshed');
       return true;
     } on AuthException catch (e) {
-      AppLogger.e('UserProvider: Session refresh failed - ${e.message}');
+      AppLogger.e('AuthProvider: Session refresh failed - ${e.message}');
       // Refresh failed - need to re-login
       await logout();
       return false;
     }
   }
 
-  /// Update current user profile
-  ///
-  /// Updates both local state and repository.
-  Future<bool> updateUser(User updatedUser) async {
-    if (_currentUser == null) {
-      _error = 'No user logged in';
-      notifyListeners();
-      return false;
-    }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      await _repository.updateUser(updatedUser);
-      _currentUser = updatedUser;
-      _error = null;
-      AppLogger.d('UserProvider: Updated user ${updatedUser.name}');
-      return true;
-    } catch (e) {
-      _error = 'Failed to update profile: $e';
-      AppLogger.e('UserProvider: Update error - $e');
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   /// Clear any error state
   void clearError() {
     if (_error != null) {
-      AppLogger.d('UserProvider: clearError() - clearing error: $_error');
+      AppLogger.d('AuthProvider: clearError() - clearing error: $_error');
     }
     _error = null;
     notifyListeners();
@@ -436,7 +404,7 @@ class UserProvider extends ChangeNotifier {
     try {
       return await _authService.checkEmailAvailability(trimmedEmail);
     } catch (e) {
-      AppLogger.e('UserProvider: Email availability check failed - $e');
+      AppLogger.e('AuthProvider: Email availability check failed - $e');
       return true; // On error, allow to proceed (server will validate)
     }
   }
@@ -450,7 +418,7 @@ class UserProvider extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    AppLogger.d('UserProvider: register() called');
+    AppLogger.d('AuthProvider: register() called');
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -483,7 +451,7 @@ class UserProvider extends ChangeNotifier {
 
       if (!result.success) {
         AppLogger.d(
-          'UserProvider: register() failed with error: ${result.error}',
+          'AuthProvider: register() failed with error: ${result.error}',
         );
         _error = result.error ?? 'Registration failed';
         _isLoading = false;
@@ -499,7 +467,7 @@ class UserProvider extends ChangeNotifier {
       _pendingVerificationCode = result.verificationCode;
 
       AppLogger.d(
-        'UserProvider: Registration successful (verification code issued)',
+        'AuthProvider: Registration successful (verification code issued)',
       );
       _error = null;
       _isLoading = false;
@@ -508,7 +476,7 @@ class UserProvider extends ChangeNotifier {
       // Return verification code for UI to display
       return result.verificationCode;
     } catch (e) {
-      AppLogger.e('UserProvider: Registration error - $e');
+      AppLogger.e('AuthProvider: Registration error - $e');
       _error = 'Registration failed: $e';
       _isLoading = false;
       notifyListeners();
@@ -557,9 +525,9 @@ class UserProvider extends ChangeNotifier {
 
       try {
         await _repository.createUser(newUser);
-        AppLogger.d('UserProvider: Created new user in repository');
+        AppLogger.d('AuthProvider: Created new user in repository');
       } catch (e) {
-        AppLogger.e('UserProvider: Could not create user in repository - $e');
+        AppLogger.e('AuthProvider: Could not create user in repository - $e');
         // Continue anyway - user might already exist
       }
 
@@ -579,14 +547,14 @@ class UserProvider extends ChangeNotifier {
       _pendingVerificationCode = null;
 
       AppLogger.d(
-        'UserProvider: Verification successful for ${_currentUser?.name}',
+        'AuthProvider: Verification successful for ${_currentUser?.name}',
       );
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      AppLogger.e('UserProvider: Verification error - $e');
+      AppLogger.e('AuthProvider: Verification error - $e');
       _error = 'Verification failed: $e';
       _isLoading = false;
       notifyListeners();
@@ -637,7 +605,7 @@ class UserProvider extends ChangeNotifier {
       _pendingDeletionEmail = result.email;
 
       AppLogger.d(
-        'UserProvider: Account deletion requested (confirmation code issued)',
+        'AuthProvider: Account deletion requested (confirmation code issued)',
       );
       _error = null;
       _isLoading = false;
@@ -645,7 +613,7 @@ class UserProvider extends ChangeNotifier {
 
       return result.deletionCode;
     } catch (e) {
-      AppLogger.e('UserProvider: Account deletion request error - $e');
+      AppLogger.e('AuthProvider: Account deletion request error - $e');
       _error = 'Failed to request account deletion: $e';
       _isLoading = false;
       notifyListeners();
@@ -697,12 +665,12 @@ class UserProvider extends ChangeNotifier {
       _pendingDeletionEmail = null;
       _error = null;
 
-      AppLogger.d('UserProvider: Account deleted successfully');
+      AppLogger.d('AuthProvider: Account deleted successfully');
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      AppLogger.e('UserProvider: Account deletion error - $e');
+      AppLogger.e('AuthProvider: Account deletion error - $e');
       _error = 'Failed to delete account: $e';
       _isLoading = false;
       notifyListeners();
@@ -724,27 +692,23 @@ class UserProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<UserBiometricsReported?> getLatestBiometrics(String userId) {
-    return _repository.getLatestBiometrics(userId);
-  }
-
-  Future<UserPreferences?> getPreferences(String userId) {
-    return _repository.getPreferences(userId);
-  }
-
-  Future<void> saveBiometrics(UserBiometricsReported biometrics) {
-    return _repository.saveBiometrics(biometrics);
-  }
-
-  Future<void> savePreferences(UserPreferences prefs) {
-    return _repository.savePreferences(prefs);
-  }
-
   Future<void> refreshUser() async {
     if (_currentUser == null) return;
 
     final refreshedUser = await _repository.getUserById(_currentUser!.id);
     _currentUser = refreshedUser;
+    notifyListeners();
+  }
+
+  /// Replace the in-memory current user (e.g. after a profile edit performed by
+  /// ProfileProvider). AuthProvider remains the single source of identity.
+  ///
+  /// Skips the rebuild only when the exact same instance is set again. We must
+  /// NOT use `==` here: [User.==] compares by `id` only, so a profile edit
+  /// (same id, changed fields) would be silently dropped and never propagate.
+  void setCurrentUser(User user) {
+    if (identical(_currentUser, user)) return;
+    _currentUser = user;
     notifyListeners();
   }
 
@@ -781,14 +745,14 @@ class UserProvider extends ChangeNotifier {
       _pendingResetEmail = result.email;
       _pendingResetCode = result.resetCode;
 
-      AppLogger.d('UserProvider: Password reset requested (reset code issued)');
+      AppLogger.d('AuthProvider: Password reset requested (reset code issued)');
       _error = null;
       _isLoading = false;
       notifyListeners();
 
       return result.resetCode;
     } catch (e) {
-      AppLogger.e('UserProvider: Password reset request error - $e');
+      AppLogger.e('AuthProvider: Password reset request error - $e');
       _error = 'Failed to request password reset: $e';
       _isLoading = false;
       notifyListeners();
@@ -831,13 +795,13 @@ class UserProvider extends ChangeNotifier {
       _pendingResetEmail = null;
       _pendingResetCode = null;
 
-      AppLogger.d('UserProvider: Password reset successful');
+      AppLogger.d('AuthProvider: Password reset successful');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      AppLogger.e('UserProvider: Password reset error - $e');
+      AppLogger.e('AuthProvider: Password reset error - $e');
       _error = 'Failed to reset password: $e';
       _isLoading = false;
       notifyListeners();
@@ -894,13 +858,13 @@ class UserProvider extends ChangeNotifier {
       await _repository.updateUser(updatedUser);
       _currentUser = updatedUser;
 
-      AppLogger.d('UserProvider: Password changed successfully');
+      AppLogger.d('AuthProvider: Password changed successfully');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      AppLogger.e('UserProvider: Password change error - $e');
+      AppLogger.e('AuthProvider: Password change error - $e');
       _error = 'Failed to change password: $e';
       _isLoading = false;
       notifyListeners();

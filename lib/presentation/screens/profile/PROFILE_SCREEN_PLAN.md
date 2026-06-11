@@ -10,8 +10,12 @@
 
 > **⚠️ Implementation status (current code):** This is the original forward-looking
 > plan. The Profile Screen was ultimately built **differently** from the design below:
-> - There is **no** `ProfileProvider` and **no** `lib/providers/profile_provider.dart`.
->   The screen uses the existing **`UserProvider`** plus local widget state instead.
+> - A `ProfileProvider` (`lib/providers/profile_provider.dart`) **now exists** (added in
+>   Phase 1 / Round 2 when the monolithic `UserProvider` was split into `AuthProvider` +
+>   `ProfileProvider`), but it is a thin data-ops provider (`updateUser`, biometrics,
+>   preferences) — **not** the edit-mode/view-model design below. The screen reads identity
+>   (`currentUser`) from **`AuthProvider`** and its editable data from `ProfileProvider`,
+>   plus local widget state.
 > - There is **no** edit-mode toggle (`_isEditing` / Edit / Cancel). Editing happens
 >   via selection cards, a settings dialog, and a persistent **Save Changes** button.
 > - The screen's **Save Changes** button persists `displayName`/`gender` (plus
@@ -127,9 +131,11 @@ User updatedUser = user.copyWith(displayName: 'John');
 ### 2️⃣ **ProfileProvider** (PLANNED — not implemented)
 **File**: `lib/providers/profile_provider.dart`
 
-> **Status:** This provider was never created. The shipped screen relies on the
-> existing `lib/providers/user_provider.dart` (`UserProvider`) and local widget
-> state instead. The design below is kept as the original plan.
+> **Status:** The view-model-style provider designed below was never created. A
+> different, thinner `ProfileProvider` (`lib/providers/profile_provider.dart`) was
+> added later in Phase 1 / Round 2 (data ops: `updateUser`, biometrics, preferences);
+> identity/auth lives in `AuthProvider` (`lib/providers/auth_provider.dart`). The
+> design below is kept as the original plan.
 
 **What it does:**
 - Load user data
@@ -292,7 +298,8 @@ class ProfileProvider extends ChangeNotifier {
 **File**: `lib/presentation/screens/profile/profile_screen.dart`
 
 > **Status:** The file exists, but the actual implementation differs from the code
-> below. It is a `StatefulWidget` that reads `currentUser` from `UserProvider`,
+> below. It is a `StatefulWidget` that reads `currentUser` from `AuthProvider` and
+> editable data from `ProfileProvider`,
 > loads biometrics and preferences in `_loadProfileData()`, and saves via
 > `_saveProfileData()` (Save Changes button) rather than an edit-mode toggle.
 > The sketch below is the original plan.
@@ -801,8 +808,9 @@ Consumer<ProfileProvider>(
 ## Checklist
 
 > **Status:** The Profile Screen is implemented, but **not** via this checklist's
-> approach. Phase 1 (separate `ProfileProvider`) and Phase 2 (register it in
-> `main.dart`) were **not** done — the screen uses `UserProvider` instead. Phase 3+
+> approach. Phase 1/2 below describe a view-model-style `ProfileProvider`; the shipped
+> `ProfileProvider` (added in Round 2) is a thinner data-ops provider, and identity comes
+> from `AuthProvider`. Phase 3+
 > (the screen, save feedback, profile-picture upload, change password) shipped in a
 > different form. Items remain unchecked because they describe the original plan, not
 > the delivered implementation.

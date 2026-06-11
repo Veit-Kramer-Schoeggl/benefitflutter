@@ -7,7 +7,7 @@ import 'package:benefitflutter/providers/health_platform_provider.dart';
 import 'package:benefitflutter/features/wearable_integration/data/sources/ble_data_source.dart';
 import 'package:benefitflutter/features/wearable_integration/domain/wearable_device.dart';
 import 'package:benefitflutter/features/wearable_integration/domain/enums.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'device_pairing_screen.dart';
 
 /// Device Connection Screen - Main hub for wearable device management
@@ -309,7 +309,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                         : () async {
                             if (isConnected) {
                               // Sync data if already connected
-                              final userProvider = context.read<UserProvider>();
+                              final userProvider = context.read<AuthProvider>();
                               final userId = userProvider.userId;
                               if (userId == null) return;
                               await healthProvider.syncAll(userId);
