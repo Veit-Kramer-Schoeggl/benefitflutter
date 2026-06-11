@@ -495,42 +495,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Test credentials hint
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue[200]!),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Test Credentials',
-                                style: TextStyle(
-                                  color: Colors.blue[700],
-                                  fontWeight: FontWeight.bold,
+                    // Test credentials hint — debug builds only, never shipped in release.
+                    // The seeded test accounts only exist when seeding runs (kDebugMode),
+                    // so this hint must not be visible to public/release users.
+                    if (kDebugMode) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Test Credentials',
+                                  style: TextStyle(
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'User 1: test@gmail.com / 1234\nUser 2: test2@gmail.com / 1234',
-                            style: TextStyle(
-                              color: Colors.blue[700],
-                              fontFamily: 'monospace',
+                              ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              'User 1: test@gmail.com / 1234\nUser 2: test2@gmail.com / 1234',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Create account link
                     Row(
