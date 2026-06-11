@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
@@ -28,26 +30,29 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // Step 2: Initialize AuthProvider (checks for stored session)
       setState(() => _status = 'Checking session...');
+      if (!mounted) return;
       final userProvider = context.read<AuthProvider>();
       await userProvider.initialize();
 
       // Step 3: Navigate based on auth status
-      if (mounted) {
-        final isAuthenticated = userProvider.isAuthenticated;
+      if (!mounted) return;
+      final isAuthenticated = userProvider.isAuthenticated;
 
-        if (isAuthenticated) {
-          setState(
-            () => _status =
-                'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!',
-          );
-          await Future.delayed(const Duration(milliseconds: 500));
-        }
+      if (isAuthenticated) {
+        setState(
+          () => _status =
+              'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!',
+        );
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
 
-        // Navigate to appropriate screen
+      // Navigate to appropriate screen (fire-and-forget route future)
+      if (!mounted) return;
+      unawaited(
         Navigator.of(
           context,
-        ).pushReplacementNamed(isAuthenticated ? '/home' : '/login');
-      }
+        ).pushReplacementNamed(isAuthenticated ? '/home' : '/login'),
+      );
     } catch (e) {
       // Handle errors
       debugPrint('SplashScreen error: $e');
@@ -55,8 +60,8 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
-        // On error, go to login screen
-        Navigator.of(context).pushReplacementNamed('/login');
+        // On error, go to login screen (fire-and-forget route future)
+        unawaited(Navigator.of(context).pushReplacementNamed('/login'));
       }
     }
   }

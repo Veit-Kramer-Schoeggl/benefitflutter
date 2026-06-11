@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -91,8 +93,8 @@ class _BenefitScreenState extends State<BenefitScreen> {
           ),
         );
 
-      // Step 5: Refresh the benefits list
-      context.read<BenefitProvider>().fetchBenefits();
+      // Step 5: Refresh the benefits list (fire-and-forget)
+      unawaited(context.read<BenefitProvider>().fetchBenefits());
     } catch (e) {
       // Step 6: Show error message
       if (!mounted) return;

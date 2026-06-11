@@ -122,7 +122,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       final provider = context.read<ActivityProvider>();
       await provider.stopSession();
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Session saved!"),

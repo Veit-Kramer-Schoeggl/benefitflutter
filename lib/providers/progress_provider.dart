@@ -98,7 +98,7 @@ class ProgressProvider extends ChangeNotifier {
   Future<void> removeActivity(ActivityEntry entry) async {
     if (entry.isManual) {
       _manualEntries.removeWhere((e) => e.sessionId == entry.sessionId);
-      saveManualEntriesToPrefs();
+      unawaited(saveManualEntriesToPrefs());
 
       _recombineAndSortActivities();
       notifyListeners();
@@ -106,8 +106,8 @@ class ProgressProvider extends ChangeNotifier {
       // Assumption: deleteSession method needs the session ID
       await _sessionRepository.deleteSession(entry.sessionId);
 
-      // Reload after deletion
-      loadActivities();
+      // Reload after deletion (fire-and-forget)
+      unawaited(loadActivities());
     }
   }
 

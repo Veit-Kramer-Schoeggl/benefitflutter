@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -160,12 +161,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       setState(() => _isSaving = true);
 
+      // Capture the provider once, before any await, so we never reach for
+      // `context` across an async gap below.
+      final profile = context.read<ProfileProvider>();
+
       // Update user (display_name, gender)
       final updatedUser = _currentUser!.copyWith(
         displayName: displayName,
         gender: selectedGender != null ? _parseGender(selectedGender!) : null,
       );
-      await context.read<ProfileProvider>().updateUser(updatedUser);
+      await profile.updateUser(updatedUser);
 
       // Update or create biometrics if height/weight changed
       final heightCm = _parseHeight(selectedHeight);
@@ -181,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           createdAt: _currentBiometrics?.createdAt ?? DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        await context.read<ProfileProvider>().saveBiometrics(biometrics);
+        await profile.saveBiometrics(biometrics);
       }
 
       // Update or create preferences (country)
@@ -190,9 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           defaultLocationCity: country,
           updatedAt: DateTime.now(),
         );
-        await context.read<ProfileProvider>().savePreferences(
-          updatedPreferences,
-        );
+        await profile.savePreferences(updatedPreferences);
       } else {
         // Create new preferences
         final newPreferences = UserPreferences(
@@ -202,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );
-        await context.read<ProfileProvider>().savePreferences(newPreferences);
+        await profile.savePreferences(newPreferences);
       }
 
       setState(() => _isSaving = false);
@@ -524,11 +527,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final authProvider = context.read<AuthProvider>();
       await authProvider.logout();
 
-      // Navigate to login screen
+      // Navigate to login screen (fire-and-forget route future)
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        unawaited(
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/login', (route) => false),
+        );
       }
     }
   }
@@ -546,6 +551,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Pick profile image from gallery
   // ----------------------------------------------------------
   Future<void> _pickImageFromGallery() async {
+    // Capture the provider before any await (no context across async gaps).
+    final profile = context.read<ProfileProvider>();
     // Constrain the picked image so we don't load/store a full ~12MP photo
     // for a small avatar (memory + future upload bandwidth).
     final XFile? image = await _picker.pickImage(
@@ -567,7 +574,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedUser = _currentUser!.copyWith(profileImagePath: savedPath);
 
       // Save to DB
-      await context.read<ProfileProvider>().updateUser(updatedUser);
+      await profile.updateUser(updatedUser);
 
       // Update local state
       setState(() {
@@ -897,6 +904,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _isSaving = true);
 
         final updatedUser = _currentUser!.copyWith(email: newEmail);
+        if (!mounted) return;
         await context.read<ProfileProvider>().updateUser(updatedUser);
 
         setState(() {
@@ -954,6 +962,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         verificationStatus: "verified",
       );
 
+      if (!mounted) return;
       await context.read<ProfileProvider>().updateUser(updatedUser);
 
       setState(() {
@@ -1125,7 +1134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _currentUser = authProvider.currentUser;
                       });
 
-                      Navigator.pop(dialogContext);
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
                       if (mounted) {
                         ScaffoldMessenger.of(this.context).showSnackBar(
                           const SnackBar(
@@ -1213,6 +1222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (proceedToVerification != true || _currentUser == null) return;
+    if (!mounted) return;
 
     // Request deletion code
     setState(() => _isSaving = true);
@@ -1311,11 +1321,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
 
                       // Success - navigate to login
-                      Navigator.pop(dialogContext);
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
                       if (mounted) {
-                        Navigator.of(
-                          this.context,
-                        ).pushNamedAndRemoveUntil('/login', (route) => false);
+                        unawaited(
+                          Navigator.of(
+                            this.context,
+                          ).pushNamedAndRemoveUntil('/login', (route) => false),
+                        );
                       }
                     },
               child: isLoading

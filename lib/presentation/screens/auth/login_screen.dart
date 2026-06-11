@@ -97,8 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      // Navigate to home on success
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Navigate to home on success (fire-and-forget route future)
+      unawaited(Navigator.of(context).pushReplacementNamed('/home'));
     } else if (mounted) {
       // Check if now locked out after failed attempt
       final isLocked = await userProvider.rateLimiter.isLockedOut();

@@ -73,7 +73,7 @@ class _ProgressScreenState extends State<ProgressScreen>
 
   Future<void> _selectDateTime(
     BuildContext context,
-    Function setDialogState,
+    StateSetter setDialogState,
   ) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -83,6 +83,7 @@ class _ProgressScreenState extends State<ProgressScreen>
     );
 
     if (pickedDate != null) {
+      if (!context.mounted) return;
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(_selectedStartTime),

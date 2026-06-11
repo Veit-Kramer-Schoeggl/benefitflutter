@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
@@ -37,8 +39,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final success = await userProvider.verifyEmail(_codeController.text);
 
     if (success && mounted) {
-      // Navigate to home on success
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Navigate to home on success (fire-and-forget route future)
+      unawaited(Navigator.of(context).pushReplacementNamed('/home'));
     }
   }
 
