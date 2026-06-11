@@ -1,6 +1,7 @@
 import '../domain/session.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
+import 'package:benefitflutter/features/wearable_integration/domain/sensor_data_point.dart';
 
 /// Repository interface for session data operations
 /// Both MockSessionRepository and ApiSessionRepository implement this
@@ -28,6 +29,13 @@ abstract class SessionRepository {
 
   /// Update an existing session
   Future<void> updateSession(Session session);
+
+  /// Atomically persist a completed session and its optional sensor [summary]
+  /// in one DB transaction, then sync (outside the transaction).
+  Future<void> finalizeSession(
+    Session completed, {
+    SessionSensorSummary? summary,
+  });
 
   /// Delete a session
   Future<void> deleteSession(String sessionId);

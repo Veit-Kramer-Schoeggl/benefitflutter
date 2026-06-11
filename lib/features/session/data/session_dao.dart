@@ -120,8 +120,8 @@ class SessionDao {
   }
 
   /// Update existing session
-  Future<void> update(Session session) async {
-    final db = await _dbHelper.database;
+  Future<void> update(Session session, {DatabaseExecutor? executor}) async {
+    final db = executor ?? await _dbHelper.database;
     await db.update(
       'sessions',
       _toMap(session),

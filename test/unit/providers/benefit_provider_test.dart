@@ -3,6 +3,7 @@ import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/features/benefit/data/benefit_repository.dart';
 import 'package:benefitflutter/features/benefit/domain/benefit.dart';
 import 'package:benefitflutter/features/benefit/domain/user_benefit.dart';
+import 'package:benefitflutter/features/benefit/domain/benefit_partner.dart';
 import '../../helpers/mock_data.dart';
 
 /// Mock BenefitRepository for controlled testing
@@ -50,6 +51,20 @@ class MockBenefitRepositoryForTest implements BenefitRepository {
     mockUserBenefits.add(userBenefit);
     return userBenefit;
   }
+
+  @override
+  Future<List<BenefitPartner>> getPartnersForBenefit(String benefitId) async {
+    if (shouldThrowError) throw Exception(errorMessage);
+    return [];
+  }
+
+  @override
+  Future<void> redeemBenefit({
+    required String userBenefitId,
+    required String redemptionCode,
+  }) async {
+    if (shouldThrowError) throw Exception(errorMessage);
+  }
 }
 
 void main() {
@@ -58,10 +73,14 @@ void main() {
     late MockBenefitRepositoryForTest mockRepository;
     const testUserId = 'test-user-123';
 
-    setUp(() {
+    setUp(() async {
       // Reset mock repository before each test
       mockRepository = MockBenefitRepositoryForTest();
       provider = BenefitProvider(mockRepository);
+      // Set the user (the ProxyProvider hook). This triggers an initial
+      // (empty) fetch — wait for it to settle so each test starts clean.
+      provider.updateUserId(testUserId);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
     });
 
     group('Initial State', () {
@@ -93,7 +112,7 @@ void main() {
         });
 
         // Act
-        final future = provider.fetchBenefits(testUserId);
+        final future = provider.fetchBenefits();
 
         // Assert - loading state should be true immediately
         expect(provider.isLoading, true);
@@ -121,7 +140,7 @@ void main() {
         mockRepository.errorMessage = 'Network error';
 
         // Act
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert
         expect(provider.isLoading, false);
@@ -135,7 +154,7 @@ void main() {
       test('should reset error state when fetching again', () async {
         // Arrange - first call fails
         mockRepository.shouldThrowError = true;
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
         expect(provider.hasError, true);
 
         // Act - second call succeeds
@@ -144,7 +163,7 @@ void main() {
         mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
           userId: testUserId,
         );
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert - error should be cleared
         expect(provider.hasError, false);
@@ -169,7 +188,7 @@ void main() {
         ];
 
         // Act
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert - check view model has correct joined data
         final viewModel = provider.earnedBenefits.first;
@@ -189,7 +208,7 @@ void main() {
         ];
 
         // Act
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert - should create fallback benefit
         final viewModel = provider.earnedBenefits.first;
@@ -206,10 +225,10 @@ void main() {
         mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
           userId: testUserId,
         );
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Act - refresh
-        final future = provider.refresh(testUserId);
+        final future = provider.refresh();
 
         // Assert - refreshing state should be true
         expect(provider.isRefreshing, true);
@@ -229,14 +248,14 @@ void main() {
           userId: testUserId,
         );
         mockRepository.mockTotalSavings = 15.0;
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         final initialBenefitsCount = provider.earnedBenefits.length;
         final initialSavings = provider.totalSavings;
 
         // Act - refresh fails
         mockRepository.shouldThrowError = true;
-        await provider.refresh(testUserId);
+        await provider.refresh();
 
         // Assert - data should remain unchanged
         expect(provider.isRefreshing, false);
@@ -248,7 +267,7 @@ void main() {
       test('should clear error on successful refresh', () async {
         // Arrange - provider in error state
         mockRepository.shouldThrowError = true;
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
         expect(provider.hasError, true);
 
         // Act - successful refresh
@@ -257,7 +276,7 @@ void main() {
         mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
           userId: testUserId,
         );
-        await provider.refresh(testUserId);
+        await provider.refresh();
 
         // Assert - error should be cleared
         expect(provider.hasError, false);
@@ -269,7 +288,7 @@ void main() {
       test('should retry fetching benefits', () async {
         // Arrange - initial failure
         mockRepository.shouldThrowError = true;
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
         expect(provider.hasError, true);
 
         // Act - retry with success
@@ -278,7 +297,7 @@ void main() {
         mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
           userId: testUserId,
         );
-        await provider.retry(testUserId);
+        await provider.retry();
 
         // Assert
         expect(provider.hasError, false);
@@ -299,7 +318,7 @@ void main() {
         );
 
         // Act
-        final future = provider.fetchBenefits(testUserId);
+        final future = provider.fetchBenefits();
 
         // Assert - while loading
         expect(provider.isEmpty, false);
@@ -315,7 +334,7 @@ void main() {
         );
 
         // Act
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert
         expect(provider.isEmpty, false);
@@ -336,7 +355,7 @@ void main() {
         });
 
         // Act
-        await provider.fetchBenefits(testUserId);
+        await provider.fetchBenefits();
 
         // Assert - should notify at least twice (loading start, loading end)
         expect(notificationCount, greaterThanOrEqualTo(2));

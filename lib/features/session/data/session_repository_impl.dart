@@ -3,6 +3,9 @@ import 'session_repository.dart';
 import 'session_dao.dart';
 import 'session_sync_strategy.dart';
 import '../../shared/utils/connectivity_service.dart';
+import '../../shared/database/database_helper.dart';
+import '../../wearable_integration/data/daos/session_sensor_summary_dao.dart';
+import '../../wearable_integration/domain/sensor_data_point.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 
@@ -21,14 +24,17 @@ class SessionRepositoryImpl implements SessionRepository {
   final SessionDao _dao;
   final SessionSyncStrategy _syncStrategy;
   final ConnectivityService _connectivity;
+  final SessionSensorSummaryDao _summaryDao;
 
   SessionRepositoryImpl({
     required SessionDao dao,
     required SessionSyncStrategy syncStrategy,
     required ConnectivityService connectivity,
+    SessionSensorSummaryDao? summaryDao,
   }) : _dao = dao,
        _syncStrategy = syncStrategy,
-       _connectivity = connectivity;
+       _connectivity = connectivity,
+       _summaryDao = summaryDao ?? SessionSensorSummaryDao();
 
   /// Factory constructor with default dependencies
   factory SessionRepositoryImpl.create() {
@@ -98,6 +104,27 @@ class SessionRepositoryImpl implements SessionRepository {
     } else {
       // Active/paused sessions: stay local, no sync yet
       // Will sync when they transition to completed
+    }
+  }
+
+  @override
+  Future<void> finalizeSession(
+    Session completed, {
+    SessionSensorSummary? summary,
+  }) async {
+    // Persist the session row + its optional sensor summary atomically, so a
+    // crash can't leave a completed session without its summary (or vice versa).
+    final db = await DatabaseHelper().database;
+    await db.transaction((txn) async {
+      await _dao.update(completed, executor: txn);
+      if (summary != null) {
+        await _summaryDao.upsert(summary, executor: txn);
+      }
+    });
+
+    // Network sync only AFTER the durable commit (kept out of the transaction).
+    if (completed.status == SessionStatus.completed) {
+      await _syncCompletedSession(completed);
     }
   }
 

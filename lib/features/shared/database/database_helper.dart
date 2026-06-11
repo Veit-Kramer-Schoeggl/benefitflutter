@@ -25,21 +25,37 @@ class DatabaseHelper {
     return _database!;
   }
 
+  /// Current schema version.
+  static const int dbVersion = 12;
+
   /// Initialize the database
   Future<Database> _initDatabase() async {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, 'benefit_app.db');
 
-    final db = await openDatabase(
-      path,
-      version: 11,
-      onConfigure: _onConfigure,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
-
+    final db = await openAppDatabase(databaseFactory, path);
     await _logForeignKeyViolations(db);
     return db;
+  }
+
+  /// Open the app database with the given [factory]/[path], wiring the real
+  /// onConfigure/onCreate/onUpgrade. Exposed for migration tests; production
+  /// uses the default sqflite [databaseFactory].
+  @visibleForTesting
+  Future<Database> openAppDatabase(
+    DatabaseFactory factory,
+    String path, {
+    int version = dbVersion,
+  }) {
+    return factory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: version,
+        onConfigure: _onConfigure,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      ),
+    );
   }
 
   /// Enable foreign-key enforcement. PRAGMA foreign_keys is per-connection and
@@ -197,10 +213,87 @@ class DatabaseHelper {
       await _migrateToV10(db);
     }
 
-    // v10 → v11: Add continuous tracking tables
+    // v10 → v11: Add continuous tracking tables.
+    // Single source of truth: the same idempotent creator used by onCreate.
     if (oldVersion < 11) {
-      await _migrateToV11(db);
+      await _createContinuousTrackingTables(db);
     }
+
+    // v11 → v12: data integrity — orphan cleanup, email dedup, UNIQUE email.
+    if (oldVersion < 12) {
+      await _migrateToV12(db);
+    }
+  }
+
+  /// Migration v11 → v12: data-integrity hardening.
+  ///
+  /// 1) Delete orphan child rows left over from before FK enforcement.
+  /// 2) De-duplicate users by email WITHOUT losing history: re-parent the
+  ///    duplicate's sessions/user_benefits to the kept (newest) user, then
+  ///    delete the duplicate (FK cascade removes its redundant singleton rows).
+  /// 3) Replace the non-unique email index with a UNIQUE one.
+  Future<void> _migrateToV12(Database db) async {
+    // (1) Orphan cleanup — children whose required parent is gone. Remove
+    //     session-children first, then orphan sessions (cascades clean their
+    //     valid children), then orphan user-owned rows.
+    const orphanDeletes = <String>[
+      'DELETE FROM gps_points WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM activity_segments WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_biometric_data WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_motion_data WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_sensor_summary WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM user_benefits WHERE user_id NOT IN (SELECT id FROM users) '
+          'OR benefit_id NOT IN (SELECT id FROM benefits) '
+          'OR session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM sessions WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM wearable_devices WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM health_platform_data WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM user_preferences WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM user_biometrics_reported WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM continuous_tracking_config WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM continuous_tracking_state WHERE user_id NOT IN (SELECT id FROM users)',
+    ];
+    for (final sql in orphanDeletes) {
+      await db.execute(sql);
+    }
+
+    // (2) Email de-duplication with history re-parenting.
+    final dupes = await db.rawQuery(
+      'SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1',
+    );
+    for (final row in dupes) {
+      final email = row['email'];
+      final users = await db.rawQuery(
+        'SELECT id FROM users WHERE email = ? '
+        'ORDER BY updated_at DESC, created_at DESC, id DESC',
+        [email],
+      );
+      final keepId = users.first['id'];
+      for (final dup in users.skip(1)) {
+        final oldId = dup['id'];
+        // Preserve history: move sessions + earned benefits to the kept user.
+        await db.update(
+          'sessions',
+          {'user_id': keepId},
+          where: 'user_id = ?',
+          whereArgs: [oldId],
+        );
+        await db.update(
+          'user_benefits',
+          {'user_id': keepId},
+          where: 'user_id = ?',
+          whereArgs: [oldId],
+        );
+        // Remove the duplicate; FK cascade drops its redundant singleton rows.
+        await db.delete('users', where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // (3) Enforce unique email.
+    await db.execute('DROP INDEX IF EXISTS idx_users_email');
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)',
+    );
   }
 
   /// Migration v3 → v4: Add wearable integration support
@@ -446,74 +539,6 @@ class DatabaseHelper {
     }
   }
 
-  /// Migration v10 → v11: Add continuous tracking tables
-  ///
-  /// Creates tables for continuous tracking configuration, state, and activity segments.
-  Future<void> _migrateToV11(Database db) async {
-    // Step 1: Create continuous_tracking_config table (user preferences)
-    await db.execute('''
-      CREATE TABLE continuous_tracking_config (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL UNIQUE,
-        is_enabled INTEGER NOT NULL DEFAULT 0,
-        reset_points TEXT NOT NULL DEFAULT '["03:00"]',
-        activity_detection TEXT NOT NULL DEFAULT 'hybrid',
-        gps_interval_seconds INTEGER NOT NULL DEFAULT 300,
-        min_displacement_meters INTEGER NOT NULL DEFAULT 100,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    ''');
-    await db.execute(
-      'CREATE UNIQUE INDEX idx_continuous_config_user ON continuous_tracking_config(user_id)',
-    );
-
-    // Step 2: Create continuous_tracking_state table (runtime state)
-    await db.execute('''
-      CREATE TABLE continuous_tracking_state (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL UNIQUE,
-        is_active INTEGER NOT NULL DEFAULT 0,
-        is_paused_for_manual INTEGER NOT NULL DEFAULT 0,
-        current_session_id TEXT,
-        started_at INTEGER,
-        last_data_received INTEGER,
-        current_detected_activity TEXT,
-        detection_confidence REAL,
-        updated_at INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (current_session_id) REFERENCES sessions(id) ON DELETE SET NULL
-      )
-    ''');
-    await db.execute(
-      'CREATE UNIQUE INDEX idx_continuous_state_user ON continuous_tracking_state(user_id)',
-    );
-
-    // Step 3: Create activity_segments table (segments within sessions)
-    await db.execute('''
-      CREATE TABLE activity_segments (
-        id TEXT PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        activity_type TEXT NOT NULL,
-        start_time INTEGER NOT NULL,
-        end_time INTEGER,
-        distance_meters REAL,
-        detection_source TEXT NOT NULL,
-        confidence REAL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
-        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
-      )
-    ''');
-    await db.execute(
-      'CREATE INDEX idx_activity_segments_session ON activity_segments(session_id)',
-    );
-    await db.execute(
-      'CREATE INDEX idx_activity_segments_time ON activity_segments(start_time, end_time)',
-    );
-  }
-
   /// Migration v2 → v3: Add profile support
   Future<void> _migrateToV3(Database db) async {
     // Step 1: Add new columns to users table
@@ -588,7 +613,9 @@ class DatabaseHelper {
     ''');
 
     // Index for email lookups
-    await db.execute('CREATE INDEX idx_users_email ON users(email)');
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_users_email_unique ON users(email)',
+    );
   }
 
   /// Create user_biometrics_reported table (v3 - Profile support)

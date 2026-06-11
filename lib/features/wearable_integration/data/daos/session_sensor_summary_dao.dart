@@ -9,8 +9,11 @@ class SessionSensorSummaryDao {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   /// Insert or update a session sensor summary
-  Future<void> upsert(SessionSensorSummary summary) async {
-    final db = await _dbHelper.database;
+  Future<void> upsert(
+    SessionSensorSummary summary, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await _dbHelper.database;
     await db.insert(
       'session_sensor_summary',
       summary.toJson(),
