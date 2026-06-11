@@ -30,12 +30,42 @@ class DatabaseHelper {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, 'benefit_app.db');
 
-    return await openDatabase(
+    final db = await openDatabase(
       path,
       version: 11,
+      onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+
+    await _logForeignKeyViolations(db);
+    return db;
+  }
+
+  /// Enable foreign-key enforcement. PRAGMA foreign_keys is per-connection and
+  /// must be set in onConfigure (before onCreate/onUpgrade). Without this every
+  /// ON DELETE CASCADE in the schema is silently inert.
+  Future<void> _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON');
+  }
+
+  /// One-time defensive check: enabling foreign_keys does NOT validate existing
+  /// rows on open, so pre-existing orphans won't crash the app — but they could
+  /// make a future write fail. Surface them in logs (count only) without crashing.
+  /// Actual orphan cleanup is a separate Phase 1 migration.
+  Future<void> _logForeignKeyViolations(Database db) async {
+    try {
+      final violations = await db.rawQuery('PRAGMA foreign_key_check');
+      if (violations.isNotEmpty) {
+        debugPrint(
+          'DatabaseHelper: WARNING — ${violations.length} foreign-key violation(s) '
+          '(orphan rows) found in existing data. Not enforced retroactively; '
+          'cleanup pending (Phase 1).',
+        );
+      }
+    } catch (e) {
+      debugPrint('DatabaseHelper: foreign_key_check failed - $e');
+    }
   }
 
   /// Create all tables on first database creation
