@@ -29,16 +29,11 @@ jobs:
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
 
-      - name: Analyze (lib, errors-only)
-        run: dart analyze lib
+      - name: Analyze (lib, fatal-infos)
+        run: dart analyze --fatal-infos lib
 
       - name: Tests
         run: flutter test
 
       - name: Build debug APK
         run: flutter build apk --debug
-
-      # ---- Informational (non-blocking; promote once lib is fully lint-clean) ----
-      - name: Analyze (full, informational)
-        run: flutter analyze lib
-        continue-on-error: true

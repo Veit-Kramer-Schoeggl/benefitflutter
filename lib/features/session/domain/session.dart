@@ -92,13 +92,13 @@ class Session {
           : null,
       heartRateZones: json['heart_rate_zones'] != null
           ? Map<String, int>.from(
-              jsonDecode(json['heart_rate_zones'] as String),
+              jsonDecode(json['heart_rate_zones'] as String) as Map,
             )
           : null,
       hasWearableData: json['has_wearable_data'] == 1,
       connectedDeviceIds: json['connected_device_ids'] != null
           ? List<String>.from(
-              jsonDecode(json['connected_device_ids'] as String),
+              jsonDecode(json['connected_device_ids'] as String) as List,
             )
           : null,
     );

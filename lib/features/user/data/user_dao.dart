@@ -99,7 +99,7 @@ class UserDao {
       timezone: map['timezone'] as String?,
       profileImagePath: map['profile_image_path'] as String?,
       isVerified: (map['is_verified'] ?? 0) == 1,
-      verificationStatus: map['verification_status'] ?? 'unverified',
+      verificationStatus: map['verification_status'] as String? ?? 'unverified',
     );
   }
 

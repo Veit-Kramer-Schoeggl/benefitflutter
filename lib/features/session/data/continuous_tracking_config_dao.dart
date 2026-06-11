@@ -116,7 +116,7 @@ class ContinuousTrackingConfigDao {
     if (value == null) return ['03:00'];
     if (value is String) {
       try {
-        return List<String>.from(jsonDecode(value));
+        return List<String>.from(jsonDecode(value) as List);
       } catch (_) {
         return ['03:00'];
       }
