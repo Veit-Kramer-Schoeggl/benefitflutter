@@ -26,7 +26,7 @@ class DatabaseHelper {
   }
 
   /// Current schema version.
-  static const int dbVersion = 11;
+  static const int dbVersion = 12;
 
   /// Initialize the database
   Future<Database> _initDatabase() async {
@@ -218,6 +218,82 @@ class DatabaseHelper {
     if (oldVersion < 11) {
       await _createContinuousTrackingTables(db);
     }
+
+    // v11 → v12: data integrity — orphan cleanup, email dedup, UNIQUE email.
+    if (oldVersion < 12) {
+      await _migrateToV12(db);
+    }
+  }
+
+  /// Migration v11 → v12: data-integrity hardening.
+  ///
+  /// 1) Delete orphan child rows left over from before FK enforcement.
+  /// 2) De-duplicate users by email WITHOUT losing history: re-parent the
+  ///    duplicate's sessions/user_benefits to the kept (newest) user, then
+  ///    delete the duplicate (FK cascade removes its redundant singleton rows).
+  /// 3) Replace the non-unique email index with a UNIQUE one.
+  Future<void> _migrateToV12(Database db) async {
+    // (1) Orphan cleanup — children whose required parent is gone. Remove
+    //     session-children first, then orphan sessions (cascades clean their
+    //     valid children), then orphan user-owned rows.
+    const orphanDeletes = <String>[
+      'DELETE FROM gps_points WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM activity_segments WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_biometric_data WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_motion_data WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM session_sensor_summary WHERE session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM user_benefits WHERE user_id NOT IN (SELECT id FROM users) '
+          'OR benefit_id NOT IN (SELECT id FROM benefits) '
+          'OR session_id NOT IN (SELECT id FROM sessions)',
+      'DELETE FROM sessions WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM wearable_devices WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM health_platform_data WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM user_preferences WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM user_biometrics_reported WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM continuous_tracking_config WHERE user_id NOT IN (SELECT id FROM users)',
+      'DELETE FROM continuous_tracking_state WHERE user_id NOT IN (SELECT id FROM users)',
+    ];
+    for (final sql in orphanDeletes) {
+      await db.execute(sql);
+    }
+
+    // (2) Email de-duplication with history re-parenting.
+    final dupes = await db.rawQuery(
+      'SELECT email FROM users GROUP BY email HAVING COUNT(*) > 1',
+    );
+    for (final row in dupes) {
+      final email = row['email'];
+      final users = await db.rawQuery(
+        'SELECT id FROM users WHERE email = ? '
+        'ORDER BY updated_at DESC, created_at DESC, id DESC',
+        [email],
+      );
+      final keepId = users.first['id'];
+      for (final dup in users.skip(1)) {
+        final oldId = dup['id'];
+        // Preserve history: move sessions + earned benefits to the kept user.
+        await db.update(
+          'sessions',
+          {'user_id': keepId},
+          where: 'user_id = ?',
+          whereArgs: [oldId],
+        );
+        await db.update(
+          'user_benefits',
+          {'user_id': keepId},
+          where: 'user_id = ?',
+          whereArgs: [oldId],
+        );
+        // Remove the duplicate; FK cascade drops its redundant singleton rows.
+        await db.delete('users', where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // (3) Enforce unique email.
+    await db.execute('DROP INDEX IF EXISTS idx_users_email');
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)',
+    );
   }
 
   /// Migration v3 → v4: Add wearable integration support
@@ -537,7 +613,9 @@ class DatabaseHelper {
     ''');
 
     // Index for email lookups
-    await db.execute('CREATE INDEX idx_users_email ON users(email)');
+    await db.execute(
+      'CREATE UNIQUE INDEX idx_users_email_unique ON users(email)',
+    );
   }
 
   /// Create user_biometrics_reported table (v3 - Profile support)

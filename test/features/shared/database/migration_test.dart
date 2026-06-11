@@ -103,4 +103,66 @@ void main() {
       expect(upgradedConfigCols, freshConfigCols);
     },
   );
+
+  Future<void> insertUser(
+    Database db, {
+    required String id,
+    required String email,
+    int updatedAt = 0,
+  }) {
+    return db.insert('users', {
+      'id': id,
+      'name': 'U',
+      'email': email,
+      'password_hash': 'h',
+      'created_at': 0,
+      'updated_at': updatedAt,
+    });
+  }
+
+  test('fresh v12 enforces unique email', () async {
+    final db = await helper.openAppDatabase(
+      databaseFactoryFfi,
+      inMemoryDatabasePath,
+    );
+    addTearDown(db.close);
+
+    await insertUser(db, id: 'u1', email: 'dup@x.com');
+    expect(
+      () => insertUser(db, id: 'u2', email: 'dup@x.com'),
+      throwsA(isA<DatabaseException>()),
+    );
+  });
+
+  test('v11 -> v12 de-duplicates users by email (keeps newest)', () async {
+    final dir = await Directory.systemTemp.createTemp('benefit_v12');
+    final path = '${dir.path}/app.db';
+    addTearDown(() => dir.delete(recursive: true));
+
+    // Build a "v11" state: non-unique email index, version 11, two dup users.
+    final db = await helper.openAppDatabase(databaseFactoryFfi, path);
+    await db.execute('DROP INDEX idx_users_email_unique');
+    await db.execute('CREATE INDEX idx_users_email ON users(email)');
+    await insertUser(db, id: 'old', email: 'dup@x.com', updatedAt: 1);
+    await insertUser(db, id: 'new', email: 'dup@x.com', updatedAt: 2);
+    await db.execute('PRAGMA user_version = 11');
+    await db.close();
+
+    // Reopen at v12 -> triggers onUpgrade(11, 12) = _migrateToV12.
+    final upgraded = await helper.openAppDatabase(databaseFactoryFfi, path);
+    addTearDown(upgraded.close);
+
+    final remaining = await upgraded.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: ['dup@x.com'],
+    );
+    expect(remaining.length, 1);
+    expect(remaining.first['id'], 'new'); // newest (updated_at=2) is kept
+    // Unique email is now enforced.
+    expect(
+      () => insertUser(upgraded, id: 'another', email: 'dup@x.com'),
+      throwsA(isA<DatabaseException>()),
+    );
+  });
 }
