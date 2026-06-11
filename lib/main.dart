@@ -125,9 +125,13 @@ Future<void> _bootstrap() async {
   final sensorManager = SensorManager();
   await sensorManager.initialize();
 
-  // Initialize auth dependencies
+  // Initialize auth dependencies. The mock auth service authenticates against
+  // the durable user repository (same SQLite DB as AuthProvider) so password
+  // changes/resets/registrations survive a process restart.
   final tokenStorage = SecureTokenStorage();
-  final authService = MockAuthService();
+  final authService = MockAuthService(
+    userRepository: RepositoryConfig.getUserRepository(),
+  );
 
   // Initialize deep link handler
   final deepLinkHandler = DeepLinkHandler(navigatorKey: navigatorKey);

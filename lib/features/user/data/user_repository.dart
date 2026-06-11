@@ -7,6 +7,12 @@ abstract class UserRepository {
   /// Get user by ID
   Future<User> getUserById(String userId);
 
+  /// Get user by email (case-insensitive), or null if no such user.
+  ///
+  /// Returns null (rather than throwing like [getUserById]) so authentication
+  /// can surface a clean "no account" result.
+  Future<User?> getUserByEmail(String email);
+
   /// Get current logged-in user (for MVP, returns hardcoded test user)
   Future<User> getCurrentUser();
 

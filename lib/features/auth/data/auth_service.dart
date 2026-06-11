@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:benefitflutter/core/utils/password_utils.dart';
 
+import '../../user/data/user_repository.dart';
 import '../domain/account_deletion_request_result.dart';
 import '../domain/account_deletion_result.dart';
 import '../domain/auth_result.dart';
@@ -158,11 +159,26 @@ class MockAuthService implements AuthService {
   /// Token expiry duration (short for testing)
   final Duration tokenExpiry;
 
+  /// Durable user store. When provided (production), authentication and password
+  /// mutations go through the DB (single source of truth that survives process
+  /// restart). When null (legacy unit tests), the in-memory maps above are used.
+  final UserRepository? _userRepository;
+
   MockAuthService({
     this.minDelay = const Duration(milliseconds: 200),
     this.maxDelay = const Duration(milliseconds: 500),
     this.tokenExpiry = const Duration(hours: 1),
-  });
+    UserRepository? userRepository,
+  }) : _userRepository = userRepository;
+
+  /// Whether an account exists for [normalizedEmail] in the active store.
+  Future<bool> _accountExists(String normalizedEmail) async {
+    if (_userRepository != null) {
+      return await _userRepository.getUserByEmail(normalizedEmail) != null;
+    }
+    return _testCredentials.containsKey(normalizedEmail) ||
+        _registeredUsers.containsKey(normalizedEmail);
+  }
 
   /// Simulate network delay
   Future<void> _simulateDelay() async {
@@ -198,7 +214,27 @@ class MockAuthService implements AuthService {
     // Normalize email
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Look up credentials - check test credentials first, then registered users
+    // DB-backed path: authenticate against the durable users table so password
+    // changes/resets/registrations persist across process restart.
+    if (_userRepository != null) {
+      final user = await _userRepository.getUserByEmail(normalizedEmail);
+      if (user == null) {
+        return AuthResult.failure(error: 'No account found with this email');
+      }
+      if (!PasswordUtils.verifyPassword(password, user.passwordHash)) {
+        return AuthResult.failure(error: 'Invalid password');
+      }
+      return AuthResult.success(
+        tokens: AuthTokens(
+          accessToken: _generateMockToken('access', user.id),
+          refreshToken: _generateMockToken('refresh', user.id),
+          expiresAt: DateTime.now().add(tokenExpiry),
+        ),
+        userId: user.id,
+      );
+    }
+
+    // In-memory fallback (no repository injected) - check test creds, then registered
     var credentials = _testCredentials[normalizedEmail];
     credentials ??= _registeredUsers[normalizedEmail];
 
@@ -271,9 +307,8 @@ class MockAuthService implements AuthService {
     final normalizedEmail = email.trim().toLowerCase();
     final trimmedName = name.trim();
 
-    // Check if email already exists in test credentials or registered users
-    if (_testCredentials.containsKey(normalizedEmail) ||
-        _registeredUsers.containsKey(normalizedEmail)) {
+    // Check if email already exists in the active store
+    if (await _accountExists(normalizedEmail)) {
       return RegistrationResult.failure(
         error: 'An account with this email already exists',
       );
@@ -328,13 +363,17 @@ class MockAuthService implements AuthService {
       return AuthResult.failure(error: 'Invalid verification code');
     }
 
-    // Move from pending to registered
+    // Move from pending to registered. In DB-backed mode the durable user row
+    // is created by AuthProvider.verifyEmail (UserRepository.createUser), so the
+    // in-memory map is only needed for the no-repository fallback.
     final email = pending['email']!;
-    _registeredUsers[email] = {
-      'passwordHash': pending['passwordHash']!,
-      'userId': userId,
-      'name': pending['name']!,
-    };
+    if (_userRepository == null) {
+      _registeredUsers[email] = {
+        'passwordHash': pending['passwordHash']!,
+        'userId': userId,
+        'name': pending['name']!,
+      };
+    }
 
     // Remove from pending
     _pendingRegistrations.remove(userId);
@@ -355,11 +394,8 @@ class MockAuthService implements AuthService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check if email exists in test credentials or registered users
-    final existsInTest = _testCredentials.containsKey(normalizedEmail);
-    final existsInRegistered = _registeredUsers.containsKey(normalizedEmail);
-
-    if (!existsInTest && !existsInRegistered) {
+    // Check if an account exists for this email
+    if (!await _accountExists(normalizedEmail)) {
       return PasswordResetRequestResult.failure(
         error: 'No account found with this email',
       );
@@ -415,13 +451,21 @@ class MockAuthService implements AuthService {
     // Hash new password before storing
     final newPasswordHash = PasswordUtils.hashPassword(newPassword);
 
-    // Update password in appropriate storage
-    if (_testCredentials.containsKey(normalizedEmail)) {
-      _testCredentials[normalizedEmail]!['passwordHash'] = newPasswordHash;
-    }
-
-    if (_registeredUsers.containsKey(normalizedEmail)) {
-      _registeredUsers[normalizedEmail]!['passwordHash'] = newPasswordHash;
+    // Update password in the active store (durable DB, or in-memory fallback)
+    if (_userRepository != null) {
+      final user = await _userRepository.getUserByEmail(normalizedEmail);
+      if (user != null) {
+        await _userRepository.updateUser(
+          user.copyWith(passwordHash: newPasswordHash),
+        );
+      }
+    } else {
+      if (_testCredentials.containsKey(normalizedEmail)) {
+        _testCredentials[normalizedEmail]!['passwordHash'] = newPasswordHash;
+      }
+      if (_registeredUsers.containsKey(normalizedEmail)) {
+        _registeredUsers[normalizedEmail]!['passwordHash'] = newPasswordHash;
+      }
     }
 
     // Clear the pending reset
@@ -441,7 +485,20 @@ class MockAuthService implements AuthService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Find credentials in test credentials or registered users
+    // DB-backed path: verify and update the durable users table.
+    if (_userRepository != null) {
+      final user = await _userRepository.getUserByEmail(normalizedEmail);
+      if (user == null) return false;
+      if (!PasswordUtils.verifyPassword(currentPassword, user.passwordHash)) {
+        return false;
+      }
+      await _userRepository.updateUser(
+        user.copyWith(passwordHash: PasswordUtils.hashPassword(newPassword)),
+      );
+      return true;
+    }
+
+    // In-memory fallback: find credentials in test credentials or registered users
     Map<String, String>? credentials = _testCredentials[normalizedEmail];
     final bool isTestUser = credentials != null;
 
@@ -478,11 +535,8 @@ class MockAuthService implements AuthService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check if email exists in test credentials or registered users
-    final existsInTest = _testCredentials.containsKey(normalizedEmail);
-    final existsInRegistered = _registeredUsers.containsKey(normalizedEmail);
-
-    if (!existsInTest && !existsInRegistered) {
+    // Check if an account exists for this email
+    if (!await _accountExists(normalizedEmail)) {
       return AccountDeletionRequestResult.failure(
         error: 'No account found with this email',
       );
@@ -536,9 +590,14 @@ class MockAuthService implements AuthService {
       return AccountDeletionResult.failure(error: 'Invalid verification code');
     }
 
-    // Remove user from credentials
-    _testCredentials.remove(normalizedEmail);
-    _registeredUsers.remove(normalizedEmail);
+    // Remove user from the in-memory store. In DB-backed mode the durable row
+    // is deleted by AuthProvider.confirmAccountDeletion (deleteCurrentUser), and
+    // login no longer consults these maps, so we leave them untouched (avoids
+    // mutating the shared static seed map).
+    if (_userRepository == null) {
+      _testCredentials.remove(normalizedEmail);
+      _registeredUsers.remove(normalizedEmail);
+    }
 
     // Clear the pending deletion
     _pendingDeletions.remove(normalizedEmail);
@@ -552,14 +611,13 @@ class MockAuthService implements AuthService {
 
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check if email exists in test credentials, registered users, or pending registrations
-    final existsInTest = _testCredentials.containsKey(normalizedEmail);
-    final existsInRegistered = _registeredUsers.containsKey(normalizedEmail);
+    // Email is available if no account exists (active store) and no pending
+    // registration is in flight for it.
+    final exists = await _accountExists(normalizedEmail);
     final existsInPending = _pendingRegistrations.values.any(
       (reg) => reg['email'] == normalizedEmail,
     );
 
-    // Return true if available (not found anywhere)
-    return !existsInTest && !existsInRegistered && !existsInPending;
+    return !exists && !existsInPending;
   }
 }

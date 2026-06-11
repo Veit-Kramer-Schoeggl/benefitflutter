@@ -63,6 +63,12 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<User?> getUserByEmail(String email) async {
+    // Read-only lookup for authentication; no background sync.
+    return _dao.findByEmail(email);
+  }
+
+  @override
   Future<User> getCurrentUser() async {
     // For MVP: Single user app, return first user
     final user = await _dao.findFirst();

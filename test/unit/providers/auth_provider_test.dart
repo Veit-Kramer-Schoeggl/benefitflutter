@@ -1,3 +1,4 @@
+import 'package:benefitflutter/core/utils/password_utils.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/user/domain/user.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -234,6 +235,27 @@ void main() {
       expect(provider.currentUser?.id, 'user-2');
       expect(repo.createdUser?.id, 'user-2');
       expect(provider.pendingRegistrationUserId, isNull);
+    });
+
+    test('verifyEmail stores a hashed password, not plaintext', () async {
+      auth.registerUserId = 'user-2';
+      auth.verifyUserId = 'user-2';
+      final provider = buildProvider();
+
+      await provider.register(
+        name: 'Bob',
+        email: 'bob@example.com',
+        password: 'PlaintextPw1',
+      );
+      await provider.verifyEmail('123456');
+
+      // The DB row must hold a SHA-256 hash so DB-backed login can verify it;
+      // storing the plaintext would make the registered user un-loginable.
+      expect(repo.createdUser?.passwordHash, isNot('PlaintextPw1'));
+      expect(
+        repo.createdUser?.passwordHash,
+        PasswordUtils.hashPassword('PlaintextPw1'),
+      );
     });
   });
 

@@ -99,6 +99,15 @@ class FakeUserRepository implements UserRepository {
   }
 
   @override
+  Future<User?> getUserByEmail(String email) async {
+    final lower = email.trim().toLowerCase();
+    for (final u in users.values) {
+      if (u.email.toLowerCase() == lower) return u;
+    }
+    return null;
+  }
+
+  @override
   Future<User> getCurrentUser() async => users.values.first;
 
   @override

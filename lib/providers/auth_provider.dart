@@ -515,12 +515,16 @@ class AuthProvider extends ChangeNotifier {
       await _tokenStorage.saveTokens(result.tokens!);
       _currentTokens = result.tokens;
 
-      // Create new user in repository
+      // Create new user in repository. Store a SHA-256 hash (NOT the plaintext)
+      // so DB-backed login can verify it — PasswordUtils.verifyPassword re-hashes
+      // the input and compares against this stored hash.
       final newUser = User(
         id: result.userId!,
         name: _pendingRegistrationName ?? 'New User',
         email: _pendingRegistrationEmail ?? '',
-        passwordHash: _pendingRegistrationPassword ?? '',
+        passwordHash: PasswordUtils.hashPassword(
+          _pendingRegistrationPassword ?? '',
+        ),
       );
 
       try {
