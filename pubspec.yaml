@@ -33,68 +33,68 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: any
+  cupertino_icons: ^1.0.8
 
   # State management
-  provider: any
+  provider: ^6.1.5+1
 
   # Local database
-  sqflite: any
-  path: any
+  sqflite: ^2.4.2
+  path: ^1.9.1
 
   # Network connectivity detection
-  connectivity_plus: any
+  connectivity_plus: ^7.0.0
 
   # Local storage for seed flag tracking
-  shared_preferences: any
+  shared_preferences: ^2.5.4
 
   # select profile
-  image_picker: any
+  image_picker: ^1.2.1
 
   # UUID generation for session IDs
-  uuid: any
+  uuid: ^4.5.3
 
   # Date formatting
-  intl: any
+  intl: ^0.20.2
 
   # Location tracking
-  geolocator: any
+  geolocator: ^14.0.2
 
   # Permission handling
-  permission_handler: any
+  permission_handler: ^12.0.1
 
   # Health platform integration (Health Connect + HealthKit)
-  health: any
+  health: ^13.3.1
 
   # Bluetooth Low Energy for direct wearable connections
-  flutter_blue_plus: any
+  flutter_blue_plus: ^2.1.1
 
   # URL launcher for opening external apps (Play Store, Settings)
-  url_launcher: any
+  url_launcher: ^6.3.2
 
   # HTTP client with interceptors for API calls
-  dio: any
+  dio: 5.9.1  # exact pin (security-critical transport)
 
   # Secure storage for JWT tokens
-  flutter_secure_storage: any
+  flutter_secure_storage: 10.0.0  # exact pin (security-critical)
 
   # Password hashing
-  crypto: any
+  crypto: ^3.0.7
 
   # Biometric authentication (fingerprint, Face ID)
-  local_auth: any
+  local_auth: 3.0.0  # exact pin (security-critical)
 
-  path_provider: any
+  path_provider: ^2.1.5
 
   # QR Code package
-  qr_flutter: any
+  qr_flutter: ^4.1.0
 
   # Map for session detaill screen
-  flutter_map: any
-  latlong2: any
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
 
   # Deep link handling for password reset URLs
-  app_links: any
+  app_links: ^7.0.0
 
 dev_dependencies:
   flutter_test:
@@ -105,10 +105,10 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: any
+  flutter_lints: ^6.0.0
 
   # Tool for generating launcher icons
-  flutter_launcher_icons: any
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
