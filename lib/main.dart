@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/core/config/theme.dart';
@@ -24,14 +27,53 @@ import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
 import 'package:benefitflutter/features/auth/data/auth_service.dart';
 import 'package:benefitflutter/features/auth/data/token_storage.dart';
 import 'package:benefitflutter/core/deep_link/deep_link_handler.dart';
+import 'package:benefitflutter/core/logging/app_logger.dart';
 
 /// Global navigator key for deep link navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
-  // Initialize Flutter bindings for async operations
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Catch-all guard for async errors that escape the framework handlers.
+  runZonedGuarded(() async {
+    // Bindings first — before any async/Sentry work, in the SAME zone as runApp.
+    final binding = WidgetsFlutterBinding.ensureInitialized();
+    AppLogger.init();
 
+    // Global error handlers (Sentry chains onto FlutterError.onError later).
+    FlutterError.onError = (details) {
+      AppLogger.e(
+        'FlutterError: ${details.exceptionAsString()}',
+        details.exception,
+        details.stack,
+      );
+    };
+    binding.platformDispatcher.onError = (error, stack) {
+      AppLogger.e('Uncaught platform error', error, stack);
+      return true;
+    };
+    ErrorWidget.builder = (details) {
+      if (kReleaseMode) {
+        return const Material(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Etwas ist schiefgelaufen. Bitte starte die App neu.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        );
+      }
+      return ErrorWidget(details.exception);
+    };
+
+    await _bootstrap();
+  }, (error, stack) => AppLogger.e('Uncaught zone error', error, stack));
+}
+
+/// App initialization + runApp. Shared by the no-Sentry path and (later) Sentry's appRunner.
+Future<void> _bootstrap() async {
   // Seed database with test data in debug mode
   if (SeedConfig.isEnabled) {
     try {
@@ -41,9 +83,9 @@ void main() async {
         benefitRepository: RepositoryConfig.getBenefitRepository(),
       );
       await seedService.seedIfNeeded();
-    } catch (e) {
-      debugPrint('Failed to seed database: $e');
+    } catch (e, s) {
       // Don't block app startup on seed failure
+      AppLogger.e('Failed to seed database', e, s);
     }
   }
 
