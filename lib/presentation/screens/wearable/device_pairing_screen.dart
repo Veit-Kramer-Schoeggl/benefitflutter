@@ -68,7 +68,8 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
           _errorMessage = null;
           _startScanning();
         } else {
-          _errorMessage = 'Bluetooth permissions are required to scan for devices.';
+          _errorMessage =
+              'Bluetooth permissions are required to scan for devices.';
         }
       });
     } catch (e) {
@@ -103,7 +104,8 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
         _discoveredDevices = devices;
         _isScanning = false;
         if (devices.isEmpty) {
-          _errorMessage = 'No heart rate monitors found. Make sure your device is turned on and nearby.';
+          _errorMessage =
+              'No heart rate monitors found. Make sure your device is turned on and nearby.';
         }
       });
     } catch (e) {
@@ -181,27 +183,17 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.bluetooth,
-              size: 80,
-              color: brandGreen,
-            ),
+            Icon(Icons.bluetooth, size: 80, color: brandGreen),
             const SizedBox(height: 24),
             const Text(
               'Bluetooth Permissions Required',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             const Text(
               'BeneFit needs Bluetooth access to scan for and connect to heart rate monitors and fitness devices.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.black54),
               textAlign: TextAlign.center,
             ),
             if (_errorMessage != null) ...[
@@ -270,11 +262,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
           ),
           child: Column(
             children: [
-              Icon(
-                Icons.radar,
-                size: 64,
-                color: brandGreen,
-              ),
+              Icon(Icons.radar, size: 64, color: brandGreen),
               const SizedBox(height: 16),
               Text(
                 _isScanning ? 'Scanning for devices...' : 'Available Devices',
@@ -288,10 +276,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
                 _isScanning
                     ? 'Make sure your device is turned on and nearby'
                     : 'Select a device to connect',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -337,18 +322,11 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.devices,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
+                      Icon(Icons.devices, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
                         'No devices found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -392,9 +370,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -402,30 +378,17 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
         ),
         leading: CircleAvatar(
           backgroundColor: brandGreen.withValues(alpha: 0.2),
-          child: Icon(
-            Icons.favorite,
-            color: brandGreen,
-          ),
+          child: Icon(Icons.favorite, color: brandGreen),
         ),
         title: Text(
           device.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
           _getDeviceTypeString(device.type),
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.black54, fontSize: 14),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: brandGreen,
-        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: brandGreen),
         onTap: () => _connectToDevice(device),
       ),
     );
@@ -449,18 +412,12 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
             const SizedBox(height: 32),
             const Text(
               'Connecting...',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
               'Connecting to ${_selectedDevice?.name ?? "device"}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
               textAlign: TextAlign.center,
             ),
           ],
@@ -483,11 +440,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
                 color: Colors.green,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.check,
-                size: 64,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.check, size: 64, color: Colors.white),
             ),
             const SizedBox(height: 32),
             const Text(
@@ -501,10 +454,7 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
             const SizedBox(height: 16),
             Text(
               '${_selectedDevice?.name ?? "Device"} is now connected',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
               textAlign: TextAlign.center,
             ),
           ],
@@ -535,9 +485,4 @@ class _DevicePairingScreenState extends State<DevicePairingScreen> {
   }
 }
 
-enum _PairingStep {
-  permissions,
-  scanning,
-  connecting,
-  success,
-}
+enum _PairingStep { permissions, scanning, connecting, success }

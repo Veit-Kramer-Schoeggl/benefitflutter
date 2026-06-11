@@ -10,19 +10,19 @@ class SecurityPreferences {
   // Storage keys
   static const String _biometricEnabledKey = 'security_biometric_enabled';
   static const String _appLockEnabledKey = 'security_app_lock_enabled';
-  static const String _biometricEnrolledAtKey = 'security_biometric_enrolled_at';
+  static const String _biometricEnrolledAtKey =
+      'security_biometric_enrolled_at';
   static const String _lastUnlockTimeKey = 'security_last_unlock_time';
 
   SecurityPreferences({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(
-                encryptedSharedPreferences: true,
-              ),
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock_this_device,
-              ),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock_this_device,
+            ),
+          );
 
   // ===== BIOMETRIC PREFERENCES =====
 
@@ -34,10 +34,7 @@ class SecurityPreferences {
 
   /// Enable or disable biometric authentication
   Future<void> setBiometricEnabled(bool enabled) async {
-    await _storage.write(
-      key: _biometricEnabledKey,
-      value: enabled.toString(),
-    );
+    await _storage.write(key: _biometricEnabledKey, value: enabled.toString());
 
     // Record enrollment time when enabled
     if (enabled) {
@@ -65,10 +62,7 @@ class SecurityPreferences {
 
   /// Enable or disable app lock
   Future<void> setAppLockEnabled(bool enabled) async {
-    await _storage.write(
-      key: _appLockEnabledKey,
-      value: enabled.toString(),
-    );
+    await _storage.write(key: _appLockEnabledKey, value: enabled.toString());
   }
 
   // ===== LAST UNLOCK TIME =====

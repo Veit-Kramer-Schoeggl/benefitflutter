@@ -30,8 +30,12 @@ void main() {
         final hash = PasswordUtils.hashPassword('');
 
         // SHA-256 of empty string is known
-        expect(hash,
-            equals('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
+        expect(
+          hash,
+          equals(
+            'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+          ),
+        );
       });
 
       test('handles special characters', () {
@@ -119,7 +123,10 @@ void main() {
       test('returns false for non-empty password with empty hash', () {
         final emptyHash = PasswordUtils.hashPassword('');
 
-        expect(PasswordUtils.verifyPassword('SomePassword', emptyHash), isFalse);
+        expect(
+          PasswordUtils.verifyPassword('SomePassword', emptyHash),
+          isFalse,
+        );
       });
 
       test('handles special characters correctly', () {
@@ -127,7 +134,10 @@ void main() {
         final hash = PasswordUtils.hashPassword(password);
 
         expect(PasswordUtils.verifyPassword(password, hash), isTrue);
-        expect(PasswordUtils.verifyPassword('P@ss!w0rd#\$%^&*()', hash), isTrue);
+        expect(
+          PasswordUtils.verifyPassword('P@ss!w0rd#\$%^&*()', hash),
+          isTrue,
+        );
         expect(PasswordUtils.verifyPassword('P@ss!w0rd', hash), isFalse);
       });
 

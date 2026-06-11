@@ -24,9 +24,9 @@ class BenefitRepositoryImpl implements BenefitRepository {
     required BenefitDao dao,
     required BenefitSyncStrategy syncStrategy,
     required ConnectivityService connectivity,
-  })  : _dao = dao,
-        _syncStrategy = syncStrategy,
-        _connectivity = connectivity;
+  }) : _dao = dao,
+       _syncStrategy = syncStrategy,
+       _connectivity = connectivity;
 
   /// Factory constructor with default dependencies
   factory BenefitRepositoryImpl.create() {
@@ -103,12 +103,8 @@ class BenefitRepositoryImpl implements BenefitRepository {
     required String userBenefitId,
     required String redemptionCode,
   }) async {
-
     // 1. Update local DB
-    await _dao.redeemUserBenefit(
-      userBenefitId,
-      redemptionCode,
-    );
+    await _dao.redeemUserBenefit(userBenefitId, redemptionCode);
 
     // 2. Lade aktualisierte Entity für Sync
     final updated = await _dao.findUserBenefitById(userBenefitId);

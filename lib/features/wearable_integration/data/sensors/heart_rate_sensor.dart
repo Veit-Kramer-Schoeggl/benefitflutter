@@ -10,14 +10,20 @@ import 'package:benefitflutter/features/shared/sensors/sensor_exception.dart';
 /// Heart Rate Measurement Characteristic UUID: 0x2A37
 class HeartRateSensor extends BaseSensor<int> {
   // Standard Bluetooth SIG UUIDs for Heart Rate Service
-  static final Guid _heartRateServiceUuid = Guid('0000180D-0000-1000-8000-00805f9b34fb');
-  static final Guid _heartRateMeasurementUuid = Guid('00002A37-0000-1000-8000-00805f9b34fb');
+  static final Guid _heartRateServiceUuid = Guid(
+    '0000180D-0000-1000-8000-00805f9b34fb',
+  );
+  static final Guid _heartRateMeasurementUuid = Guid(
+    '00002A37-0000-1000-8000-00805f9b34fb',
+  );
 
   BluetoothDevice? _connectedDevice;
   BluetoothCharacteristic? _heartRateCharacteristic;
 
-  final StreamController<SensorStatus> _statusController = StreamController<SensorStatus>.broadcast();
-  final StreamController<int> _dataController = StreamController<int>.broadcast();
+  final StreamController<SensorStatus> _statusController =
+      StreamController<SensorStatus>.broadcast();
+  final StreamController<int> _dataController =
+      StreamController<int>.broadcast();
 
   SensorStatus _status = SensorStatus.unavailable;
   StreamSubscription<List<int>>? _characteristicSubscription;
@@ -107,7 +113,10 @@ class HeartRateSensor extends BaseSensor<int> {
       });
 
       // Connect to device
-      await device.connect(timeout: const Duration(seconds: 15), license: License.free);
+      await device.connect(
+        timeout: const Duration(seconds: 15),
+        license: License.free,
+      );
 
       // Discover services
       final services = await device.discoverServices();
@@ -201,17 +210,18 @@ class HeartRateSensor extends BaseSensor<int> {
       await _heartRateCharacteristic!.setNotifyValue(true);
 
       // Subscribe to characteristic value updates
-      _characteristicSubscription = _heartRateCharacteristic!.lastValueStream.listen(
-        (value) {
-          final heartRate = _parseHeartRate(value);
-          if (heartRate != null) {
-            _dataController.add(heartRate);
-          }
-        },
-        onError: (error) {
-          _updateStatus(SensorStatus.error);
-        },
-      );
+      _characteristicSubscription = _heartRateCharacteristic!.lastValueStream
+          .listen(
+            (value) {
+              final heartRate = _parseHeartRate(value);
+              if (heartRate != null) {
+                _dataController.add(heartRate);
+              }
+            },
+            onError: (error) {
+              _updateStatus(SensorStatus.error);
+            },
+          );
 
       _updateStatus(SensorStatus.active);
     } catch (e) {

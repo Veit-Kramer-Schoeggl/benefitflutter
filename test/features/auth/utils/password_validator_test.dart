@@ -184,7 +184,10 @@ void main() {
 
       test('returns all applicable errors for all-numbers', () {
         final errors = PasswordValidator.getErrors('123');
-        expect(errors.length, equals(3)); // too short, no uppercase, no lowercase
+        expect(
+          errors.length,
+          equals(3),
+        ); // too short, no uppercase, no lowercase
       });
     });
 

@@ -42,9 +42,9 @@ class SensorDataPoint {
     this.accuracy,
     this.metadata,
     DateTime? createdAt,
-  })  : id = id ?? const Uuid().v4(),
-        timestamp = timestamp ?? DateTime.now(),
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       timestamp = timestamp ?? DateTime.now(),
+       createdAt = createdAt ?? DateTime.now();
 
   /// Create a copy with updated fields
   SensorDataPoint copyWith({
@@ -94,22 +94,21 @@ class SensorDataPoint {
       deviceId: json['device_id'] as String?,
       sensorType: SensorType.fromJson(json['sensor_type'] as String),
       value: (json['value'] as num).toDouble(),
-      timestamp:
-          DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
       accuracy: json['accuracy'] != null
           ? (json['accuracy'] as num).toDouble()
           : null,
       metadata: json['metadata'] != null
           ? jsonDecode(json['metadata'] as String) as Map<String, dynamic>
           : null,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
     );
   }
 
   /// Get formatted value with unit
   String get formattedValue {
-    final valueStr = sensorType == SensorType.heartRate ||
+    final valueStr =
+        sensorType == SensorType.heartRate ||
             sensorType == SensorType.steps ||
             sensorType == SensorType.cadence
         ? value.round().toString()
@@ -194,9 +193,9 @@ class SessionSensorSummary {
     this.dataSources,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Create a copy with updated fields
   SessionSensorSummary copyWith({
@@ -243,8 +242,9 @@ class SessionSensorSummary {
       'max_heart_rate': maxHeartRate,
       'min_heart_rate': minHeartRate,
       'avg_heart_rate_variability': avgHeartRateVariability,
-      'heart_rate_zones':
-          heartRateZones != null ? jsonEncode(heartRateZones) : null,
+      'heart_rate_zones': heartRateZones != null
+          ? jsonEncode(heartRateZones)
+          : null,
       'total_steps': totalSteps,
       'avg_cadence': avgCadence,
       'avg_power': avgPower,
@@ -270,7 +270,8 @@ class SessionSensorSummary {
           : null,
       heartRateZones: json['heart_rate_zones'] != null
           ? Map<String, int>.from(
-              jsonDecode(json['heart_rate_zones'] as String) as Map)
+              jsonDecode(json['heart_rate_zones'] as String) as Map,
+            )
           : null,
       totalSteps: json['total_steps'] as int?,
       avgCadence: json['avg_cadence'] != null
@@ -283,12 +284,12 @@ class SessionSensorSummary {
           ? (json['calories_burned'] as num).toDouble()
           : null,
       dataSources: json['data_sources'] != null
-          ? List<String>.from(jsonDecode(json['data_sources'] as String) as List)
+          ? List<String>.from(
+              jsonDecode(json['data_sources'] as String) as List,
+            )
           : null,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
-      updatedAt:
-          DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
     );
   }
 

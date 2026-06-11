@@ -5,12 +5,7 @@ import 'package:benefitflutter/features/security/data/security_preferences.dart'
 import 'package:benefitflutter/core/config/security_config.dart';
 
 /// Available biometric authentication types
-enum AppBiometricType {
-  fingerprint,
-  faceId,
-  iris,
-  none,
-}
+enum AppBiometricType { fingerprint, faceId, iris, none }
 
 /// Result of a biometric authentication attempt
 class BiometricAuthResult {
@@ -51,8 +46,8 @@ class BiometricService {
   BiometricService({
     local_auth.LocalAuthentication? localAuth,
     SecurityPreferences? preferences,
-  })  : _localAuth = localAuth ?? local_auth.LocalAuthentication(),
-        _preferences = preferences ?? SecurityPreferences();
+  }) : _localAuth = localAuth ?? local_auth.LocalAuthentication(),
+       _preferences = preferences ?? SecurityPreferences();
 
   // ===== CAPABILITY CHECKS =====
 
@@ -96,18 +91,21 @@ class BiometricService {
   Future<List<AppBiometricType>> getAvailableBiometrics() async {
     try {
       final available = await _localAuth.getAvailableBiometrics();
-      return available.map((type) {
-        switch (type) {
-          case local_auth.BiometricType.fingerprint:
-            return AppBiometricType.fingerprint;
-          case local_auth.BiometricType.face:
-            return AppBiometricType.faceId;
-          case local_auth.BiometricType.iris:
-            return AppBiometricType.iris;
-          default:
-            return AppBiometricType.none;
-        }
-      }).where((type) => type != AppBiometricType.none).toList();
+      return available
+          .map((type) {
+            switch (type) {
+              case local_auth.BiometricType.fingerprint:
+                return AppBiometricType.fingerprint;
+              case local_auth.BiometricType.face:
+                return AppBiometricType.faceId;
+              case local_auth.BiometricType.iris:
+                return AppBiometricType.iris;
+              default:
+                return AppBiometricType.none;
+            }
+          })
+          .where((type) => type != AppBiometricType.none)
+          .toList();
     } catch (e) {
       debugPrint('BiometricService: Error getting available biometrics - $e');
       return [];
@@ -165,7 +163,9 @@ class BiometricService {
         return BiometricAuthResult.failed('Authentication failed');
       }
     } on PlatformException catch (e) {
-      debugPrint('BiometricService: Platform exception - ${e.code}: ${e.message}');
+      debugPrint(
+        'BiometricService: Platform exception - ${e.code}: ${e.message}',
+      );
 
       switch (e.code) {
         case 'NotAvailable':
@@ -174,7 +174,8 @@ class BiometricService {
           return BiometricAuthResult.failed('No biometrics enrolled');
         case 'LockedOut':
           return BiometricAuthResult.failed(
-              'Too many attempts. Try again later.');
+            'Too many attempts. Try again later.',
+          );
         case 'PermanentlyLockedOut':
           return BiometricAuthResult.locked();
         case 'PasscodeNotSet':

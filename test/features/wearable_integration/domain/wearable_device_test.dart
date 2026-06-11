@@ -20,10 +20,26 @@ void main() {
         );
         final after = DateTime.now();
 
-        expect(device.createdAt.isAfter(before) || device.createdAt.isAtSameMomentAs(before), true);
-        expect(device.createdAt.isBefore(after) || device.createdAt.isAtSameMomentAs(after), true);
-        expect(device.updatedAt.isAfter(before) || device.updatedAt.isAtSameMomentAs(before), true);
-        expect(device.updatedAt.isBefore(after) || device.updatedAt.isAtSameMomentAs(after), true);
+        expect(
+          device.createdAt.isAfter(before) ||
+              device.createdAt.isAtSameMomentAs(before),
+          true,
+        );
+        expect(
+          device.createdAt.isBefore(after) ||
+              device.createdAt.isAtSameMomentAs(after),
+          true,
+        );
+        expect(
+          device.updatedAt.isAfter(before) ||
+              device.updatedAt.isAtSameMomentAs(before),
+          true,
+        );
+        expect(
+          device.updatedAt.isBefore(after) ||
+              device.updatedAt.isAtSameMomentAs(after),
+          true,
+        );
       });
 
       test('uses provided createdAt and updatedAt', () {
@@ -138,10 +154,16 @@ void main() {
         expect(device.type, WearableDeviceType.heartRateMonitor);
         expect(device.source, IntegrationSource.ble);
         expect(device.status, ConnectionStatus.connected);
-        expect(device.capabilities, [SensorType.heartRate, SensorType.heartRateVariability]);
+        expect(device.capabilities, [
+          SensorType.heartRate,
+          SensorType.heartRateVariability,
+        ]);
         expect(device.userId, 'user1');
         expect(device.lastSyncTime, testTime);
-        expect(device.metadata, {'batteryLevel': 85, 'firmwareVersion': '1.0.0'});
+        expect(device.metadata, {
+          'batteryLevel': 85,
+          'firmwareVersion': '1.0.0',
+        });
         expect(device.createdAt, testTime);
         expect(device.updatedAt, testTime);
       });

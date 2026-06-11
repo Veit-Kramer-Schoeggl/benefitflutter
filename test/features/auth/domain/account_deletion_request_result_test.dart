@@ -64,9 +64,7 @@ void main() {
       });
 
       test('hasError returns false for failure with empty message', () {
-        final result = AccountDeletionRequestResult.failure(
-          error: '',
-        );
+        final result = AccountDeletionRequestResult.failure(error: '');
 
         expect(result.hasError, isFalse);
       });

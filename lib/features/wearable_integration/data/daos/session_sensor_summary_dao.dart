@@ -64,9 +64,7 @@ class SessionSensorSummaryDao {
       orderBy: 'created_at DESC',
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get summaries within a date range (based on creation time)
@@ -85,9 +83,7 @@ class SessionSensorSummaryDao {
       orderBy: 'created_at DESC',
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get summaries with heart rate data
@@ -99,9 +95,7 @@ class SessionSensorSummaryDao {
       orderBy: 'created_at DESC',
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get summaries with motion data
@@ -113,9 +107,7 @@ class SessionSensorSummaryDao {
       orderBy: 'created_at DESC',
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get count of summaries
@@ -196,9 +188,7 @@ class SessionSensorSummaryDao {
       limit: limit,
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get sessions with most steps (top N)
@@ -211,9 +201,7 @@ class SessionSensorSummaryDao {
       limit: limit,
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 
   /// Get sessions with most calories burned (top N)
@@ -226,8 +214,6 @@ class SessionSensorSummaryDao {
       limit: limit,
     );
 
-    return results
-        .map((json) => SessionSensorSummary.fromJson(json))
-        .toList();
+    return results.map((json) => SessionSensorSummary.fromJson(json)).toList();
   }
 }

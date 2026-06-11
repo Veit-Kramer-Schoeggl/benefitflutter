@@ -29,8 +29,10 @@ void main() {
 
         // Assert
         expect(sensorManager.isInitialized, true);
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            SensorStatus.available);
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          SensorStatus.available,
+        );
       });
 
       test('should track GPS as unavailable when hardware missing', () async {
@@ -42,8 +44,10 @@ void main() {
 
         // Assert
         expect(sensorManager.isInitialized, true);
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            SensorStatus.unavailable);
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          SensorStatus.unavailable,
+        );
       });
 
       test('should track GPS as denied when permission not granted', () async {
@@ -56,8 +60,10 @@ void main() {
 
         // Assert
         expect(sensorManager.isInitialized, true);
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            SensorStatus.denied);
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          SensorStatus.denied,
+        );
       });
 
       test('should not reinitialize if already initialized', () async {
@@ -65,15 +71,16 @@ void main() {
         mockGpsSensor.setHardwareAvailable(true);
         mockGpsSensor.setPermissionGranted(true);
         await sensorManager.initialize();
-        final firstInitStatus =
-            sensorManager.sensorStatuses['mock_gps_sensor'];
+        final firstInitStatus = sensorManager.sensorStatuses['mock_gps_sensor'];
 
         // Act - try to initialize again
         await sensorManager.initialize();
 
         // Assert - status should remain the same
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            equals(firstInitStatus));
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          equals(firstInitStatus),
+        );
       });
 
       test('should subscribe to GPS status changes', () async {
@@ -89,8 +96,10 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
 
         // Assert
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            SensorStatus.active);
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          SensorStatus.active,
+        );
       });
     });
 
@@ -241,8 +250,10 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
 
         // Assert
-        expect(sensorManager.sensorStatuses['mock_gps_sensor'],
-            SensorStatus.active);
+        expect(
+          sensorManager.sensorStatuses['mock_gps_sensor'],
+          SensorStatus.active,
+        );
       });
     });
 

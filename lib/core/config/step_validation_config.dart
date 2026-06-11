@@ -179,8 +179,10 @@ class StepValidationConfig {
       // Running: varies with speed
       final speedFactor =
           (speedKmh - joggingReferenceSpeedKmh) * runningStepMultiplierPerKmh;
-      baseMultiplier = (runningStepMultiplierBase + speedFactor)
-          .clamp(runningStepMultiplierBase, maxRunningMultiplier);
+      baseMultiplier = (runningStepMultiplierBase + speedFactor).clamp(
+        runningStepMultiplierBase,
+        maxRunningMultiplier,
+      );
     } else {
       // Walking (default)
       baseMultiplier = walkingStepMultiplier;
@@ -192,8 +194,10 @@ class StepValidationConfig {
         : femaleGenderFactor;
 
     // Age factor (decline after 60)
-    final yearsOverThreshold =
-        (age - ageDeclineStartAge).clamp(0, maxAgeDeclineYears);
+    final yearsOverThreshold = (age - ageDeclineStartAge).clamp(
+      0,
+      maxAgeDeclineYears,
+    );
     final decadesOver = yearsOverThreshold / 10.0;
     final ageFactor = 1.0 - (decadesOver * ageDeclinePerDecade);
 

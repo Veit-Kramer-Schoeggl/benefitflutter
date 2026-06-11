@@ -7,10 +7,7 @@ class BenefitViewModel {
   final UserBenefit userBenefit;
   final Benefit benefit;
 
-  BenefitViewModel({
-    required this.userBenefit,
-    required this.benefit,
-  });
+  BenefitViewModel({required this.userBenefit, required this.benefit});
 
   // Convenient getters for UI
   String get id => userBenefit.id;
@@ -19,12 +16,13 @@ class BenefitViewModel {
   String get formattedAmount => benefit.formattedDiscount;
   DateTime get earnedAt => userBenefit.earnedAt;
   String get sessionId => userBenefit.sessionId;
+
   /// Whether this benefit has been redeemed
-  bool get isRedeemed =>
-      userBenefit.status == BenefitStatus.redeemed;
+  bool get isRedeemed => userBenefit.status == BenefitStatus.redeemed;
+
   /// Whether this benefit is still available to redeem
-  bool get isEarned =>
-      userBenefit.status == BenefitStatus.earned;
+  bool get isEarned => userBenefit.status == BenefitStatus.earned;
+
   /// Redeemed date (if applicable)
   DateTime? get redeemedAt => userBenefit.redeemedAt;
 

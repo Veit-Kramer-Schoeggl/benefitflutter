@@ -6,7 +6,6 @@ import 'package:benefitflutter/features/session/data/session_repository.dart';
 import 'package:benefitflutter/features/session/domain/session.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 
-
 class ProgressProvider extends ChangeNotifier {
   // ===================== FIELDS =====================
 
@@ -87,7 +86,9 @@ class ProgressProvider extends ChangeNotifier {
 
   /// Updates an existing manual activity entry.
   void updateActivity(ActivityEntry updatedEntry) {
-    final index = _manualEntries.indexWhere((e) => e.sessionId == updatedEntry.sessionId);
+    final index = _manualEntries.indexWhere(
+      (e) => e.sessionId == updatedEntry.sessionId,
+    );
 
     if (index != -1) {
       _manualEntries[index] = updatedEntry;
@@ -100,7 +101,6 @@ class ProgressProvider extends ChangeNotifier {
     }
   }
 
-
   /// Removes an activity (manual or automatic)
   Future<void> removeActivity(ActivityEntry entry) async {
     if (entry.isManual) {
@@ -109,16 +109,14 @@ class ProgressProvider extends ChangeNotifier {
 
       _recombineAndSortActivities();
       notifyListeners();
-
     } else {
       // Assumption: deleteSession method needs the session ID
       await _sessionRepository.deleteSession(entry.sessionId);
 
       // Reload after deletion
       loadActivities();
-        }
+    }
   }
-
 
   // ===================== CORE LOGIC METHODS =====================
 
@@ -138,7 +136,9 @@ class ProgressProvider extends ChangeNotifier {
         _combinedActivities.clear();
         return;
       }
-      final dbSessions = await _sessionRepository.getAllSessions(userId: _userId!);
+      final dbSessions = await _sessionRepository.getAllSessions(
+        userId: _userId!,
+      );
       _convertDbAndCombine(dbSessions);
       _error = null;
     } catch (e) {
@@ -156,18 +156,21 @@ class ProgressProvider extends ChangeNotifier {
 
   /// Converts DB sessions, combines with manual entries, and sorts
   void _convertDbAndCombine(List<Session> dbSessions) {
-    debugPrint('ProgressProvider: Loaded ${dbSessions.length} total sessions from DB');
+    debugPrint(
+      'ProgressProvider: Loaded ${dbSessions.length} total sessions from DB',
+    );
 
     // 1. Filter: Only show COMPLETED sessions in Progress screen
-    final completedSessions = dbSessions.where(
-      (session) => session.status == SessionStatus.completed
-    ).toList();
+    final completedSessions = dbSessions
+        .where((session) => session.status == SessionStatus.completed)
+        .toList();
 
-    debugPrint('ProgressProvider: ${completedSessions.length} completed sessions');
+    debugPrint(
+      'ProgressProvider: ${completedSessions.length} completed sessions',
+    );
 
     // 2. Convert database entities (Session) to ActivityEntry models
     List<ActivityEntry> dbEntries = completedSessions.map((session) {
-
       final duration = session.durationSeconds != null
           ? Duration(seconds: session.durationSeconds!)
           : null;
@@ -193,14 +196,18 @@ class ProgressProvider extends ChangeNotifier {
     // Sort by start time (newest first: b before a)
     _combinedActivities.sort((a, b) => b.startTime.compareTo(a.startTime));
 
-    debugPrint('ProgressProvider: Total activities to display: ${_combinedActivities.length} (${_manualEntries.length} manual + ${dbEntries.length} DB)');
+    debugPrint(
+      'ProgressProvider: Total activities to display: ${_combinedActivities.length} (${_manualEntries.length} manual + ${dbEntries.length} DB)',
+    );
   }
 
   /// Updates and sorts the combined list (used after manual CRUD operations)
   void _recombineAndSortActivities() {
     // Filter current DB entries (non-manual ones)
     // We take entries that are NOT manual from the CURRENT _combinedActivities list
-    final List<ActivityEntry> dbEntries = _combinedActivities.where((e) => !e.isManual).toList();
+    final List<ActivityEntry> dbEntries = _combinedActivities
+        .where((e) => !e.isManual)
+        .toList();
 
     // Create new combined list
     _combinedActivities = [..._manualEntries, ...dbEntries];
@@ -209,13 +216,15 @@ class ProgressProvider extends ChangeNotifier {
     _combinedActivities.sort((a, b) => b.startTime.compareTo(a.startTime));
   }
 
-
   // ===================== PERSISTENCE (SharedPreferences) =====================
 
   Future<void> saveManualEntriesToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = _manualEntries.map((e) => e.toPrefString()).toList();
-    await prefs.setString(ProgressProvider._prefKeyManualEntries, jsonList.join(';;'));
+    await prefs.setString(
+      ProgressProvider._prefKeyManualEntries,
+      jsonList.join(';;'),
+    );
   }
 
   // ⚠️ FIX 3: Changed method to Future<void>.
@@ -233,7 +242,9 @@ class ProgressProvider extends ChangeNotifier {
         _manualEntries.add(ActivityEntry.fromPrefString(item));
       } catch (e) {
         // Important: If an error occurs here, it's due to incompatible old data.
-        debugPrint('Error loading ActivityEntry: $e. Probably incompatible old format.');
+        debugPrint(
+          'Error loading ActivityEntry: $e. Probably incompatible old format.',
+        );
       }
     }
   }
@@ -246,13 +257,12 @@ class ProgressProvider extends ChangeNotifier {
 
     for (final entry in _combinedActivities) {
       if (entry.distanceKm != null && entry.distanceKm! > 0) {
-
         final int weekday = entry.startTime.weekday;
         final double distance = entry.distanceKm!;
 
         distanceMap.update(
           weekday,
-              (existingDistance) => existingDistance + distance,
+          (existingDistance) => existingDistance + distance,
           ifAbsent: () => distance,
         );
       }
@@ -271,7 +281,7 @@ class ProgressProvider extends ChangeNotifier {
 
         durationMap.update(
           weekday,
-              (existingMinutes) => existingMinutes + minutes,
+          (existingMinutes) => existingMinutes + minutes,
           ifAbsent: () => minutes,
         );
       }
@@ -285,7 +295,6 @@ class ProgressProvider extends ChangeNotifier {
 
     for (final entry in _combinedActivities) {
       if (entry.duration != null && entry.duration!.inSeconds > 0) {
-
         // Format year and month as 'YYYY-MM' (e.g. '2025-12')
         final String yearMonthKey =
             '${entry.startTime.year}-${entry.startTime.month.toString().padLeft(2, '0')}';
@@ -296,7 +305,7 @@ class ProgressProvider extends ChangeNotifier {
         // Sum the duration for this month
         durationMap.update(
           yearMonthKey,
-              (existingDuration) => existingDuration + durationMinutes,
+          (existingDuration) => existingDuration + durationMinutes,
           ifAbsent: () => durationMinutes,
         );
       }
@@ -316,7 +325,7 @@ class ProgressProvider extends ChangeNotifier {
 
       // Filter activities for the specific year
       final activitiesInYear = activities.where(
-              (entry) => entry.startTime.year == year
+        (entry) => entry.startTime.year == year,
       );
 
       for (var entry in activitiesInYear) {
@@ -342,14 +351,13 @@ class ProgressProvider extends ChangeNotifier {
 
     for (final entry in _combinedActivities) {
       if (entry.distanceKm != null && entry.distanceKm! > 0) {
-
         final String yearMonthKey =
             '${entry.startTime.year}-${entry.startTime.month.toString().padLeft(2, '0')}';
         final double distance = entry.distanceKm!;
 
         distanceMap.update(
           yearMonthKey,
-              (existingDistance) => existingDistance + distance,
+          (existingDistance) => existingDistance + distance,
           ifAbsent: () => distance,
         );
       }
@@ -377,5 +385,4 @@ class ProgressProvider extends ChangeNotifier {
   }
 
   // ===================== CLEANUP =====================
-
 }

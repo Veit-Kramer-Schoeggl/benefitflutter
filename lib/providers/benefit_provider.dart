@@ -82,10 +82,7 @@ class BenefitProvider extends ChangeNotifier {
         ),
       );
 
-      return BenefitViewModel(
-        userBenefit: userBenefit,
-        benefit: benefit,
-      );
+      return BenefitViewModel(userBenefit: userBenefit, benefit: benefit);
     }).toList();
   }
 
@@ -155,9 +152,7 @@ class BenefitProvider extends ChangeNotifier {
   /// Retry after error
   Future<void> retry() => fetchBenefits();
 
-  Future<void> redeemBenefit({
-    required String userBenefitId,
-  }) async {
+  Future<void> redeemBenefit({required String userBenefitId}) async {
     if (_currentUserId == null) return;
     try {
       final code = _generateRedemptionCode();

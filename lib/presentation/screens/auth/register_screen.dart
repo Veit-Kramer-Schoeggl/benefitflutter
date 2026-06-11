@@ -99,7 +99,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // First, check email availability if not already checked
     final email = _emailController.text.trim();
-    if (email.isNotEmpty && _emailAvailabilityError == null && !_isCheckingEmail) {
+    if (email.isNotEmpty &&
+        _emailAvailabilityError == null &&
+        !_isCheckingEmail) {
       final isAvailable = await userProvider.checkEmailAvailability(email);
       if (!mounted) return;
 
@@ -214,17 +216,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text(
                       'Create Account',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Join BeneFit to start tracking your activities',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 32),
 
@@ -277,15 +278,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               )
                             : _emailAvailabilityError != null
-                                ? const Icon(Icons.error_outline, color: Colors.red)
-                                : _emailController.text.isNotEmpty &&
-                                        _emailController.text.contains('@')
-                                    ? const Icon(Icons.check_circle, color: Colors.green)
-                                    : null,
+                            ? const Icon(Icons.error_outline, color: Colors.red)
+                            : _emailController.text.isNotEmpty &&
+                                  _emailController.text.contains('@')
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              )
+                            : null,
                         errorText: _emailAvailabilityError,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -370,7 +376,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           onPressed: () {
                             setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
                             });
                           },
                         ),
@@ -419,7 +426,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       height: 50,
                       child: FilledButton(
-                        onPressed: userProvider.isLoading ? null : _handleRegister,
+                        onPressed: userProvider.isLoading
+                            ? null
+                            : _handleRegister,
                         style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -431,8 +440,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text(

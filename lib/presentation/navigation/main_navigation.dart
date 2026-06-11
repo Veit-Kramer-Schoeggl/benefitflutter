@@ -20,11 +20,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   // List of screens for each tab
   final List<Widget> _screens = const [
-    CommunityScreen(),   // Tab 0: Community
-    ProgressScreen(),    // Tab 1: Progress
-    ActivityScreen(),    // Tab 2: Activity
-    BenefitScreen(),     // Tab 3: Benefits & rewards
-    ProfileScreen(),     // Tab 4: Profile
+    CommunityScreen(), // Tab 0: Community
+    ProgressScreen(), // Tab 1: Progress
+    ActivityScreen(), // Tab 2: Activity
+    BenefitScreen(), // Tab 3: Benefits & rewards
+    ProfileScreen(), // Tab 4: Profile
   ];
 
   void _onTabTapped(int index) {
@@ -46,10 +46,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
@@ -61,8 +58,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               width: 24,
               height: 24,
               color: _currentIndex == 0
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
             label: 'Community',
           ),
@@ -72,8 +69,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               width: 24,
               height: 24,
               color: _currentIndex == 1
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
             label: 'Progress',
           ),
@@ -83,8 +80,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               width: 24,
               height: 24,
               color: _currentIndex == 2
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
             label: 'Activity',
           ),
@@ -94,8 +91,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               width: 24,
               height: 24,
               color: _currentIndex == 3
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
             label: 'Benefit',
           ),
@@ -105,8 +102,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               width: 24,
               height: 24,
               color: _currentIndex == 4
-                ? Theme.of(context).colorScheme.primary
-                : Colors.grey,
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
             ),
             label: 'Profile',
           ),

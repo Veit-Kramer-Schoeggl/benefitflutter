@@ -77,7 +77,9 @@ class HealthPlatformProvider extends ChangeNotifier {
         }
       } else {
         _isConnected = false;
-        _setError('Health platform permissions were denied. Please grant permissions in your device settings.');
+        _setError(
+          'Health platform permissions were denied. Please grant permissions in your device settings.',
+        );
       }
 
       return granted;
@@ -243,11 +245,7 @@ class HealthPlatformProvider extends ChangeNotifier {
       return await _syncService.getWeeklySummary(userId, weekStart);
     } catch (e) {
       _setError('Failed to get weekly summary: $e');
-      return {
-        'steps': 0,
-        'distance': 0.0,
-        'calories': 0.0,
-      };
+      return {'steps': 0, 'distance': 0.0, 'calories': 0.0};
     }
   }
 

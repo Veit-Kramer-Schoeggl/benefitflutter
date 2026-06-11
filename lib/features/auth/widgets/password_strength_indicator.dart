@@ -36,21 +36,21 @@ class PasswordStrengthIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (style) {
       PasswordStrengthStyle.barOnly => _StrengthBar(
-          password: password,
-          animate: animate,
-        ),
+        password: password,
+        animate: animate,
+      ),
       PasswordStrengthStyle.checksOnly => _RequirementChecks(
-          password: password,
-          animate: animate,
-        ),
+        password: password,
+        animate: animate,
+      ),
       PasswordStrengthStyle.barWithChecks => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _StrengthBar(password: password, animate: animate),
-            const SizedBox(height: 8),
-            _RequirementChecks(password: password, animate: animate),
-          ],
-        ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StrengthBar(password: password, animate: animate),
+          const SizedBox(height: 8),
+          _RequirementChecks(password: password, animate: animate),
+        ],
+      ),
     };
   }
 }
@@ -72,10 +72,7 @@ class _StrengthBar extends StatelessWidget {
   final String password;
   final bool animate;
 
-  const _StrengthBar({
-    required this.password,
-    required this.animate,
-  });
+  const _StrengthBar({required this.password, required this.animate});
 
   @override
   Widget build(BuildContext context) {
@@ -96,9 +93,9 @@ class _StrengthBar extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -168,10 +165,7 @@ class _RequirementChecks extends StatelessWidget {
   final String password;
   final bool animate;
 
-  const _RequirementChecks({
-    required this.password,
-    required this.animate,
-  });
+  const _RequirementChecks({required this.password, required this.animate});
 
   @override
   Widget build(BuildContext context) {
@@ -197,10 +191,7 @@ class _RequirementChecks extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: requirements
-          .map((req) => _RequirementRow(
-                requirement: req,
-                animate: animate,
-              ))
+          .map((req) => _RequirementRow(requirement: req, animate: animate))
           .toList(),
     );
   }
@@ -217,10 +208,7 @@ class _RequirementRow extends StatelessWidget {
   final _Requirement requirement;
   final bool animate;
 
-  const _RequirementRow({
-    required this.requirement,
-    required this.animate,
-  });
+  const _RequirementRow({required this.requirement, required this.animate});
 
   @override
   Widget build(BuildContext context) {
@@ -229,9 +217,9 @@ class _RequirementRow extends StatelessWidget {
         : const Icon(Icons.circle_outlined, color: Colors.grey, size: 16);
 
     final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: requirement.isMet ? Colors.green.shade700 : Colors.grey.shade600,
-          decoration: requirement.isMet ? TextDecoration.lineThrough : null,
-        );
+      color: requirement.isMet ? Colors.green.shade700 : Colors.grey.shade600,
+      decoration: requirement.isMet ? TextDecoration.lineThrough : null,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

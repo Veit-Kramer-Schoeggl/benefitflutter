@@ -31,7 +31,9 @@ void main() {
 
     group('failure factory', () {
       test('creates failed result with error message', () {
-        final result = RegistrationResult.failure(error: 'Email already exists');
+        final result = RegistrationResult.failure(
+          error: 'Email already exists',
+        );
 
         expect(result.success, isFalse);
         expect(result.isFailure, isTrue);

@@ -19,9 +19,9 @@ class ContinuousTrackingRepositoryImpl implements ContinuousTrackingRepository {
     required ContinuousTrackingConfigDao configDao,
     required ContinuousTrackingStateDao stateDao,
     required ActivitySegmentDao segmentDao,
-  })  : _configDao = configDao,
-        _stateDao = stateDao,
-        _segmentDao = segmentDao;
+  }) : _configDao = configDao,
+       _stateDao = stateDao,
+       _segmentDao = segmentDao;
 
   /// Factory constructor with default dependencies
   factory ContinuousTrackingRepositoryImpl.create() {

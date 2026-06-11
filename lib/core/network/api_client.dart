@@ -17,16 +17,16 @@ class ApiClient {
     Duration? connectTimeout,
     Duration? receiveTimeout,
   }) : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl ?? SecurityConfig.apiBaseUrl,
-            connectTimeout: connectTimeout ?? const Duration(seconds: 10),
-            receiveTimeout: receiveTimeout ?? const Duration(seconds: 30),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          ),
-        ) {
+         BaseOptions(
+           baseUrl: baseUrl ?? SecurityConfig.apiBaseUrl,
+           connectTimeout: connectTimeout ?? const Duration(seconds: 10),
+           receiveTimeout: receiveTimeout ?? const Duration(seconds: 30),
+           headers: {
+             'Content-Type': 'application/json',
+             'Accept': 'application/json',
+           },
+         ),
+       ) {
     // Add logging interceptor in debug mode
     if (kDebugMode) {
       _dio.interceptors.add(

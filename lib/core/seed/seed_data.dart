@@ -557,10 +557,7 @@ class SeedData {
         ],
         userId: testUserId,
         lastSyncTime: now.subtract(const Duration(days: 5)),
-        metadata: {
-          'batteryLevel': 45,
-          'firmwareVersion': '4.20',
-        },
+        metadata: {'batteryLevel': 45, 'firmwareVersion': '4.20'},
         createdAt: now.subtract(const Duration(days: 90)),
         updatedAt: now.subtract(const Duration(days: 5)),
       ),
@@ -585,10 +582,7 @@ class SeedData {
         ],
         userId: testUserId2,
         lastSyncTime: now.subtract(const Duration(hours: 2)),
-        metadata: {
-          'batteryLevel': 72,
-          'firmwareVersion': '10.2',
-        },
+        metadata: {'batteryLevel': 72, 'firmwareVersion': '10.2'},
         createdAt: now.subtract(const Duration(days: 45)),
         updatedAt: now.subtract(const Duration(hours: 2)),
       ),
@@ -607,7 +601,7 @@ class SeedData {
     // Heart rate data for session-1 (5km run, 30 minutes)
     // Simulate realistic heart rate progression during a run
     final heartRateProfile = [
-      {'min': 0, 'hr': 75},  // Resting
+      {'min': 0, 'hr': 75}, // Resting
       {'min': 2, 'hr': 110}, // Warm up
       {'min': 5, 'hr': 140}, // Getting into rhythm
       {'min': 10, 'hr': 155}, // Steady state
@@ -619,27 +613,33 @@ class SeedData {
     ];
 
     for (final point in heartRateProfile) {
-      dataPoints.add(SensorDataPoint(
-        sessionId: 'session-1',
-        deviceId: 'device-polar-h10',
-        sensorType: SensorType.heartRate,
-        value: (point['hr'] as int).toDouble(),
-        timestamp: sessionStartTime.add(Duration(minutes: point['min'] as int)),
-        accuracy: 0.98,
-      ));
+      dataPoints.add(
+        SensorDataPoint(
+          sessionId: 'session-1',
+          deviceId: 'device-polar-h10',
+          sensorType: SensorType.heartRate,
+          value: (point['hr'] as int).toDouble(),
+          timestamp: sessionStartTime.add(
+            Duration(minutes: point['min'] as int),
+          ),
+          accuracy: 0.98,
+        ),
+      );
     }
 
     // Add HRV data (every 5 minutes)
     for (int i = 0; i <= 30; i += 5) {
-      dataPoints.add(SensorDataPoint(
-        sessionId: 'session-1',
-        deviceId: 'device-polar-h10',
-        sensorType: SensorType.heartRateVariability,
-        value: 45.0 - (i / 2), // HRV decreases during exercise
-        timestamp: sessionStartTime.add(Duration(minutes: i)),
-        accuracy: 0.95,
-        metadata: {'rr_intervals': '[850, 840, 855, 845]'},
-      ));
+      dataPoints.add(
+        SensorDataPoint(
+          sessionId: 'session-1',
+          deviceId: 'device-polar-h10',
+          sensorType: SensorType.heartRateVariability,
+          value: 45.0 - (i / 2), // HRV decreases during exercise
+          timestamp: sessionStartTime.add(Duration(minutes: i)),
+          accuracy: 0.95,
+          metadata: {'rr_intervals': '[850, 840, 855, 845]'},
+        ),
+      );
     }
 
     return dataPoints;
@@ -666,25 +666,31 @@ class SeedData {
     ];
 
     for (final point in cadenceProfile) {
-      dataPoints.add(SensorDataPoint(
-        sessionId: 'session-1',
-        deviceId: 'device-polar-h10',
-        sensorType: SensorType.cadence,
-        value: (point['cadence'] as int).toDouble(),
-        timestamp: sessionStartTime.add(Duration(minutes: point['min'] as int)),
-        accuracy: 0.92,
-      ));
+      dataPoints.add(
+        SensorDataPoint(
+          sessionId: 'session-1',
+          deviceId: 'device-polar-h10',
+          sensorType: SensorType.cadence,
+          value: (point['cadence'] as int).toDouble(),
+          timestamp: sessionStartTime.add(
+            Duration(minutes: point['min'] as int),
+          ),
+          accuracy: 0.92,
+        ),
+      );
     }
 
     // Total steps for the session (accumulated at end)
-    dataPoints.add(SensorDataPoint(
-      sessionId: 'session-1',
-      deviceId: 'device-health-connect',
-      sensorType: SensorType.steps,
-      value: 5200.0, // ~30 min * 173 avg cadence
-      timestamp: sessionStartTime.add(const Duration(minutes: 30)),
-      accuracy: 1.0,
-    ));
+    dataPoints.add(
+      SensorDataPoint(
+        sessionId: 'session-1',
+        deviceId: 'device-health-connect',
+        sensorType: SensorType.steps,
+        value: 5200.0, // ~30 min * 173 avg cadence
+        timestamp: sessionStartTime.add(const Duration(minutes: 30)),
+        accuracy: 1.0,
+      ),
+    );
 
     return dataPoints;
   }
@@ -704,10 +710,10 @@ class SeedData {
         minHeartRate: 110,
         avgHeartRateVariability: 35.8,
         heartRateZones: {
-          'zone1': 120,  // Warm up (2 min)
-          'zone2': 600,  // Aerobic (10 min)
-          'zone3': 900,  // Threshold (15 min)
-          'zone4': 180,  // Max effort (3 min)
+          'zone1': 120, // Warm up (2 min)
+          'zone2': 600, // Aerobic (10 min)
+          'zone3': 900, // Threshold (15 min)
+          'zone4': 180, // Max effort (3 min)
         },
         totalSteps: 5200,
         avgCadence: 172.5,
@@ -724,7 +730,7 @@ class SeedData {
         maxHeartRate: 162,
         minHeartRate: 105,
         heartRateZones: {
-          'zone1': 180,  // Warm up
+          'zone1': 180, // Warm up
           'zone2': 1200, // Aerobic
           'zone3': 1320, // Threshold
         },
@@ -752,15 +758,17 @@ class SeedData {
       final dayStart = DateTime(date.year, date.month, date.day);
       final dayEnd = dayStart.add(const Duration(days: 1));
 
-      dataPoints.add(HealthDataPoint(
-        userId: testUserId,
-        dataType: HealthDataType.steps,
-        value: (8500 + (i * 500)).toString(), // Varying daily steps
-        startTime: dayStart,
-        endTime: dayEnd,
-        sourceApp: 'Google Fit',
-        syncedAt: now,
-      ));
+      dataPoints.add(
+        HealthDataPoint(
+          userId: testUserId,
+          dataType: HealthDataType.steps,
+          value: (8500 + (i * 500)).toString(), // Varying daily steps
+          startTime: dayStart,
+          endTime: dayEnd,
+          sourceApp: 'Google Fit',
+          syncedAt: now,
+        ),
+      );
     }
 
     // Resting heart rate samples
@@ -768,39 +776,45 @@ class SeedData {
       final date = now.subtract(Duration(days: i));
       final dayStart = DateTime(date.year, date.month, date.day, 7); // Morning
 
-      dataPoints.add(HealthDataPoint(
-        userId: testUserId,
-        dataType: HealthDataType.restingHeartRate,
-        value: (58 + (i % 3)).toString(), // Varying resting HR
-        startTime: dayStart,
-        endTime: dayStart.add(const Duration(minutes: 5)),
-        sourceApp: 'Google Fit',
-        syncedAt: now,
-      ));
+      dataPoints.add(
+        HealthDataPoint(
+          userId: testUserId,
+          dataType: HealthDataType.restingHeartRate,
+          value: (58 + (i % 3)).toString(), // Varying resting HR
+          startTime: dayStart,
+          endTime: dayStart.add(const Duration(minutes: 5)),
+          sourceApp: 'Google Fit',
+          syncedAt: now,
+        ),
+      );
     }
 
     // Weight measurements
-    dataPoints.add(HealthDataPoint(
-      userId: testUserId,
-      dataType: HealthDataType.weight,
-      value: '71.2',
-      startTime: now.subtract(const Duration(days: 2, hours: 8)),
-      endTime: now.subtract(const Duration(days: 2, hours: 8)),
-      sourceApp: 'Health Connect',
-      syncedAt: now.subtract(const Duration(days: 2)),
-    ));
+    dataPoints.add(
+      HealthDataPoint(
+        userId: testUserId,
+        dataType: HealthDataType.weight,
+        value: '71.2',
+        startTime: now.subtract(const Duration(days: 2, hours: 8)),
+        endTime: now.subtract(const Duration(days: 2, hours: 8)),
+        sourceApp: 'Health Connect',
+        syncedAt: now.subtract(const Duration(days: 2)),
+      ),
+    );
 
     // VO2 Max estimate
-    dataPoints.add(HealthDataPoint(
-      userId: testUserId,
-      dataType: HealthDataType.vo2Max,
-      value: '48.5',
-      startTime: now.subtract(const Duration(days: 5)),
-      endTime: now.subtract(const Duration(days: 5)),
-      sourceApp: 'Garmin Connect',
-      metadata: {'sport': 'running'},
-      syncedAt: now.subtract(const Duration(days: 5)),
-    ));
+    dataPoints.add(
+      HealthDataPoint(
+        userId: testUserId,
+        dataType: HealthDataType.vo2Max,
+        value: '48.5',
+        startTime: now.subtract(const Duration(days: 5)),
+        endTime: now.subtract(const Duration(days: 5)),
+        sourceApp: 'Garmin Connect',
+        metadata: {'sport': 'running'},
+        syncedAt: now.subtract(const Duration(days: 5)),
+      ),
+    );
 
     // ========================================
     // HEALTH PLATFORM DATA FOR USER 2 (Sarah Runner)
@@ -812,15 +826,17 @@ class SeedData {
       final dayStart = DateTime(date.year, date.month, date.day);
       final dayEnd = dayStart.add(const Duration(days: 1));
 
-      dataPoints.add(HealthDataPoint(
-        userId: testUserId2,
-        dataType: HealthDataType.steps,
-        value: (10500 + (i * 300)).toString(), // Higher daily steps
-        startTime: dayStart,
-        endTime: dayEnd,
-        sourceApp: 'Apple Health',
-        syncedAt: now,
-      ));
+      dataPoints.add(
+        HealthDataPoint(
+          userId: testUserId2,
+          dataType: HealthDataType.steps,
+          value: (10500 + (i * 300)).toString(), // Higher daily steps
+          startTime: dayStart,
+          endTime: dayEnd,
+          sourceApp: 'Apple Health',
+          syncedAt: now,
+        ),
+      );
     }
 
     // Resting heart rate for user 2
@@ -828,39 +844,45 @@ class SeedData {
       final date = now.subtract(Duration(days: i));
       final dayStart = DateTime(date.year, date.month, date.day, 6);
 
-      dataPoints.add(HealthDataPoint(
-        userId: testUserId2,
-        dataType: HealthDataType.restingHeartRate,
-        value: (52 + (i % 2)).toString(), // Lower resting HR (fitter)
-        startTime: dayStart,
-        endTime: dayStart.add(const Duration(minutes: 5)),
-        sourceApp: 'Apple Health',
-        syncedAt: now,
-      ));
+      dataPoints.add(
+        HealthDataPoint(
+          userId: testUserId2,
+          dataType: HealthDataType.restingHeartRate,
+          value: (52 + (i % 2)).toString(), // Lower resting HR (fitter)
+          startTime: dayStart,
+          endTime: dayStart.add(const Duration(minutes: 5)),
+          sourceApp: 'Apple Health',
+          syncedAt: now,
+        ),
+      );
     }
 
     // Weight for user 2
-    dataPoints.add(HealthDataPoint(
-      userId: testUserId2,
-      dataType: HealthDataType.weight,
-      value: '58.0',
-      startTime: now.subtract(const Duration(days: 3, hours: 7)),
-      endTime: now.subtract(const Duration(days: 3, hours: 7)),
-      sourceApp: 'Apple Health',
-      syncedAt: now.subtract(const Duration(days: 3)),
-    ));
+    dataPoints.add(
+      HealthDataPoint(
+        userId: testUserId2,
+        dataType: HealthDataType.weight,
+        value: '58.0',
+        startTime: now.subtract(const Duration(days: 3, hours: 7)),
+        endTime: now.subtract(const Duration(days: 3, hours: 7)),
+        sourceApp: 'Apple Health',
+        syncedAt: now.subtract(const Duration(days: 3)),
+      ),
+    );
 
     // VO2 Max for user 2
-    dataPoints.add(HealthDataPoint(
-      userId: testUserId2,
-      dataType: HealthDataType.vo2Max,
-      value: '42.0',
-      startTime: now.subtract(const Duration(days: 2)),
-      endTime: now.subtract(const Duration(days: 2)),
-      sourceApp: 'Apple Health',
-      metadata: {'sport': 'running'},
-      syncedAt: now.subtract(const Duration(days: 2)),
-    ));
+    dataPoints.add(
+      HealthDataPoint(
+        userId: testUserId2,
+        dataType: HealthDataType.vo2Max,
+        value: '42.0',
+        startTime: now.subtract(const Duration(days: 2)),
+        endTime: now.subtract(const Duration(days: 2)),
+        sourceApp: 'Apple Health',
+        metadata: {'sport': 'running'},
+        syncedAt: now.subtract(const Duration(days: 2)),
+      ),
+    );
 
     return dataPoints;
   }

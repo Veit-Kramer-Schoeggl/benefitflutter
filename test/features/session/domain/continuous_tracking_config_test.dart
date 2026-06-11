@@ -38,8 +38,14 @@ void main() {
         );
         final after = DateTime.now();
 
-        expect(config.createdAt.isAfter(before) || config.createdAt == before, isTrue);
-        expect(config.createdAt.isBefore(after) || config.createdAt == after, isTrue);
+        expect(
+          config.createdAt.isAfter(before) || config.createdAt == before,
+          isTrue,
+        );
+        expect(
+          config.createdAt.isBefore(after) || config.createdAt == after,
+          isTrue,
+        );
       });
     });
 
@@ -182,8 +188,14 @@ void main() {
         expect(restored.isEnabled, equals(original.isEnabled));
         expect(restored.resetPoints, equals(original.resetPoints));
         expect(restored.activityDetection, equals(original.activityDetection));
-        expect(restored.gpsIntervalSeconds, equals(original.gpsIntervalSeconds));
-        expect(restored.minDisplacementMeters, equals(original.minDisplacementMeters));
+        expect(
+          restored.gpsIntervalSeconds,
+          equals(original.gpsIntervalSeconds),
+        );
+        expect(
+          restored.minDisplacementMeters,
+          equals(original.minDisplacementMeters),
+        );
       });
     });
 
@@ -237,8 +249,9 @@ void main() {
       });
 
       test('isManualDetection returns true for manual mode', () {
-        final config = ContinuousTrackingConfig.defaultFor('user-1')
-            .copyWith(activityDetection: 'manual');
+        final config = ContinuousTrackingConfig.defaultFor(
+          'user-1',
+        ).copyWith(activityDetection: 'manual');
 
         expect(config.isManualDetection, isTrue);
         expect(config.isAutoDetection, isFalse);
@@ -246,8 +259,9 @@ void main() {
       });
 
       test('isAutoDetection returns true for auto mode', () {
-        final config = ContinuousTrackingConfig.defaultFor('user-1')
-            .copyWith(activityDetection: 'auto');
+        final config = ContinuousTrackingConfig.defaultFor(
+          'user-1',
+        ).copyWith(activityDetection: 'auto');
 
         expect(config.isManualDetection, isFalse);
         expect(config.isAutoDetection, isTrue);

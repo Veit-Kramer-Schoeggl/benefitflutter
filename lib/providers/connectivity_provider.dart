@@ -41,8 +41,9 @@ class ConnectivityProvider extends ChangeNotifier {
     notifyListeners();
 
     // Listen to connectivity changes
-    _subscription =
-        _connectivityService.onConnectivityChanged.listen((isOnline) {
+    _subscription = _connectivityService.onConnectivityChanged.listen((
+      isOnline,
+    ) {
       _isOnline = isOnline;
       notifyListeners();
     });

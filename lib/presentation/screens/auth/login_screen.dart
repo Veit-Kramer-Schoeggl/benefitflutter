@@ -64,7 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _lockoutRemaining = _lockoutRemaining - const Duration(seconds: 1);
-        if (_lockoutRemaining.isNegative || _lockoutRemaining == Duration.zero) {
+        if (_lockoutRemaining.isNegative ||
+            _lockoutRemaining == Duration.zero) {
           _isLockedOut = false;
           _lockoutRemaining = Duration.zero;
           timer.cancel();
@@ -168,7 +169,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 16),
                 Expanded(
-                  child: Text('Database reset successfully!\nPlease log in again.'),
+                  child: Text(
+                    'Database reset successfully!\nPlease log in again.',
+                  ),
                 ),
               ],
             ),
@@ -189,9 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Text('Reset failed: ${e.toString()}'),
-                ),
+                Expanded(child: Text('Reset failed: ${e.toString()}')),
               ],
             ),
             backgroundColor: Colors.red,
@@ -227,9 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Reset'),
           ),
         ],
@@ -270,7 +269,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'BeneFit',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      style: Theme.of(context).textTheme.headlineLarge
+                          ?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
@@ -281,9 +281,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Move More, Save More',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 48),
 
@@ -291,15 +291,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Welcome Back',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Sign in to continue tracking your activities',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 32),
 
@@ -373,8 +373,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: TextButton(
                         onPressed: userProvider.isLoading
                             ? null
-                            : () => Navigator.of(context)
-                                .pushNamed('/forgot-password'),
+                            : () => Navigator.of(
+                                context,
+                              ).pushNamed('/forgot-password'),
                         child: const Text('Forgot Password?'),
                       ),
                     ),
@@ -393,7 +394,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.lock_clock, color: Colors.orange[700], size: 28),
+                                Icon(
+                                  Icons.lock_clock,
+                                  color: Colors.orange[700],
+                                  size: 28,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -409,7 +414,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 12),
                             Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange[100],
                                 borderRadius: BorderRadius.circular(8),
@@ -417,7 +425,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.timer, color: Colors.orange, size: 20),
+                                  const Icon(
+                                    Icons.timer,
+                                    color: Colors.orange,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Try again in ${_lockoutRemaining.inMinutes}:${(_lockoutRemaining.inSeconds % 60).toString().padLeft(2, '0')}',
@@ -480,8 +492,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : Text(
@@ -511,7 +524,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.blue[700],
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Test Credentials',
@@ -567,10 +584,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.refresh),
-                        label: Text(_isReseeding ? 'Resetting...' : 'Reset Test Data'),
+                        label: Text(
+                          _isReseeding ? 'Resetting...' : 'Reset Test Data',
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange,
                           side: const BorderSide(color: Colors.orange),

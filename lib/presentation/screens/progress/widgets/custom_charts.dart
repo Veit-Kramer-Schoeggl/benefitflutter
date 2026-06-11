@@ -92,10 +92,14 @@ class CustomBarChart extends StatelessWidget {
     const defaultWeekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
     final sortedKeys = data.keys.toList()..sort();
-    final double rawMaxDistance = data.values.isEmpty ? 1.0 : data.values.reduce((a, b) => a > b ? a : b);
+    final double rawMaxDistance = data.values.isEmpty
+        ? 1.0
+        : data.values.reduce((a, b) => a > b ? a : b);
 
     final List<int> yAxisLabels = _calculateYAxisValues(rawMaxDistance);
-    final double maxScaleValue = yAxisLabels.isEmpty ? 1.0 : yAxisLabels.last.toDouble();
+    final double maxScaleValue = yAxisLabels.isEmpty
+        ? 1.0
+        : yAxisLabels.last.toDouble();
 
     const double chartVisualHeight = 200.0;
     const double xAxisLabelHeight = 18.0;
@@ -108,7 +112,12 @@ class CustomBarChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Titel
-          Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: darkGrey)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: darkGrey),
+          ),
           const SizedBox(height: 10),
 
           SizedBox(
@@ -123,14 +132,22 @@ class CustomBarChart extends StatelessWidget {
                   child: Stack(
                     children: [
                       ...yAxisLabels.map((value) {
-                        final double topPosition = chartVisualHeight * (1 - (value / maxScaleValue));
+                        final double topPosition =
+                            chartVisualHeight * (1 - (value / maxScaleValue));
 
                         return Positioned(
-                          top: (value == maxScaleValue.toInt()) ? 0 : (value == 0) ? chartVisualHeight - 12 : topPosition - 6,
+                          top: (value == maxScaleValue.toInt())
+                              ? 0
+                              : (value == 0)
+                              ? chartVisualHeight - 12
+                              : topPosition - 6,
                           right: 0,
                           child: Text(
                             value.toString(),
-                            style: TextStyle(fontSize: 10, color: darkGrey.withOpacity(0.8)),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: darkGrey.withOpacity(0.8),
+                            ),
                           ),
                         );
                       }),
@@ -145,22 +162,22 @@ class CustomBarChart extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.bottomCenter,
                       children: [
-
                         // Grid lines
                         ...yAxisLabels.where((v) => v >= 0).map((value) {
-                          final double bottomPosition = (value / maxScaleValue) * chartVisualHeight;
-                          final double lineBottom = xAxisLabelHeight + bottomPosition;
+                          final double bottomPosition =
+                              (value / maxScaleValue) * chartVisualHeight;
+                          final double lineBottom =
+                              xAxisLabelHeight + bottomPosition;
 
-                          final Color lineColor = value == 0 ? mediumGrey : lightGrey;
+                          final Color lineColor = value == 0
+                              ? mediumGrey
+                              : lightGrey;
 
                           return Positioned(
                             bottom: lineBottom,
                             left: 0,
                             right: 0,
-                            child: Container(
-                              height: 1.0,
-                              color: lineColor,
-                            ),
+                            child: Container(height: 1.0, color: lineColor),
                           );
                         }),
 
@@ -172,12 +189,19 @@ class CustomBarChart extends StatelessWidget {
                             final double value = data[key] ?? 0.0;
 
                             const double maxBarHeight = chartVisualHeight;
-                            final double barHeight = (value / maxScaleValue) * maxBarHeight;
-                            final double finalBarHeight = value > 0 ? (barHeight < 5 ? 5 : barHeight) : 0;
+                            final double barHeight =
+                                (value / maxScaleValue) * maxBarHeight;
+                            final double finalBarHeight = value > 0
+                                ? (barHeight < 5 ? 5 : barHeight)
+                                : 0;
 
-                            final String labelText = customLabels != null && customLabels!.containsKey(key)
+                            final String labelText =
+                                customLabels != null &&
+                                    customLabels!.containsKey(key)
                                 ? customLabels![key]!
-                                : (key >= 1 && key <= 7 ? defaultWeekdays[key - 1] : key.toString());
+                                : (key >= 1 && key <= 7
+                                      ? defaultWeekdays[key - 1]
+                                      : key.toString());
 
                             return Expanded(
                               child: Stack(
@@ -193,7 +217,11 @@ class CustomBarChart extends StatelessWidget {
                                         padding: const EdgeInsets.only(top: 5),
                                         child: Text(
                                           labelText,
-                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: darkGrey),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: darkGrey,
+                                          ),
                                           textAlign: TextAlign.center,
                                           maxLines: 1,
                                         ),
@@ -209,8 +237,14 @@ class CustomBarChart extends StatelessWidget {
                                       children: [
                                         // Value label above the bar
                                         Text(
-                                          value > 0 ? value.toStringAsFixed(1) : '',
-                                          style: TextStyle(fontSize: 10, color: darkGrey, fontWeight: FontWeight.bold),
+                                          value > 0
+                                              ? value.toStringAsFixed(1)
+                                              : '',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: darkGrey,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                         const SizedBox(height: 4),
 
@@ -219,8 +253,12 @@ class CustomBarChart extends StatelessWidget {
                                           width: 20,
                                           height: finalBarHeight,
                                           decoration: BoxDecoration(
-                                            color: value > 0 ? primaryColor : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: value > 0
+                                                ? primaryColor
+                                                : Colors.transparent,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -310,7 +348,6 @@ class CustomLineChart extends StatelessWidget {
     // Case when maxLabel is 0 but data is present
     if (maxLabel == 0 && rawMaxValue > 0) return [0, rawMaxValue.ceil()];
 
-
     return labels;
   }
 
@@ -318,7 +355,6 @@ class CustomLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     if (data.isEmpty || data.values.every((d) => d == 0.0)) {
       return Center(child: Text('No data recorded for $title.'));
     }
@@ -330,10 +366,14 @@ class CustomLineChart extends StatelessWidget {
     final Color mediumGrey = AppTheme.mediumGrey;
 
     final sortedKeys = data.keys.toList()..sort();
-    final double rawMaxValue = data.values.isEmpty ? 1.0 : data.values.reduce((a, b) => a > b ? a : b);
+    final double rawMaxValue = data.values.isEmpty
+        ? 1.0
+        : data.values.reduce((a, b) => a > b ? a : b);
 
     final List<int> yAxisLabels = _calculateYAxisValues(rawMaxValue);
-    final double maxScaleValue = yAxisLabels.isEmpty ? 1.0 : yAxisLabels.last.toDouble();
+    final double maxScaleValue = yAxisLabels.isEmpty
+        ? 1.0
+        : yAxisLabels.last.toDouble();
 
     const double chartVisualHeight = 200.0;
     const double xAxisLabelHeight = 18.0;
@@ -342,7 +382,8 @@ class CustomLineChart extends StatelessWidget {
 
     final List<Offset> points = [];
 
-    final double chartWidth = MediaQuery.of(context).size.width - 32 - yAxisLabelWidth;
+    final double chartWidth =
+        MediaQuery.of(context).size.width - 32 - yAxisLabelWidth;
 
     if (sortedKeys.isNotEmpty) {
       // If only 1 data point is present
@@ -354,20 +395,27 @@ class CustomLineChart extends StatelessWidget {
 
         final double xPosition = (i / divisor) * chartWidth;
 
-        final double normalizedValue = maxScaleValue > 0 ? (value / maxScaleValue) : 0;
-        final double yPosition = chartVisualHeight - (normalizedValue * chartVisualHeight);
+        final double normalizedValue = maxScaleValue > 0
+            ? (value / maxScaleValue)
+            : 0;
+        final double yPosition =
+            chartVisualHeight - (normalizedValue * chartVisualHeight);
 
         points.add(Offset(xPosition, yPosition));
       }
     }
-
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: darkGrey)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: darkGrey),
+          ),
           const SizedBox(height: 10),
 
           SizedBox(
@@ -382,14 +430,22 @@ class CustomLineChart extends StatelessWidget {
                   child: Stack(
                     children: [
                       ...yAxisLabels.map((value) {
-                        final double topPosition = chartVisualHeight * (1 - (value / maxScaleValue));
+                        final double topPosition =
+                            chartVisualHeight * (1 - (value / maxScaleValue));
 
                         return Positioned(
-                          top: (value == maxScaleValue.toInt()) ? 0 : (value == 0) ? chartVisualHeight - 12 : topPosition - 6,
+                          top: (value == maxScaleValue.toInt())
+                              ? 0
+                              : (value == 0)
+                              ? chartVisualHeight - 12
+                              : topPosition - 6,
                           right: 0,
                           child: Text(
                             value.toString(),
-                            style: TextStyle(fontSize: 10, color: darkGrey.withOpacity(0.8)),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: darkGrey.withOpacity(0.8),
+                            ),
                           ),
                         );
                       }),
@@ -404,22 +460,22 @@ class CustomLineChart extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.bottomCenter,
                       children: [
-
                         // Grid lines
                         ...yAxisLabels.where((v) => v >= 0).map((value) {
-                          final double bottomPosition = (value / maxScaleValue) * chartVisualHeight;
-                          final double lineBottom = xAxisLabelHeight + bottomPosition;
+                          final double bottomPosition =
+                              (value / maxScaleValue) * chartVisualHeight;
+                          final double lineBottom =
+                              xAxisLabelHeight + bottomPosition;
 
-                          final Color lineColor = value == 0 ? mediumGrey : lightGrey;
+                          final Color lineColor = value == 0
+                              ? mediumGrey
+                              : lightGrey;
 
                           return Positioned(
                             bottom: lineBottom,
                             left: 0,
                             right: 0,
-                            child: Container(
-                              height: 1.0,
-                              color: lineColor,
-                            ),
+                            child: Container(height: 1.0, color: lineColor),
                           );
                         }),
 
@@ -430,20 +486,22 @@ class CustomLineChart extends StatelessWidget {
                           right: 0,
                           height: chartVisualHeight,
                           child: CustomPaint(
-                            painter: points.isNotEmpty ? LineChartPainter(
-                              points: points,
-                              lineColor: primaryColor,
-                              pointColor: primaryColor,
-                            ) : null,
+                            painter: points.isNotEmpty
+                                ? LineChartPainter(
+                                    points: points,
+                                    lineColor: primaryColor,
+                                    pointColor: primaryColor,
+                                  )
+                                : null,
                           ),
                         ),
-
 
                         // X-Achsen-Labels
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: sortedKeys.map((key) {
-                            final String labelText = customLabels.containsKey(key)
+                            final String labelText =
+                                customLabels.containsKey(key)
                                 ? customLabels[key]!
                                 : key.toString();
 
@@ -454,7 +512,11 @@ class CustomLineChart extends StatelessWidget {
                                 padding: const EdgeInsets.only(top: 5),
                                 child: Text(
                                   labelText,
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: darkGrey),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: darkGrey,
+                                  ),
                                   textAlign: TextAlign.center,
                                   maxLines: 1,
                                 ),
@@ -483,7 +545,11 @@ class LineChartPainter extends CustomPainter {
   final Color lineColor;
   final Color pointColor;
 
-  LineChartPainter({required this.points, required this.lineColor, required this.pointColor});
+  LineChartPainter({
+    required this.points,
+    required this.lineColor,
+    required this.pointColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {

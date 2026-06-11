@@ -339,8 +339,9 @@ void main() {
 
     group('getTrustAdjustment', () {
       test('valid result gives bonus', () {
-        final adjustment =
-            StepValidationConfig.getTrustAdjustment(StepValidationResult.valid);
+        final adjustment = StepValidationConfig.getTrustAdjustment(
+          StepValidationResult.valid,
+        );
         expect(adjustment, greaterThan(1.0));
         expect(adjustment, equals(1.0 + StepValidationConfig.validatedBonus));
       });
@@ -445,10 +446,7 @@ void main() {
       });
 
       test('penalties are in increasing order', () {
-        expect(
-          StepValidationConfig.validatedBonus,
-          greaterThan(0),
-        );
+        expect(StepValidationConfig.validatedBonus, greaterThan(0));
         expect(
           StepValidationConfig.suspiciousPenalty,
           lessThan(StepValidationConfig.rejectedPenalty),
@@ -456,25 +454,13 @@ void main() {
       });
 
       test('natural variation sigma is reasonable', () {
-        expect(
-          StepValidationConfig.naturalVariationSigma,
-          greaterThan(0),
-        );
-        expect(
-          StepValidationConfig.naturalVariationSigma,
-          lessThan(0.5),
-        );
+        expect(StepValidationConfig.naturalVariationSigma, greaterThan(0));
+        expect(StepValidationConfig.naturalVariationSigma, lessThan(0.5));
       });
 
       test('step multipliers are reasonable', () {
-        expect(
-          StepValidationConfig.walkingStepMultiplier,
-          greaterThan(0.3),
-        );
-        expect(
-          StepValidationConfig.walkingStepMultiplier,
-          lessThan(0.6),
-        );
+        expect(StepValidationConfig.walkingStepMultiplier, greaterThan(0.3));
+        expect(StepValidationConfig.walkingStepMultiplier, lessThan(0.6));
         expect(
           StepValidationConfig.runningStepMultiplierBase,
           greaterThan(StepValidationConfig.walkingStepMultiplier),

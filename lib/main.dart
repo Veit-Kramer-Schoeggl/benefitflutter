@@ -74,9 +74,8 @@ void main() async {
         // Benefit Provider - manages benefit screen state
         // Uses ProxyProvider to receive userId from UserProvider
         ChangeNotifierProxyProvider<UserProvider, BenefitProvider>(
-          create: (_) => BenefitProvider(
-            RepositoryConfig.getBenefitRepository(),
-          ),
+          create: (_) =>
+              BenefitProvider(RepositoryConfig.getBenefitRepository()),
           update: (_, userProvider, benefitProvider) {
             benefitProvider?.updateUserId(userProvider.userId);
             return benefitProvider!;
@@ -85,9 +84,8 @@ void main() async {
         // Progress Provider - manages progress screen state
         // Uses ProxyProvider to receive userId from UserProvider
         ChangeNotifierProxyProvider<UserProvider, ProgressProvider>(
-          create: (_) => ProgressProvider(
-            RepositoryConfig.getSessionRepository(),
-          ),
+          create: (_) =>
+              ProgressProvider(RepositoryConfig.getSessionRepository()),
           update: (_, userProvider, progressProvider) {
             progressProvider?.updateUserId(userProvider.userId);
             return progressProvider!;
@@ -95,9 +93,7 @@ void main() async {
         ),
         // Connectivity Provider - monitors network connectivity status
         ChangeNotifierProvider(
-          create: (_) => ConnectivityProvider(
-            ConnectivityService(),
-          ),
+          create: (_) => ConnectivityProvider(ConnectivityService()),
         ),
         // Activity Provider - manages activity tracking sessions
         // Uses ProxyProvider to receive userId from UserProvider
@@ -112,13 +108,9 @@ void main() async {
           },
         ),
         // Health Platform Provider - manages health platform integration
-        ChangeNotifierProvider(
-          create: (_) => HealthPlatformProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => HealthPlatformProvider()),
         // App Lock Provider - manages biometric app lock
-        ChangeNotifierProvider(
-          create: (_) => AppLockProvider(),
-        ),
+        ChangeNotifierProvider(create: (_) => AppLockProvider()),
       ],
       child: const BeneFitApp(),
     ),
@@ -191,7 +183,10 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
     // Logout and go to login screen
     userProvider.logout();
     appLockProvider.reset();
-    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      '/login',
+      (route) => false,
+    );
   }
 
   @override
@@ -212,9 +207,7 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
           // Show lock screen overlay when locked
           builder: (context, child) {
             if (appLockProvider.isLocked) {
-              return AppLockScreen(
-                onPasswordRequired: _handlePasswordRequired,
-              );
+              return AppLockScreen(onPasswordRequired: _handlePasswordRequired);
             }
             return child ?? const SizedBox.shrink();
           },

@@ -4,12 +4,7 @@ import 'package:benefitflutter/features/session/domain/activity_entry.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/activity_list_item.dart';
 
 /// Groups activities by date ranges
-enum DateGroup {
-  today,
-  yesterday,
-  thisWeek,
-  older,
-}
+enum DateGroup { today, yesterday, thisWeek, older }
 
 class ActivitiesTab extends StatelessWidget {
   final ProgressProvider provider;
@@ -41,11 +36,11 @@ class ActivitiesTab extends StatelessWidget {
       return DateGroup.yesterday;
     }
 
-    final startOfWeek =
-    today.subtract(Duration(days: today.weekday - 1));
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
 
     if (activityDay.isAfter(
-        startOfWeek.subtract(const Duration(milliseconds: 1)))) {
+      startOfWeek.subtract(const Duration(milliseconds: 1)),
+    )) {
       return DateGroup.thisWeek;
     }
 
@@ -73,9 +68,7 @@ class ActivitiesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (provider.activities.isEmpty) {
-      return const Center(
-        child: Text('No activities yet.'),
-      );
+      return const Center(child: Text('No activities yet.'));
     }
 
     final Map<DateGroup, List<ActivityEntry>> groupedActivities = {
@@ -96,52 +89,52 @@ class ActivitiesTab extends StatelessWidget {
         if (groupedActivities[DateGroup.today]!.isNotEmpty) ...[
           _buildSectionHeader('TODAY'),
           ...groupedActivities[DateGroup.today]!.map(
-                (entry) => ActivityListItem(
-                  entry: entry,
-                  onTap: () => onTap(context, entry),
-                  onLongPress: onLongPress == null
-                      ? null
-                      : () => onLongPress!(context, entry),
-                ),
+            (entry) => ActivityListItem(
+              entry: entry,
+              onTap: () => onTap(context, entry),
+              onLongPress: onLongPress == null
+                  ? null
+                  : () => onLongPress!(context, entry),
+            ),
           ),
         ],
 
         if (groupedActivities[DateGroup.yesterday]!.isNotEmpty) ...[
           _buildSectionHeader('YESTERDAY'),
           ...groupedActivities[DateGroup.yesterday]!.map(
-                (entry) => ActivityListItem(
-                  entry: entry,
-                  onTap: () => onTap(context, entry),
-                  onLongPress: onLongPress == null
-                      ? null
-                      : () => onLongPress!(context, entry),
-                ),
+            (entry) => ActivityListItem(
+              entry: entry,
+              onTap: () => onTap(context, entry),
+              onLongPress: onLongPress == null
+                  ? null
+                  : () => onLongPress!(context, entry),
+            ),
           ),
         ],
 
         if (groupedActivities[DateGroup.thisWeek]!.isNotEmpty) ...[
           _buildSectionHeader('THIS WEEK'),
           ...groupedActivities[DateGroup.thisWeek]!.map(
-                (entry) => ActivityListItem(
-                  entry: entry,
-                  onTap: () => onTap(context, entry),
-                  onLongPress: onLongPress == null
-                      ? null
-                      : () => onLongPress!(context, entry),
-                ),
+            (entry) => ActivityListItem(
+              entry: entry,
+              onTap: () => onTap(context, entry),
+              onLongPress: onLongPress == null
+                  ? null
+                  : () => onLongPress!(context, entry),
+            ),
           ),
         ],
 
         if (groupedActivities[DateGroup.older]!.isNotEmpty) ...[
           _buildSectionHeader('OLDER'),
           ...groupedActivities[DateGroup.older]!.map(
-                (entry) => ActivityListItem(
-                  entry: entry,
-                  onTap: () => onTap(context, entry),
-                  onLongPress: onLongPress == null
-                      ? null
-                      : () => onLongPress!(context, entry),
-                ),
+            (entry) => ActivityListItem(
+              entry: entry,
+              onTap: () => onTap(context, entry),
+              onLongPress: onLongPress == null
+                  ? null
+                  : () => onLongPress!(context, entry),
+            ),
           ),
         ],
       ],

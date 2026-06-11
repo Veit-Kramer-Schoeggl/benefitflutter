@@ -95,7 +95,8 @@ class DistanceCalculator {
     final dLon = _toRadians(lon2 - lon1);
 
     // Haversine formula
-    final a = sin(dLat / 2) * sin(dLat / 2) +
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
         cos(_toRadians(lat1)) *
             cos(_toRadians(lat2)) *
             sin(dLon / 2) *
@@ -272,7 +273,10 @@ class DistanceCalculator {
     double distanceMeters,
     int durationSeconds,
   ) {
-    final metersPerSecond = calculateAverageSpeed(distanceMeters, durationSeconds);
+    final metersPerSecond = calculateAverageSpeed(
+      distanceMeters,
+      durationSeconds,
+    );
     if (metersPerSecond == null) return null;
     return metersPerSecond * 3.6; // Convert m/s to km/h
   }

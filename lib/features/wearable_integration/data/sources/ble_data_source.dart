@@ -18,7 +18,9 @@ class BleDataSource implements WearableRepository {
   bool _isScanning = false;
 
   // Standard Bluetooth SIG UUID for Heart Rate Service
-  static final Guid _heartRateServiceUuid = Guid('0000180D-0000-1000-8000-00805f9b34fb');
+  static final Guid _heartRateServiceUuid = Guid(
+    '0000180D-0000-1000-8000-00805f9b34fb',
+  );
 
   @override
   IntegrationSource get source => IntegrationSource.ble;
@@ -34,7 +36,9 @@ class BleDataSource implements WearableRepository {
     }
 
     // Return list of discovered devices
-    return _discoveredDevices.values.map((device) => _mapToWearableDevice(device)).toList();
+    return _discoveredDevices.values
+        .map((device) => _mapToWearableDevice(device))
+        .toList();
   }
 
   @override
@@ -43,7 +47,9 @@ class BleDataSource implements WearableRepository {
   }
 
   /// Scan for BLE devices with Heart Rate Service
-  Future<void> startScanning({Duration timeout = const Duration(seconds: 15)}) async {
+  Future<void> startScanning({
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
     if (_isScanning) return;
 
     _discoveredDevices.clear();
@@ -104,7 +110,10 @@ class BleDataSource implements WearableRepository {
 
     // Store sensor and connected device
     _heartRateSensors[deviceId] = sensor;
-    _connectedDevices[deviceId] = _mapToWearableDevice(bleDevice, isConnected: true);
+    _connectedDevices[deviceId] = _mapToWearableDevice(
+      bleDevice,
+      isConnected: true,
+    );
   }
 
   @override
@@ -158,14 +167,16 @@ class BleDataSource implements WearableRepository {
     if (sensor == null) return null;
 
     // Map heart rate values to SensorDataPoint
-    return sensor.onDataStream.map((bpm) => SensorDataPoint(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      sessionId: '', // Will be set by caller
-      deviceId: deviceId,
-      sensorType: SensorType.heartRate,
-      value: bpm.toDouble(),
-      timestamp: DateTime.now(),
-    ));
+    return sensor.onDataStream.map(
+      (bpm) => SensorDataPoint(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        sessionId: '', // Will be set by caller
+        deviceId: deviceId,
+        sensorType: SensorType.heartRate,
+        value: bpm.toDouble(),
+        timestamp: DateTime.now(),
+      ),
+    );
   }
 
   @override
@@ -266,15 +277,24 @@ class BleDataSource implements WearableRepository {
   // ========================================
 
   /// Map BluetoothDevice to WearableDevice
-  WearableDevice _mapToWearableDevice(BluetoothDevice device, {bool isConnected = false}) {
+  WearableDevice _mapToWearableDevice(
+    BluetoothDevice device, {
+    bool isConnected = false,
+  }) {
     return WearableDevice(
       id: device.remoteId.toString(),
       userId: '', // Will be set by caller
-      name: device.platformName.isNotEmpty ? device.platformName : 'Unknown Device',
+      name: device.platformName.isNotEmpty
+          ? device.platformName
+          : 'Unknown Device',
       type: _inferDeviceType(device),
       source: IntegrationSource.ble,
-      status: isConnected ? ConnectionStatus.connected : ConnectionStatus.disconnected,
-      capabilities: [SensorType.heartRate], // All devices with HR service support this
+      status: isConnected
+          ? ConnectionStatus.connected
+          : ConnectionStatus.disconnected,
+      capabilities: [
+        SensorType.heartRate,
+      ], // All devices with HR service support this
     );
   }
 

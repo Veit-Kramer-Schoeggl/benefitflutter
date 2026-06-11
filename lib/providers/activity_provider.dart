@@ -70,11 +70,11 @@ class ActivityProvider extends ChangeNotifier {
     BleDataSource? bleDataSource,
     SessionBiometricDataDao? biometricDao,
     SessionSensorSummaryDao? summaryDao,
-  })  : _sensorManager = sensorManager ?? SensorManager(),
-        _gpsPointDao = gpsPointDao ?? GpsPointDao(),
-        _bleDataSource = bleDataSource ?? BleDataSource(),
-        _biometricDao = biometricDao ?? SessionBiometricDataDao(),
-        _summaryDao = summaryDao ?? SessionSensorSummaryDao();
+  }) : _sensorManager = sensorManager ?? SensorManager(),
+       _gpsPointDao = gpsPointDao ?? GpsPointDao(),
+       _bleDataSource = bleDataSource ?? BleDataSource(),
+       _biometricDao = biometricDao ?? SessionBiometricDataDao(),
+       _summaryDao = summaryDao ?? SessionSensorSummaryDao();
 
   // ===== GETTERS =====
 
@@ -124,7 +124,9 @@ class ActivityProvider extends ChangeNotifier {
   /// Completes any active session and resets state when user switches.
   void updateUserId(String? newUserId) {
     if (_userId != newUserId) {
-      debugPrint('ActivityProvider: User ID updated from $_userId to $newUserId');
+      debugPrint(
+        'ActivityProvider: User ID updated from $_userId to $newUserId',
+      );
 
       // Complete active session before switching users
       if (_currentSession != null && _trackingState != TrackingState.idle) {
@@ -170,13 +172,19 @@ class ActivityProvider extends ChangeNotifier {
         maxHeartRate: hrStats['maxHeartRate'],
         minHeartRate: hrStats['minHeartRate'],
         hasWearableData: _sessionHeartRates.isNotEmpty,
-        connectedDeviceIds: _heartRateDeviceId != null ? [_heartRateDeviceId!] : null,
+        connectedDeviceIds: _heartRateDeviceId != null
+            ? [_heartRateDeviceId!]
+            : null,
       );
 
       await _sessionRepository.updateSession(completedSession);
-      debugPrint('ActivityProvider: Session saved - Duration: $_elapsedSeconds sec');
+      debugPrint(
+        'ActivityProvider: Session saved - Duration: $_elapsedSeconds sec',
+      );
     } catch (e) {
-      debugPrint('ActivityProvider: Error completing session on user change - $e');
+      debugPrint(
+        'ActivityProvider: Error completing session on user change - $e',
+      );
     }
   }
 
@@ -286,7 +294,9 @@ class ActivityProvider extends ChangeNotifier {
       }
 
       _error = null;
-      debugPrint('ActivityProvider: Session started - ID: ${_currentSession!.id}');
+      debugPrint(
+        'ActivityProvider: Session started - ID: ${_currentSession!.id}',
+      );
     } catch (e) {
       _error = 'Failed to start session: ${e.toString()}';
       _trackingState = TrackingState.idle;
@@ -443,7 +453,9 @@ class ActivityProvider extends ChangeNotifier {
         maxHeartRate: hrStats['maxHeartRate'],
         minHeartRate: hrStats['minHeartRate'],
         hasWearableData: _sessionHeartRates.isNotEmpty,
-        connectedDeviceIds: _heartRateDeviceId != null ? [_heartRateDeviceId!] : null,
+        connectedDeviceIds: _heartRateDeviceId != null
+            ? [_heartRateDeviceId!]
+            : null,
       );
 
       // Save to repository (will trigger sync for completed sessions)
@@ -455,7 +467,8 @@ class ActivityProvider extends ChangeNotifier {
       }
 
       debugPrint(
-          'ActivityProvider: Session completed - Duration: $_elapsedSeconds seconds, Distance: ${_currentDistance.toStringAsFixed(1)}m, HR Data Points: ${_sessionHeartRates.length}');
+        'ActivityProvider: Session completed - Duration: $_elapsedSeconds seconds, Distance: ${_currentDistance.toStringAsFixed(1)}m, HR Data Points: ${_sessionHeartRates.length}',
+      );
 
       // Restart continuous session if it was active before
       if (_wasContinuousActive) {
@@ -489,13 +502,17 @@ class ActivityProvider extends ChangeNotifier {
   void selectActivityType(ActivityType type) {
     // Guard: Only allow changing type when idle
     if (_trackingState != TrackingState.idle) {
-      debugPrint('ActivityProvider: Cannot change activity type while tracking');
+      debugPrint(
+        'ActivityProvider: Cannot change activity type while tracking',
+      );
       return;
     }
 
     _selectedActivityType = type;
     notifyListeners();
-    debugPrint('ActivityProvider: Activity type selected - ${type.displayName}');
+    debugPrint(
+      'ActivityProvider: Activity type selected - ${type.displayName}',
+    );
   }
 
   // ===== PRIVATE HELPER METHODS =====
@@ -508,16 +525,21 @@ class ActivityProvider extends ChangeNotifier {
 
     try {
       // Get all sessions for user
-      final allSessions = await _sessionRepository.getAllSessions(userId: _userId!);
+      final allSessions = await _sessionRepository.getAllSessions(
+        userId: _userId!,
+      );
 
       // Filter for active continuous sessions
-      final activeContinuous = allSessions.where((session) =>
-          session.status == SessionStatus.active &&
-          session.trackingMode == TrackingMode.continuousDaily);
+      final activeContinuous = allSessions.where(
+        (session) =>
+            session.status == SessionStatus.active &&
+            session.trackingMode == TrackingMode.continuousDaily,
+      );
 
       if (activeContinuous.isNotEmpty) {
         debugPrint(
-            'ActivityProvider: Found ${activeContinuous.length} active continuous session(s)');
+          'ActivityProvider: Found ${activeContinuous.length} active continuous session(s)',
+        );
 
         // Complete all active continuous sessions
         for (final session in activeContinuous) {
@@ -530,8 +552,7 @@ class ActivityProvider extends ChangeNotifier {
             status: SessionStatus.completed,
             startTime: session.startTime,
             endTime: now,
-            durationSeconds:
-                now.difference(session.startTime).inSeconds,
+            durationSeconds: now.difference(session.startTime).inSeconds,
             distanceMeters: session.distanceMeters ?? 0.0,
             trackingDate: session.trackingDate,
             createdAt: session.createdAt,
@@ -539,7 +560,8 @@ class ActivityProvider extends ChangeNotifier {
 
           await _sessionRepository.updateSession(completedSession);
           debugPrint(
-              'ActivityProvider: Completed continuous session - ID: ${session.id}');
+            'ActivityProvider: Completed continuous session - ID: ${session.id}',
+          );
         }
 
         // Remember that continuous was active
@@ -582,10 +604,10 @@ class ActivityProvider extends ChangeNotifier {
 
       await _sessionRepository.createSession(continuousSession);
       debugPrint(
-          'ActivityProvider: Continuous session restarted - ID: ${continuousSession.id}');
+        'ActivityProvider: Continuous session restarted - ID: ${continuousSession.id}',
+      );
     } catch (e) {
-      debugPrint(
-          'ActivityProvider: Error restarting continuous session - $e');
+      debugPrint('ActivityProvider: Error restarting continuous session - $e');
       // Don't fail manual session completion if this fails
     }
   }
@@ -635,7 +657,9 @@ class ActivityProvider extends ChangeNotifier {
 
         debugPrint('ActivityProvider: GPS tracking started');
       } else {
-        debugPrint('ActivityProvider: Failed to start GPS - permission denied or unavailable');
+        debugPrint(
+          'ActivityProvider: Failed to start GPS - permission denied or unavailable',
+        );
         _error = 'GPS unavailable. Distance tracking disabled.';
         notifyListeners();
       }
@@ -661,7 +685,9 @@ class ActivityProvider extends ChangeNotifier {
       return;
     }
 
-    debugPrint('ActivityProvider: GPS point received - Lat: ${point.latitude.toStringAsFixed(4)}, Lng: ${point.longitude.toStringAsFixed(4)}, Acc: ${point.accuracyMeters?.toStringAsFixed(1)}m');
+    debugPrint(
+      'ActivityProvider: GPS point received - Lat: ${point.latitude.toStringAsFixed(4)}, Lng: ${point.longitude.toStringAsFixed(4)}, Acc: ${point.accuracyMeters?.toStringAsFixed(1)}m',
+    );
 
     try {
       // Check if should store based on time/distance thresholds
@@ -680,7 +706,9 @@ class ActivityProvider extends ChangeNotifier {
         debugPrint('ActivityProvider: GPS point saved to database');
 
         // Recalculate distance
-        _currentDistance = DistanceCalculator.calculateTotalDistance(_sessionGpsPoints);
+        _currentDistance = DistanceCalculator.calculateTotalDistance(
+          _sessionGpsPoints,
+        );
 
         // Update session with new distance
         if (_currentSession != null) {
@@ -704,7 +732,9 @@ class ActivityProvider extends ChangeNotifier {
         // Notify UI
         notifyListeners();
 
-        debugPrint('ActivityProvider: GPS point stored - Total points: ${_sessionGpsPoints.length}, Distance: ${_currentDistance.toStringAsFixed(1)}m');
+        debugPrint(
+          'ActivityProvider: GPS point stored - Total points: ${_sessionGpsPoints.length}, Distance: ${_currentDistance.toStringAsFixed(1)}m',
+        );
       } else {
         debugPrint('ActivityProvider: GPS point skipped (below threshold)');
       }
@@ -727,7 +757,7 @@ class ActivityProvider extends ChangeNotifier {
     return GpsTrackingConfig.shouldStorePoint(
       lastPointTime: _lastGpsPointTime!,
       distanceFromLastPoint: distanceDiff,
-      isContinuousMode: false,  // Manual session
+      isContinuousMode: false, // Manual session
     );
   }
 
@@ -739,10 +769,16 @@ class ActivityProvider extends ChangeNotifier {
 
     try {
       // Start streaming from BLE device
-      await _bleDataSource.startStreaming(_heartRateDeviceId!, SensorType.heartRate);
+      await _bleDataSource.startStreaming(
+        _heartRateDeviceId!,
+        SensorType.heartRate,
+      );
 
       // Subscribe to heart rate data stream
-      final stream = _bleDataSource.getSensorStream(_heartRateDeviceId!, SensorType.heartRate);
+      final stream = _bleDataSource.getSensorStream(
+        _heartRateDeviceId!,
+        SensorType.heartRate,
+      );
       if (stream != null) {
         _heartRateSubscription = stream.listen(
           _onHeartRatePoint,
@@ -769,7 +805,10 @@ class ActivityProvider extends ChangeNotifier {
 
     if (_heartRateDeviceId != null) {
       try {
-        await _bleDataSource.stopStreaming(_heartRateDeviceId!, SensorType.heartRate);
+        await _bleDataSource.stopStreaming(
+          _heartRateDeviceId!,
+          SensorType.heartRate,
+        );
       } catch (e) {
         debugPrint('ActivityProvider: Error stopping heart rate tracking - $e');
       }
@@ -814,11 +853,7 @@ class ActivityProvider extends ChangeNotifier {
   /// Calculate heart rate statistics from session data
   Map<String, int?> _calculateHeartRateStats() {
     if (_sessionHeartRates.isEmpty) {
-      return {
-        'avgHeartRate': null,
-        'maxHeartRate': null,
-        'minHeartRate': null,
-      };
+      return {'avgHeartRate': null, 'maxHeartRate': null, 'minHeartRate': null};
     }
 
     final sum = _sessionHeartRates.reduce((a, b) => a + b);
@@ -826,11 +861,7 @@ class ActivityProvider extends ChangeNotifier {
     final max = _sessionHeartRates.reduce((a, b) => a > b ? a : b);
     final min = _sessionHeartRates.reduce((a, b) => a < b ? a : b);
 
-    return {
-      'avgHeartRate': avg,
-      'maxHeartRate': max,
-      'minHeartRate': min,
-    };
+    return {'avgHeartRate': avg, 'maxHeartRate': max, 'minHeartRate': min};
   }
 
   /// Create session sensor summary with wearable data
@@ -844,7 +875,9 @@ class ActivityProvider extends ChangeNotifier {
         avgHeartRate: hrStats['avgHeartRate']?.toDouble(),
         maxHeartRate: hrStats['maxHeartRate'],
         minHeartRate: hrStats['minHeartRate'],
-        dataSources: _heartRateDeviceId != null ? ['ble:$_heartRateDeviceId'] : null,
+        dataSources: _heartRateDeviceId != null
+            ? ['ble:$_heartRateDeviceId']
+            : null,
         createdAt: DateTime.now(),
       );
 

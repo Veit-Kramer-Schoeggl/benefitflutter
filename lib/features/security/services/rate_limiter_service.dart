@@ -15,7 +15,7 @@ class RateLimiterService {
   RateLimitState? _cachedState;
 
   RateLimiterService({RateLimitStorage? storage})
-      : _storage = storage ?? RateLimitStorage();
+    : _storage = storage ?? RateLimitStorage();
 
   /// Check if login attempt is allowed
   ///
@@ -145,8 +145,9 @@ class RateLimiterService {
   /// Check if attempt window has expired
   bool _isWindowExpired(RateLimitState state) {
     if (state.windowStart == null) return true;
-    final windowEnd =
-        state.windowStart!.add(SecurityConfig.attemptWindowDuration);
+    final windowEnd = state.windowStart!.add(
+      SecurityConfig.attemptWindowDuration,
+    );
     return DateTime.now().isAfter(windowEnd);
   }
 

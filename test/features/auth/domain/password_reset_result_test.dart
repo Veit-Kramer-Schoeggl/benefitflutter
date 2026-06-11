@@ -23,9 +23,7 @@ void main() {
 
     group('failure factory', () {
       test('creates failed result with error message', () {
-        final result = PasswordResetResult.failure(
-          error: 'Invalid reset code',
-        );
+        final result = PasswordResetResult.failure(error: 'Invalid reset code');
 
         expect(result.success, isFalse);
         expect(result.isFailure, isTrue);
@@ -90,9 +88,7 @@ void main() {
       });
 
       test('failure toString shows correct format', () {
-        final result = PasswordResetResult.failure(
-          error: 'Invalid reset code',
-        );
+        final result = PasswordResetResult.failure(error: 'Invalid reset code');
 
         final str = result.toString();
         expect(str, contains('failure'));

@@ -66,10 +66,12 @@ class MockSessionRepository implements SessionRepository {
     required DateTime endDate,
   }) async {
     return _sessions
-        .where((s) =>
-            s.userId == userId &&
-            s.startTime.isAfter(startDate) &&
-            s.startTime.isBefore(endDate))
+        .where(
+          (s) =>
+              s.userId == userId &&
+              s.startTime.isAfter(startDate) &&
+              s.startTime.isBefore(endDate),
+        )
         .toList();
   }
 }
@@ -201,58 +203,68 @@ void main() {
       expect(continuous.endTime, isNotNull);
 
       // Verify manual session was created
-      final manual = sessions.firstWhere((s) => s.trackingMode == TrackingMode.manual);
+      final manual = sessions.firstWhere(
+        (s) => s.trackingMode == TrackingMode.manual,
+      );
       expect(manual.status, SessionStatus.active);
     });
 
-    test('stopSession restarts continuous if it was previously active', () async {
-      // Create and add a continuous session
-      final continuousSession = Session(
-        id: 'continuous-1',
-        userId: 'test-user-123',
-        trackingMode: TrackingMode.continuousDaily,
-        activityType: ActivityType.walking,
-        status: SessionStatus.active,
-        startTime: DateTime.now().subtract(const Duration(hours: 1)),
-        endTime: null,
-        durationSeconds: null,
-        distanceMeters: 0.0,
-        trackingDate: DateTime.now(),
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-      );
+    test(
+      'stopSession restarts continuous if it was previously active',
+      () async {
+        // Create and add a continuous session
+        final continuousSession = Session(
+          id: 'continuous-1',
+          userId: 'test-user-123',
+          trackingMode: TrackingMode.continuousDaily,
+          activityType: ActivityType.walking,
+          status: SessionStatus.active,
+          startTime: DateTime.now().subtract(const Duration(hours: 1)),
+          endTime: null,
+          durationSeconds: null,
+          distanceMeters: 0.0,
+          trackingDate: DateTime.now(),
+          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+        );
 
-      await mockRepo.createSession(continuousSession);
+        await mockRepo.createSession(continuousSession);
 
-      // Start manual (ends continuous)
-      await provider.startSession();
+        // Start manual (ends continuous)
+        await provider.startSession();
 
-      // Stop manual (should restart continuous)
-      await provider.stopSession();
+        // Stop manual (should restart continuous)
+        await provider.stopSession();
 
-      // Verify a new continuous session was created
-      final sessions = await mockRepo.getAllSessions(userId: 'test-user-123');
-      final activeContinuous = sessions.where(
-        (s) => s.trackingMode == TrackingMode.continuousDaily && s.status == SessionStatus.active
-      );
+        // Verify a new continuous session was created
+        final sessions = await mockRepo.getAllSessions(userId: 'test-user-123');
+        final activeContinuous = sessions.where(
+          (s) =>
+              s.trackingMode == TrackingMode.continuousDaily &&
+              s.status == SessionStatus.active,
+        );
 
-      expect(activeContinuous.length, 1);
-    });
+        expect(activeContinuous.length, 1);
+      },
+    );
 
-    test('stopSession does not restart continuous if none was active', () async {
-      // Start manual session without any continuous session
-      await provider.startSession();
+    test(
+      'stopSession does not restart continuous if none was active',
+      () async {
+        // Start manual session without any continuous session
+        await provider.startSession();
 
-      // Stop manual
-      await provider.stopSession();
+        // Stop manual
+        await provider.stopSession();
 
-      // Verify no continuous session was created
-      final sessions = await mockRepo.getAllSessions(userId: 'test-user-123');
-      final continuousSessions = sessions.where(
-        (s) => s.trackingMode == TrackingMode.continuousDaily
-      );
+        // Verify no continuous session was created
+        final sessions = await mockRepo.getAllSessions(userId: 'test-user-123');
+        final continuousSessions = sessions.where(
+          (s) => s.trackingMode == TrackingMode.continuousDaily,
+        );
 
-      expect(continuousSessions.length, 0);
-    });
+        expect(continuousSessions.length, 0);
+      },
+    );
 
     test('selectActivityType does not work during tracking', () async {
       await provider.startSession();

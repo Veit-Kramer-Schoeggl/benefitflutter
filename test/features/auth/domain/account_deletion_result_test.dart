@@ -35,25 +35,19 @@ void main() {
       });
 
       test('isFailure returns true for failure', () {
-        final result = AccountDeletionResult.failure(
-          error: 'Some error',
-        );
+        final result = AccountDeletionResult.failure(error: 'Some error');
 
         expect(result.isFailure, isTrue);
       });
 
       test('hasError returns true for failure with message', () {
-        final result = AccountDeletionResult.failure(
-          error: 'Some error',
-        );
+        final result = AccountDeletionResult.failure(error: 'Some error');
 
         expect(result.hasError, isTrue);
       });
 
       test('hasError returns false for failure with empty message', () {
-        final result = AccountDeletionResult.failure(
-          error: '',
-        );
+        final result = AccountDeletionResult.failure(error: '');
 
         expect(result.hasError, isFalse);
       });
@@ -69,9 +63,7 @@ void main() {
       });
 
       test('failure result has descriptive toString', () {
-        final result = AccountDeletionResult.failure(
-          error: 'Invalid code',
-        );
+        final result = AccountDeletionResult.failure(error: 'Invalid code');
 
         final str = result.toString();
 

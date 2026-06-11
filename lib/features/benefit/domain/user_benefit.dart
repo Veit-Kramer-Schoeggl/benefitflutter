@@ -1,7 +1,4 @@
-enum BenefitStatus {
-  earned,
-  redeemed,
-}
+enum BenefitStatus { earned, redeemed }
 
 /// Represents a benefit earned by a user
 class UserBenefit {

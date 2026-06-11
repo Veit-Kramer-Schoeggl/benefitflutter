@@ -26,9 +26,9 @@ class SessionRepositoryImpl implements SessionRepository {
     required SessionDao dao,
     required SessionSyncStrategy syncStrategy,
     required ConnectivityService connectivity,
-  })  : _dao = dao,
-        _syncStrategy = syncStrategy,
-        _connectivity = connectivity;
+  }) : _dao = dao,
+       _syncStrategy = syncStrategy,
+       _connectivity = connectivity;
 
   /// Factory constructor with default dependencies
   factory SessionRepositoryImpl.create() {

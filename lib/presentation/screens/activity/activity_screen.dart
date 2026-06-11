@@ -115,7 +115,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   Future<void> _handleLongPress(
-      BuildContext context, TrackingState state) async {
+    BuildContext context,
+    TrackingState state,
+  ) async {
     if (state == TrackingState.paused) {
       final provider = context.read<ActivityProvider>();
       await provider.stopSession();
@@ -129,9 +131,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Long press only works while paused"),
-        ),
+        const SnackBar(content: Text("Long press only works while paused")),
       );
     }
   }
@@ -188,10 +188,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         builder: (context, provider, child) {
           // Error state
           if (provider.hasError) {
-            return ErrorDisplayWidget(
-              message: provider.error!,
-              onRetry: null,
-            );
+            return ErrorDisplayWidget(message: provider.error!, onRetry: null);
           }
 
           // Extract state from provider
@@ -203,7 +200,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
           // Map provider state to UI
           final buttonText = _getButtonText(state);
           final buttonColor = _getButtonColor(state);
-          final statusText = _getStatusText(state, provider.hasError, provider.error);
+          final statusText = _getStatusText(
+            state,
+            provider.hasError,
+            provider.error,
+          );
           final timerVisible = _isTimerVisible(state);
           final formattedTime = _formatTime(elapsedSeconds);
           final distanceKm = _formatDistance(distance);
@@ -222,9 +223,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               Positioned.fill(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.25),
-                  ),
+                  child: Container(color: Colors.black.withValues(alpha: 0.25)),
                 ),
               ),
 
@@ -261,7 +260,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const DeviceConnectionScreen(),
+                                    builder: (context) =>
+                                        const DeviceConnectionScreen(),
                                   ),
                                 );
                               },
@@ -284,7 +284,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                   color: Colors.white.withValues(alpha: 0.10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.white.withValues(alpha: 0.35),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       blurRadius: 30,
                                       spreadRadius: 4,
                                     ),
@@ -316,7 +318,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               // New running session pill
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 6),
+                                  horizontal: 20,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
                                   color: buttonIdle,
                                   borderRadius: BorderRadius.circular(32),
@@ -340,7 +344,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 22),
+                                horizontal: 20,
+                                vertical: 22,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.93),
                                 borderRadius: BorderRadius.circular(22),
@@ -389,15 +395,23 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                           : () => _handleTap(context, state),
                                       onLongPress: isLoading
                                           ? null
-                                          : () => _handleLongPress(context, state),
+                                          : () => _handleLongPress(
+                                              context,
+                                              state,
+                                            ),
                                       child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 180),
-                                        padding:
-                                            const EdgeInsets.symmetric(vertical: 16),
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: buttonColor,
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
                                         ),
                                         child: Center(
                                           child: Text(
@@ -421,7 +435,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: provider.hasError ? Colors.red : Colors.black87,
+                                      color: provider.hasError
+                                          ? Colors.red
+                                          : Colors.black87,
                                     ),
                                   ),
 
@@ -433,14 +449,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                     duration: const Duration(milliseconds: 250),
                                     child: AnimatedScale(
                                       scale: timerVisible ? 1.0 : 0.95,
-                                      duration: const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 12, horizontal: 24),
+                                          vertical: 12,
+                                          horizontal: 24,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: Colors.black26),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.black26,
+                                          ),
                                         ),
                                         child: Text(
                                           formattedTime,
@@ -468,7 +492,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     width: double.infinity,
                     color: brandGreen,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

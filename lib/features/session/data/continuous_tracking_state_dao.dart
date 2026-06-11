@@ -159,8 +159,9 @@ class ContinuousTrackingStateDao {
       id: map['id'] as String,
       userId: map['user_id'] as String,
       isActive: SqliteTypeConverters.boolFromSqlite(map['is_active'] as int),
-      isPausedForManual:
-          SqliteTypeConverters.boolFromSqlite(map['is_paused_for_manual'] as int),
+      isPausedForManual: SqliteTypeConverters.boolFromSqlite(
+        map['is_paused_for_manual'] as int,
+      ),
       currentSessionId: map['current_session_id'] as String?,
       startedAt: SqliteTypeConverters.nullableDateTimeFromSqlite(
         map['started_at'] as int?,
@@ -172,7 +173,9 @@ class ContinuousTrackingStateDao {
       detectionConfidence: map['detection_confidence'] != null
           ? (map['detection_confidence'] as num).toDouble()
           : null,
-      updatedAt: SqliteTypeConverters.dateTimeFromSqlite(map['updated_at'] as int),
+      updatedAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['updated_at'] as int,
+      ),
     );
   }
 
@@ -182,11 +185,16 @@ class ContinuousTrackingStateDao {
       'id': state.id,
       'user_id': state.userId,
       'is_active': SqliteTypeConverters.boolToSqlite(state.isActive),
-      'is_paused_for_manual': SqliteTypeConverters.boolToSqlite(state.isPausedForManual),
+      'is_paused_for_manual': SqliteTypeConverters.boolToSqlite(
+        state.isPausedForManual,
+      ),
       'current_session_id': state.currentSessionId,
-      'started_at': SqliteTypeConverters.nullableDateTimeToSqlite(state.startedAt),
-      'last_data_received':
-          SqliteTypeConverters.nullableDateTimeToSqlite(state.lastDataReceived),
+      'started_at': SqliteTypeConverters.nullableDateTimeToSqlite(
+        state.startedAt,
+      ),
+      'last_data_received': SqliteTypeConverters.nullableDateTimeToSqlite(
+        state.lastDataReceived,
+      ),
       'current_detected_activity': state.currentDetectedActivity,
       'detection_confidence': state.detectionConfidence,
       'updated_at': SqliteTypeConverters.dateTimeToSqlite(state.updatedAt),

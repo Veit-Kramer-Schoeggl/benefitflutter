@@ -105,28 +105,29 @@ void main() {
         expect(viewModel.formattedDate, 'Yesterday');
       });
 
-      test('should return "X days ago" for benefits earned within last week', () {
-        // Arrange
-        final benefit = MockData.createBenefit();
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: DateTime.now().subtract(Duration(days: 3)),
-        );
-        final viewModel = BenefitViewModel(
-          userBenefit: userBenefit,
-          benefit: benefit,
-        );
+      test(
+        'should return "X days ago" for benefits earned within last week',
+        () {
+          // Arrange
+          final benefit = MockData.createBenefit();
+          final userBenefit = MockData.createUserBenefit(
+            earnedAt: DateTime.now().subtract(Duration(days: 3)),
+          );
+          final viewModel = BenefitViewModel(
+            userBenefit: userBenefit,
+            benefit: benefit,
+          );
 
-        // Act & Assert
-        expect(viewModel.formattedDate, '3 days ago');
-      });
+          // Act & Assert
+          expect(viewModel.formattedDate, '3 days ago');
+        },
+      );
 
       test('should return formatted date (DD.MM.YYYY) for older benefits', () {
         // Arrange
         final benefit = MockData.createBenefit();
         final earnedDate = DateTime(2024, 1, 15);
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: earnedDate,
-        );
+        final userBenefit = MockData.createUserBenefit(earnedAt: earnedDate);
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
           benefit: benefit,
@@ -140,9 +141,7 @@ void main() {
         // Arrange
         final benefit = MockData.createBenefit();
         final earnedDate = DateTime(2024, 3, 5);
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: earnedDate,
-        );
+        final userBenefit = MockData.createUserBenefit(earnedAt: earnedDate);
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
           benefit: benefit,
@@ -156,9 +155,7 @@ void main() {
         // Arrange
         final benefit = MockData.createBenefit();
         final earnedDate = DateTime.now().subtract(Duration(days: 7));
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: earnedDate,
-        );
+        final userBenefit = MockData.createUserBenefit(earnedAt: earnedDate);
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
           benefit: benefit,
@@ -175,9 +172,7 @@ void main() {
         // Arrange
         final benefit = MockData.createBenefit();
         final earnedDate = DateTime(2024, 6, 15, 10, 30);
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: earnedDate,
-        );
+        final userBenefit = MockData.createUserBenefit(earnedAt: earnedDate);
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
           benefit: benefit,
@@ -276,10 +271,7 @@ void main() {
 
       test('should handle empty strings in benefit properties', () {
         // Arrange
-        final benefit = MockData.createBenefit(
-          title: '',
-          description: '',
-        );
+        final benefit = MockData.createBenefit(title: '', description: '');
         final userBenefit = MockData.createUserBenefit();
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
@@ -295,9 +287,7 @@ void main() {
         // Arrange
         final benefit = MockData.createBenefit();
         final futureDate = DateTime.now().add(Duration(days: 1));
-        final userBenefit = MockData.createUserBenefit(
-          earnedAt: futureDate,
-        );
+        final userBenefit = MockData.createUserBenefit(earnedAt: futureDate);
         final viewModel = BenefitViewModel(
           userBenefit: userBenefit,
           benefit: benefit,

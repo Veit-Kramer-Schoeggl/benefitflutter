@@ -12,8 +12,14 @@ void main() {
 
     test('fromJson creates correct enum', () {
       expect(IntegrationSource.fromJson('ble'), IntegrationSource.ble);
-      expect(IntegrationSource.fromJson('healthConnect'), IntegrationSource.healthConnect);
-      expect(IntegrationSource.fromJson('healthKit'), IntegrationSource.healthKit);
+      expect(
+        IntegrationSource.fromJson('healthConnect'),
+        IntegrationSource.healthConnect,
+      );
+      expect(
+        IntegrationSource.fromJson('healthKit'),
+        IntegrationSource.healthKit,
+      );
       expect(IntegrationSource.fromJson('manual'), IntegrationSource.manual);
     });
 
@@ -37,17 +43,32 @@ void main() {
     });
 
     test('fromJson creates correct enum', () {
-      expect(WearableDeviceType.fromJson('heartRateMonitor'), WearableDeviceType.heartRateMonitor);
-      expect(WearableDeviceType.fromJson('fitnessBand'), WearableDeviceType.fitnessBand);
-      expect(WearableDeviceType.fromJson('smartwatch'), WearableDeviceType.smartwatch);
+      expect(
+        WearableDeviceType.fromJson('heartRateMonitor'),
+        WearableDeviceType.heartRateMonitor,
+      );
+      expect(
+        WearableDeviceType.fromJson('fitnessBand'),
+        WearableDeviceType.fitnessBand,
+      );
+      expect(
+        WearableDeviceType.fromJson('smartwatch'),
+        WearableDeviceType.smartwatch,
+      );
     });
 
     test('fromJson returns unknown for invalid value', () {
-      expect(WearableDeviceType.fromJson('invalid'), WearableDeviceType.unknown);
+      expect(
+        WearableDeviceType.fromJson('invalid'),
+        WearableDeviceType.unknown,
+      );
     });
 
     test('displayName returns correct string', () {
-      expect(WearableDeviceType.heartRateMonitor.displayName, 'Heart Rate Monitor');
+      expect(
+        WearableDeviceType.heartRateMonitor.displayName,
+        'Heart Rate Monitor',
+      );
       expect(WearableDeviceType.smartwatch.displayName, 'Smartwatch');
     });
   });
@@ -112,13 +133,22 @@ void main() {
     });
 
     test('fromJson creates correct enum', () {
-      expect(ConnectionStatus.fromJson('disconnected'), ConnectionStatus.disconnected);
-      expect(ConnectionStatus.fromJson('connected'), ConnectionStatus.connected);
+      expect(
+        ConnectionStatus.fromJson('disconnected'),
+        ConnectionStatus.disconnected,
+      );
+      expect(
+        ConnectionStatus.fromJson('connected'),
+        ConnectionStatus.connected,
+      );
       expect(ConnectionStatus.fromJson('error'), ConnectionStatus.error);
     });
 
     test('fromJson returns disconnected for unknown value', () {
-      expect(ConnectionStatus.fromJson('unknown'), ConnectionStatus.disconnected);
+      expect(
+        ConnectionStatus.fromJson('unknown'),
+        ConnectionStatus.disconnected,
+      );
     });
 
     test('displayName returns correct string', () {

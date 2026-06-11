@@ -121,11 +121,7 @@ class ActivitySegmentDao {
   /// Delete segment by ID
   Future<void> delete(String id) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'activity_segments',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('activity_segments', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Delete all segments for a session
@@ -141,11 +137,14 @@ class ActivitySegmentDao {
   /// Get total distance for a session from all segments
   Future<double> getTotalDistanceBySessionId(String sessionId) async {
     final db = await _dbHelper.database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT SUM(distance_meters) as total
       FROM activity_segments
       WHERE session_id = ?
-    ''', [sessionId]);
+    ''',
+      [sessionId],
+    );
 
     if (result.isEmpty || result.first['total'] == null) {
       return 0.0;
@@ -156,11 +155,14 @@ class ActivitySegmentDao {
   /// Get count of segments for a session
   Future<int> getCountBySessionId(String sessionId) async {
     final db = await _dbHelper.database;
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT COUNT(*) as count
       FROM activity_segments
       WHERE session_id = ?
-    ''', [sessionId]);
+    ''',
+      [sessionId],
+    );
 
     if (result.isEmpty) return 0;
     return result.first['count'] as int;
@@ -172,23 +174,27 @@ class ActivitySegmentDao {
       id: map['id'] as String,
       sessionId: map['session_id'] as String,
       activityType: ActivityType.fromJson(map['activity_type'] as String),
-      startTime:
-          SqliteTypeConverters.dateTimeFromSqlite(map['start_time'] as int),
+      startTime: SqliteTypeConverters.dateTimeFromSqlite(
+        map['start_time'] as int,
+      ),
       endTime: SqliteTypeConverters.nullableDateTimeFromSqlite(
         map['end_time'] as int?,
       ),
       distanceMeters: map['distance_meters'] != null
           ? (map['distance_meters'] as num).toDouble()
           : null,
-      detectionSource:
-          DetectionSource.fromJson(map['detection_source'] as String?),
+      detectionSource: DetectionSource.fromJson(
+        map['detection_source'] as String?,
+      ),
       confidence: map['confidence'] != null
           ? (map['confidence'] as num).toDouble()
           : null,
-      createdAt:
-          SqliteTypeConverters.dateTimeFromSqlite(map['created_at'] as int),
-      updatedAt:
-          SqliteTypeConverters.dateTimeFromSqlite(map['updated_at'] as int),
+      createdAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['created_at'] as int,
+      ),
+      updatedAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['updated_at'] as int,
+      ),
     );
   }
 
@@ -199,8 +205,9 @@ class ActivitySegmentDao {
       'session_id': segment.sessionId,
       'activity_type': segment.activityType.toJson(),
       'start_time': SqliteTypeConverters.dateTimeToSqlite(segment.startTime),
-      'end_time':
-          SqliteTypeConverters.nullableDateTimeToSqlite(segment.endTime),
+      'end_time': SqliteTypeConverters.nullableDateTimeToSqlite(
+        segment.endTime,
+      ),
       'distance_meters': segment.distanceMeters,
       'detection_source': segment.detectionSource.toJson(),
       'confidence': segment.confidence,

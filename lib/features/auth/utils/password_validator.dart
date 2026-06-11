@@ -36,10 +36,12 @@ class PasswordValidator {
   static bool hasMinLength(String password) => password.length >= minLength;
 
   /// Check if password contains at least one uppercase letter
-  static bool hasUppercase(String password) => password.contains(RegExp(r'[A-Z]'));
+  static bool hasUppercase(String password) =>
+      password.contains(RegExp(r'[A-Z]'));
 
   /// Check if password contains at least one lowercase letter
-  static bool hasLowercase(String password) => password.contains(RegExp(r'[a-z]'));
+  static bool hasLowercase(String password) =>
+      password.contains(RegExp(r'[a-z]'));
 
   /// Check if password contains at least one digit
   static bool hasNumber(String password) => password.contains(RegExp(r'[0-9]'));

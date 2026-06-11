@@ -6,11 +6,7 @@ class ErrorDisplayWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const ErrorDisplayWidget({
-    super.key,
-    required this.message,
-    this.onRetry,
-  });
+  const ErrorDisplayWidget({super.key, required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -20,23 +16,16 @@ class ErrorDisplayWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[300],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
             const SizedBox(height: 16),
-            Text(
-              'Oops!',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Oops!', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),

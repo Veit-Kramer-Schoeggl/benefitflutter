@@ -345,8 +345,12 @@ class GpsPointDao {
       speedMetersPerSecond: map['speed_meters_per_second'] != null
           ? (map['speed_meters_per_second'] as num).toDouble()
           : null,
-      timestamp: SqliteTypeConverters.dateTimeFromSqlite(map['timestamp'] as int),
-      createdAt: SqliteTypeConverters.dateTimeFromSqlite(map['created_at'] as int),
+      timestamp: SqliteTypeConverters.dateTimeFromSqlite(
+        map['timestamp'] as int,
+      ),
+      createdAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['created_at'] as int,
+      ),
     );
   }
 

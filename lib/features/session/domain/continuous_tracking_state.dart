@@ -63,7 +63,8 @@ class ContinuousTrackingState {
       userId: json['user_id'] as String,
       isActive: json['is_active'] == 1 || json['is_active'] == true,
       isPausedForManual:
-          json['is_paused_for_manual'] == 1 || json['is_paused_for_manual'] == true,
+          json['is_paused_for_manual'] == 1 ||
+          json['is_paused_for_manual'] == true,
       currentSessionId: json['current_session_id'] as String?,
       startedAt: _parseDateTime(json['started_at']),
       lastDataReceived: _parseDateTime(json['last_data_received']),
@@ -119,7 +120,8 @@ class ContinuousTrackingState {
       currentSessionId: currentSessionId ?? this.currentSessionId,
       startedAt: startedAt ?? this.startedAt,
       lastDataReceived: lastDataReceived ?? this.lastDataReceived,
-      currentDetectedActivity: currentDetectedActivity ?? this.currentDetectedActivity,
+      currentDetectedActivity:
+          currentDetectedActivity ?? this.currentDetectedActivity,
       detectionConfidence: detectionConfidence ?? this.detectionConfidence,
       updatedAt: updatedAt ?? DateTime.now(),
     );

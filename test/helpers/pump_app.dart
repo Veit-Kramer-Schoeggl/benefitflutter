@@ -20,17 +20,11 @@ Widget createTestApp({
   required Widget child,
   List<ChangeNotifierProvider>? providers,
 }) {
-  Widget app = MaterialApp(
-    theme: AppTheme.lightTheme,
-    home: child,
-  );
+  Widget app = MaterialApp(theme: AppTheme.lightTheme, home: child);
 
   // Wrap with providers if provided
   if (providers != null && providers.isNotEmpty) {
-    app = MultiProvider(
-      providers: providers,
-      child: app,
-    );
+    app = MultiProvider(providers: providers, child: app);
   }
 
   return app;
@@ -43,10 +37,5 @@ Future<void> pumpTestApp(
   required Widget child,
   List<ChangeNotifierProvider>? providers,
 }) async {
-  await tester.pumpWidget(
-    createTestApp(
-      child: child,
-      providers: providers,
-    ),
-  );
+  await tester.pumpWidget(createTestApp(child: child, providers: providers));
 }

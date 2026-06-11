@@ -133,11 +133,7 @@ class SessionDao {
   /// Delete session by ID
   Future<void> delete(String id) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'sessions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('sessions', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Convert database map to Session model
@@ -148,14 +144,22 @@ class SessionDao {
       trackingMode: TrackingMode.fromJson(map['tracking_mode'] as String),
       activityType: ActivityType.fromJson(map['activity_type'] as String),
       status: SessionStatus.fromJson(map['status'] as String),
-      startTime: SqliteTypeConverters.dateTimeFromSqlite(map['start_time'] as int),
-      endTime: SqliteTypeConverters.nullableDateTimeFromSqlite(map['end_time'] as int?),
+      startTime: SqliteTypeConverters.dateTimeFromSqlite(
+        map['start_time'] as int,
+      ),
+      endTime: SqliteTypeConverters.nullableDateTimeFromSqlite(
+        map['end_time'] as int?,
+      ),
       durationSeconds: map['duration_seconds'] as int?,
       distanceMeters: map['distance_meters'] != null
           ? (map['distance_meters'] as num).toDouble()
           : null,
-      trackingDate: SqliteTypeConverters.nullableDateTimeFromSqlite(map['tracking_date'] as int?),
-      createdAt: SqliteTypeConverters.dateTimeFromSqlite(map['created_at'] as int),
+      trackingDate: SqliteTypeConverters.nullableDateTimeFromSqlite(
+        map['tracking_date'] as int?,
+      ),
+      createdAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['created_at'] as int,
+      ),
     );
   }
 
@@ -169,10 +173,14 @@ class SessionDao {
       'activity_type': session.activityType.toJson(),
       'status': session.status.toJson(),
       'start_time': SqliteTypeConverters.dateTimeToSqlite(session.startTime),
-      'end_time': SqliteTypeConverters.nullableDateTimeToSqlite(session.endTime),
+      'end_time': SqliteTypeConverters.nullableDateTimeToSqlite(
+        session.endTime,
+      ),
       'duration_seconds': session.durationSeconds,
       'distance_meters': session.distanceMeters,
-      'tracking_date': SqliteTypeConverters.nullableDateTimeToSqlite(session.trackingDate),
+      'tracking_date': SqliteTypeConverters.nullableDateTimeToSqlite(
+        session.trackingDate,
+      ),
       'created_at': SqliteTypeConverters.dateTimeToSqlite(session.createdAt),
       'updated_at': SqliteTypeConverters.dateTimeToSqlite(now),
     };

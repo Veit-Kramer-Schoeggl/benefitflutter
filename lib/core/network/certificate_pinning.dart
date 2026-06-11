@@ -73,7 +73,9 @@ class CertificatePinning {
       final isValid = _pinnedFingerprints.contains(prefixedFingerprint);
 
       if (!isValid) {
-        debugPrint('CertificatePinning: Certificate validation FAILED for $host');
+        debugPrint(
+          'CertificatePinning: Certificate validation FAILED for $host',
+        );
         debugPrint('CertificatePinning: Got fingerprint: $prefixedFingerprint');
         debugPrint('CertificatePinning: Expected one of: $_pinnedFingerprints');
       } else {
@@ -104,11 +106,12 @@ class CertificatePinning {
   static HttpClient createPinnedHttpClient() {
     final client = HttpClient();
 
-    client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-      // badCertificateCallback is called when certificate validation fails
-      // We implement our own validation here
-      return validateCertificate(cert, host);
-    };
+    client.badCertificateCallback =
+        (X509Certificate cert, String host, int port) {
+          // badCertificateCallback is called when certificate validation fails
+          // We implement our own validation here
+          return validateCertificate(cert, host);
+        };
 
     return client;
   }

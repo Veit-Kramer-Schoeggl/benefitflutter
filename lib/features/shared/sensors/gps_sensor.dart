@@ -162,13 +162,14 @@ class GpsSensor extends BaseSensor<GpsPoint> {
       );
 
       // Start position stream
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen(
-        _onPositionUpdate,
-        onError: _onPositionError,
-        cancelOnError: false,
-      );
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: locationSettings,
+          ).listen(
+            _onPositionUpdate,
+            onError: _onPositionError,
+            cancelOnError: false,
+          );
     } catch (e) {
       _updateStatus(SensorStatus.error);
       throw SensorException(

@@ -27,10 +27,7 @@ class UserDao {
   /// Find first user (for getCurrentUser - single user app)
   Future<User?> findFirst() async {
     final db = await _dbHelper.database;
-    final results = await db.query(
-      'users',
-      limit: 1,
-    );
+    final results = await db.query('users', limit: 1);
 
     if (results.isEmpty) return null;
     return _fromMap(results.first);
@@ -53,22 +50,13 @@ class UserDao {
     // DateTime.now() (correct for insert), but the User domain has no createdAt
     // field to preserve, so drop the column here and keep the stored value.
     final map = _toMap(user)..remove('created_at');
-    await db.update(
-      'users',
-      map,
-      where: 'id = ?',
-      whereArgs: [user.id],
-    );
+    await db.update('users', map, where: 'id = ?', whereArgs: [user.id]);
   }
 
   /// Delete user by ID
   Future<void> delete(String id) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'users',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('users', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Find all users

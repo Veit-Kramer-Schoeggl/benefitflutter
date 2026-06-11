@@ -5,25 +5,16 @@ class AccountDeletionResult {
   final bool success;
   final String? error;
 
-  const AccountDeletionResult._({
-    required this.success,
-    this.error,
-  });
+  const AccountDeletionResult._({required this.success, this.error});
 
   /// Create a successful account deletion result
   factory AccountDeletionResult.success() {
-    return const AccountDeletionResult._(
-      success: true,
-      error: null,
-    );
+    return const AccountDeletionResult._(success: true, error: null);
   }
 
   /// Create a failed account deletion result
   factory AccountDeletionResult.failure({required String error}) {
-    return AccountDeletionResult._(
-      success: false,
-      error: error,
-    );
+    return AccountDeletionResult._(success: false, error: error);
   }
 
   /// Whether this result represents a failure

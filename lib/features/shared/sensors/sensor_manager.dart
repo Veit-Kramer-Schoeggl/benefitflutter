@@ -28,9 +28,8 @@ class SensorManager {
   bool _initialized = false;
   final Map<String, SensorStatus> _sensorStatuses = {};
 
-  SensorManager({
-    BaseSensor<GpsPoint>? gpsSensor,
-  }) : _gpsSensor = gpsSensor ?? GpsSensor();
+  SensorManager({BaseSensor<GpsPoint>? gpsSensor})
+    : _gpsSensor = gpsSensor ?? GpsSensor();
 
   // ===== GETTERS =====
 
@@ -107,7 +106,8 @@ class SensorManager {
   }) async {
     if (!_initialized) {
       throw StateError(
-          'SensorManager not initialized. Call initialize() first.');
+        'SensorManager not initialized. Call initialize() first.',
+      );
     }
 
     final results = <String, bool>{};

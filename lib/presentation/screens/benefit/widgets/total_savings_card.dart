@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 class TotalSavingsCard extends StatelessWidget {
   final double totalSavings;
 
-  const TotalSavingsCard({
-    super.key,
-    required this.totalSavings,
-  });
+  const TotalSavingsCard({super.key, required this.totalSavings});
 
   @override
   Widget build(BuildContext context) {
@@ -22,24 +19,24 @@ class TotalSavingsCard extends StatelessWidget {
           children: [
             Text(
               'Total Savings this week',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 12),
             Text(
               '€${totalSavings.toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Earned through active movement',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.white70),
             ),
           ],
         ),

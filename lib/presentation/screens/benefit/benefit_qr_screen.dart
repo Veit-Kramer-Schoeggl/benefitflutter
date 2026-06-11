@@ -7,22 +7,19 @@ import 'package:benefitflutter/providers/benefit_provider.dart';
 class BenefitQrScreen extends StatelessWidget {
   final BenefitViewModel benefitVM;
 
-  const BenefitQrScreen({
-    super.key,
-    required this.benefitVM,
-  });
+  const BenefitQrScreen({super.key, required this.benefitVM});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
 
-    final redemptionCode =
-        benefitVM.userBenefit.redemptionCode ?? 'NO-CODE';
+    final redemptionCode = benefitVM.userBenefit.redemptionCode ?? 'NO-CODE';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BenefitProvider>()
-          .loadPartners(benefitVM.userBenefit.benefitId);
+      context.read<BenefitProvider>().loadPartners(
+        benefitVM.userBenefit.benefitId,
+      );
     });
 
     return Scaffold(
@@ -39,10 +36,7 @@ class BenefitQrScreen extends StatelessWidget {
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 32,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -88,10 +82,7 @@ class BenefitQrScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: QrImageView(
-                    data: redemptionCode,
-                    size: 220,
-                  ),
+                  child: QrImageView(data: redemptionCode, size: 220),
                 ),
 
                 const SizedBox(height: 24),
@@ -131,7 +122,6 @@ class BenefitQrScreen extends StatelessWidget {
 
                 Consumer<BenefitProvider>(
                   builder: (context, provider, _) {
-
                     if (provider.isLoadingPartners) {
                       return const Padding(
                         padding: EdgeInsets.all(8),

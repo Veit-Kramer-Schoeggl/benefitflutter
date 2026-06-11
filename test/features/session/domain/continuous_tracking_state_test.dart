@@ -147,7 +147,10 @@ void main() {
         expect(restored.isActive, equals(original.isActive));
         expect(restored.isPausedForManual, equals(original.isPausedForManual));
         expect(restored.currentSessionId, equals(original.currentSessionId));
-        expect(restored.currentDetectedActivity, equals(original.currentDetectedActivity));
+        expect(
+          restored.currentDetectedActivity,
+          equals(original.currentDetectedActivity),
+        );
       });
     });
 
@@ -284,7 +287,9 @@ void main() {
           userId: 'user-1',
           isActive: true,
           isPausedForManual: false,
-          lastDataReceived: DateTime.now().subtract(const Duration(minutes: 15)),
+          lastDataReceived: DateTime.now().subtract(
+            const Duration(minutes: 15),
+          ),
         );
 
         expect(state.hasRecentData, isFalse);
@@ -304,7 +309,9 @@ void main() {
           userId: 'user-1',
           isActive: true,
           isPausedForManual: false,
-          startedAt: DateTime.now().subtract(const Duration(hours: 2, minutes: 30)),
+          startedAt: DateTime.now().subtract(
+            const Duration(hours: 2, minutes: 30),
+          ),
         );
 
         expect(state.formattedActiveTime, matches(RegExp(r'\d+h \d+m')));

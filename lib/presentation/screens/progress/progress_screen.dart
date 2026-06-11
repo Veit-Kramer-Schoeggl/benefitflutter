@@ -10,7 +10,6 @@ import 'package:benefitflutter/presentation/screens/session/session_detail_scree
 import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/providers/user_provider.dart';
 
-
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
 
@@ -18,7 +17,8 @@ class ProgressScreen extends StatefulWidget {
   State<ProgressScreen> createState() => _ProgressScreenState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProviderStateMixin {
+class _ProgressScreenState extends State<ProgressScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   final TextEditingController _durationController = TextEditingController();
@@ -55,7 +55,11 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
   Duration _parseDuration(String durationString) {
     if (durationString.isEmpty) return Duration.zero;
 
-    final parts = durationString.split(':').map(int.tryParse).whereType<int>().toList();
+    final parts = durationString
+        .split(':')
+        .map(int.tryParse)
+        .whereType<int>()
+        .toList();
 
     if (parts.length == 3) {
       return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
@@ -67,7 +71,10 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     return Duration.zero;
   }
 
-  Future<void> _selectDateTime(BuildContext context, Function setDialogState) async {
+  Future<void> _selectDateTime(
+    BuildContext context,
+    Function setDialogState,
+  ) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: _selectedStartTime,
@@ -94,7 +101,6 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         _startTimeController.text = formatter.format(_selectedStartTime);
 
         setDialogState(() {});
-
       }
     }
   }
@@ -124,21 +130,31 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
         hintStyle: TextStyle(color: darkGrey.withOpacity(0.4)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
         border: UnderlineInputBorder(borderSide: BorderSide(color: darkGrey)),
-        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: darkGrey)),
-        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryColor)),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: darkGrey),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: primaryColor),
+        ),
       ),
     );
   }
 
-  void _showManualEntrySimulatedDialog(BuildContext context, {ActivityEntry? entryToEdit}) {
+  void _showManualEntrySimulatedDialog(
+    BuildContext context, {
+    ActivityEntry? entryToEdit,
+  }) {
     final bool isEdit = entryToEdit != null;
 
     final Color primaryColor = Theme.of(context).colorScheme.primary;
     final Color darkGrey = AppTheme.darkGrey;
 
     if (isEdit) {
-      _durationController.text = entryToEdit.formattedDuration.isNotEmpty ? entryToEdit.formattedDuration : '00:00:00';
-      _distanceController.text = entryToEdit.distanceKm?.toStringAsFixed(2) ?? '';
+      _durationController.text = entryToEdit.formattedDuration.isNotEmpty
+          ? entryToEdit.formattedDuration
+          : '00:00:00';
+      _distanceController.text =
+          entryToEdit.distanceKm?.toStringAsFixed(2) ?? '';
       _caloriesController.text = entryToEdit.calories?.toString() ?? '';
       _startTimeController.text = entryToEdit.formattedDate;
       _selectedStartTime = entryToEdit.startTime;
@@ -160,10 +176,15 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
                   elevation: 8,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 25,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -171,18 +192,18 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                         Text(
                           isEdit ? 'EDIT ACTIVITY' : 'MANUAL ENTRY',
                           style: TextStyle(
-                              color: darkGrey,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18
+                            color: darkGrey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
                           ),
                         ),
                         const SizedBox(height: 16),
 
                         Image.asset(
-                            'assets/images/icons/activity/icon_activity.png',
-                            width: 40,
-                            height: 40,
-                            color: darkGrey
+                          'assets/images/icons/activity/icon_activity.png',
+                          width: 40,
+                          height: 40,
+                          color: darkGrey,
                         ),
                         const SizedBox(height: 20),
 
@@ -223,15 +244,27 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
 
                         ElevatedButton(
                           onPressed: () {
-                            final distanceKm = double.tryParse(_distanceController.text.replaceAll(',', '.')) ?? 0.0;
-                            final duration = _parseDuration(_durationController.text);
-                            final calories = int.tryParse(_caloriesController.text);
+                            final distanceKm =
+                                double.tryParse(
+                                  _distanceController.text.replaceAll(',', '.'),
+                                ) ??
+                                0.0;
+                            final duration = _parseDuration(
+                              _durationController.text,
+                            );
+                            final calories = int.tryParse(
+                              _caloriesController.text,
+                            );
                             final startTime = _selectedStartTime;
 
                             // 🚀 NEW VALIDATION: Duration
                             if (duration == Duration.zero) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a valid duration (e.g., 00:30:00). Duration is mandatory.'))
+                                const SnackBar(
+                                  content: Text(
+                                    'Please enter a valid duration (e.g., 00:30:00). Duration is mandatory.',
+                                  ),
+                                ),
                               );
                               return;
                             }
@@ -239,11 +272,14 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                             // 🚀 NEW VALIDATION: Distance
                             if (distanceKm <= 0.0) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a valid distance in km (must be greater than 0). Distance is mandatory.'))
+                                const SnackBar(
+                                  content: Text(
+                                    'Please enter a valid distance in km (must be greater than 0). Distance is mandatory.',
+                                  ),
+                                ),
                               );
                               return;
                             }
-
 
                             if (!isEdit) {
                               final newEntry = ActivityEntry(
@@ -255,9 +291,15 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                                 isManual: true,
                                 calories: calories,
                               );
-                              context.read<ProgressProvider>().addActivity(newEntry);
+                              context.read<ProgressProvider>().addActivity(
+                                newEntry,
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Manual activity saved and added!'))
+                                const SnackBar(
+                                  content: Text(
+                                    'Manual activity saved and added!',
+                                  ),
+                                ),
                               );
                             } else {
                               final updatedEntry = ActivityEntry(
@@ -270,10 +312,14 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                                 calories: calories,
                               );
 
-                              context.read<ProgressProvider>().updateActivity(updatedEntry);
+                              context.read<ProgressProvider>().updateActivity(
+                                updatedEntry,
+                              );
 
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Activity updated!'))
+                                const SnackBar(
+                                  content: Text('Activity updated!'),
+                                ),
                               );
                             }
 
@@ -282,9 +328,17 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
                             minimumSize: const Size.fromHeight(45),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          child: Text(isEdit ? 'UPDATE' : 'SAVE', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          child: Text(
+                            isEdit ? 'UPDATE' : 'SAVE',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -306,9 +360,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SessionDetailScreen(
-          sessionId: entry.sessionId,
-        ),
+        builder: (_) => SessionDetailScreen(sessionId: entry.sessionId),
       ),
     );
   }
@@ -333,7 +385,7 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
                 Navigator.pop(context);
                 context.read<ProgressProvider>().removeActivity(entry);
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${entry.activityType} deleted.'))
+                  SnackBar(content: Text('${entry.activityType} deleted.')),
                 );
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -344,16 +396,18 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Details for ${entry.activityType} (${entry.formattedDistance})'),
+          content: Text(
+            'Details for ${entry.activityType} (${entry.formattedDistance})',
+          ),
           action: SnackBarAction(
             label: 'DELETE',
-            onPressed: () => context.read<ProgressProvider>().removeActivity(entry),
+            onPressed: () =>
+                context.read<ProgressProvider>().removeActivity(entry),
           ),
         ),
       );
     }
   }
-
 
   // ----------------------------------------------------
   // BUILD METHOD
@@ -382,12 +436,13 @@ class _ProgressScreenState extends State<ProgressScreen> with SingleTickerProvid
 
       body: Consumer<ProgressProvider>(
         builder: (context, provider, child) {
-
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (provider.error != null) {
-            return Center(child: Text('Error: ${provider.error}\nTap to retry'));
+            return Center(
+              child: Text('Error: ${provider.error}\nTap to retry'),
+            );
           }
 
           return TabBarView(

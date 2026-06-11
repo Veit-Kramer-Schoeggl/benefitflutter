@@ -44,7 +44,8 @@ class HealthPlatformDataDao {
     final db = await _dbHelper.database;
     final results = await db.query(
       'health_platform_data',
-      where: 'user_id = ? AND data_type = ? AND start_time >= ? AND end_time <= ?',
+      where:
+          'user_id = ? AND data_type = ? AND start_time >= ? AND end_time <= ?',
       whereArgs: [
         userId,
         type.toJson(),
@@ -91,7 +92,9 @@ class HealthPlatformDataDao {
     );
 
     if (results.isEmpty) return null;
-    return DateTime.fromMillisecondsSinceEpoch(results.first['synced_at'] as int);
+    return DateTime.fromMillisecondsSinceEpoch(
+      results.first['synced_at'] as int,
+    );
   }
 
   /// Get daily steps for a specific date

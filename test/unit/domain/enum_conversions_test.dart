@@ -27,10 +27,16 @@ void main() {
         expect(ActivityType.fromJson('walking'), ActivityType.walking);
         expect(ActivityType.fromJson('cycling'), ActivityType.cycling);
         expect(ActivityType.fromJson('swimming'), ActivityType.swimming);
-        expect(ActivityType.fromJson('strengthTraining'), ActivityType.strengthTraining);
+        expect(
+          ActivityType.fromJson('strengthTraining'),
+          ActivityType.strengthTraining,
+        );
         expect(ActivityType.fromJson('yoga'), ActivityType.yoga);
         expect(ActivityType.fromJson('hiking'), ActivityType.hiking);
-        expect(ActivityType.fromJson('trailRunning'), ActivityType.trailRunning);
+        expect(
+          ActivityType.fromJson('trailRunning'),
+          ActivityType.trailRunning,
+        );
         expect(ActivityType.fromJson('dancing'), ActivityType.dancing);
         expect(ActivityType.fromJson('martialArts'), ActivityType.martialArts);
         expect(ActivityType.fromJson('teamSports'), ActivityType.teamSports);
@@ -76,7 +82,10 @@ void main() {
 
       test('fromJson parses valid strings correctly', () {
         expect(TrackingMode.fromJson('manual'), TrackingMode.manual);
-        expect(TrackingMode.fromJson('continuousDaily'), TrackingMode.continuousDaily);
+        expect(
+          TrackingMode.fromJson('continuousDaily'),
+          TrackingMode.continuousDaily,
+        );
       });
 
       test('fromJson handles unknown value with default', () {
@@ -224,14 +233,29 @@ void main() {
     group('Edge Cases', () {
       test('handles case sensitivity correctly', () {
         // Enum names are case-sensitive
-        expect(ActivityType.fromJson('Running'), ActivityType.other); // Capital R = unknown
-        expect(TrackingMode.fromJson('Manual'), TrackingMode.manual); // Capital M = unknown
-        expect(SessionStatus.fromJson('ACTIVE'), SessionStatus.completed); // All caps = unknown
+        expect(
+          ActivityType.fromJson('Running'),
+          ActivityType.other,
+        ); // Capital R = unknown
+        expect(
+          TrackingMode.fromJson('Manual'),
+          TrackingMode.manual,
+        ); // Capital M = unknown
+        expect(
+          SessionStatus.fromJson('ACTIVE'),
+          SessionStatus.completed,
+        ); // All caps = unknown
       });
 
       test('handles whitespace in enum values', () {
-        expect(ActivityType.fromJson(' running '), ActivityType.other); // Whitespace = unknown
-        expect(TrackingMode.fromJson('manual '), TrackingMode.manual); // Trailing space = unknown
+        expect(
+          ActivityType.fromJson(' running '),
+          ActivityType.other,
+        ); // Whitespace = unknown
+        expect(
+          TrackingMode.fromJson('manual '),
+          TrackingMode.manual,
+        ); // Trailing space = unknown
       });
 
       test('ActivityType has expected number of values', () {

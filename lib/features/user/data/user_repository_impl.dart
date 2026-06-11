@@ -30,11 +30,11 @@ class UserRepositoryImpl implements UserRepository {
     required UserPreferencesDao preferencesDao,
     required UserSyncStrategy syncStrategy,
     required ConnectivityService connectivity,
-  })  : _dao = dao,
-        _biometricsDao = biometricsDao,
-        _preferencesDao = preferencesDao,
-        _syncStrategy = syncStrategy,
-        _connectivity = connectivity;
+  }) : _dao = dao,
+       _biometricsDao = biometricsDao,
+       _preferencesDao = preferencesDao,
+       _syncStrategy = syncStrategy,
+       _connectivity = connectivity;
 
   /// Factory constructor with default dependencies
   factory UserRepositoryImpl.create() {
@@ -147,7 +147,9 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<List<UserBiometricsReported>> getBiometricsHistory(String userId) async {
+  Future<List<UserBiometricsReported>> getBiometricsHistory(
+    String userId,
+  ) async {
     return await _biometricsDao.findAllByUserId(userId);
   }
 

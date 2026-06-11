@@ -102,7 +102,7 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE UNIQUE INDEX IF NOT EXISTS idx_continuous_config_user ON continuous_tracking_config(user_id)'
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_continuous_config_user ON continuous_tracking_config(user_id)',
     );
 
     // Create continuous_tracking_state table
@@ -123,7 +123,7 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE UNIQUE INDEX IF NOT EXISTS idx_continuous_state_user ON continuous_tracking_state(user_id)'
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_continuous_state_user ON continuous_tracking_state(user_id)',
     );
 
     // Create activity_segments table
@@ -143,10 +143,10 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_activity_segments_session ON activity_segments(session_id)'
+      'CREATE INDEX IF NOT EXISTS idx_activity_segments_session ON activity_segments(session_id)',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_activity_segments_time ON activity_segments(start_time, end_time)'
+      'CREATE INDEX IF NOT EXISTS idx_activity_segments_time ON activity_segments(start_time, end_time)',
     );
   }
 
@@ -223,7 +223,7 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX idx_devices_user ON wearable_devices(user_id)'
+      'CREATE INDEX idx_devices_user ON wearable_devices(user_id)',
     );
 
     // Step 2: Create biometric sensor data table (heart rate, HRV, SpO2, temp)
@@ -243,10 +243,10 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX idx_biometric_session_type ON session_biometric_data(session_id, sensor_type)'
+      'CREATE INDEX idx_biometric_session_type ON session_biometric_data(session_id, sensor_type)',
     );
     await db.execute(
-      'CREATE INDEX idx_biometric_timestamp ON session_biometric_data(timestamp)'
+      'CREATE INDEX idx_biometric_timestamp ON session_biometric_data(timestamp)',
     );
 
     // Step 3: Create motion sensor data table (cadence, power, steps, stride)
@@ -266,10 +266,10 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX idx_motion_session_type ON session_motion_data(session_id, sensor_type)'
+      'CREATE INDEX idx_motion_session_type ON session_motion_data(session_id, sensor_type)',
     );
     await db.execute(
-      'CREATE INDEX idx_motion_timestamp ON session_motion_data(timestamp)'
+      'CREATE INDEX idx_motion_timestamp ON session_motion_data(timestamp)',
     );
 
     // Step 4: Create aggregated sensor summary table (kept permanently)
@@ -310,36 +310,40 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX idx_health_data_user_type ON health_platform_data(user_id, data_type)'
+      'CREATE INDEX idx_health_data_user_type ON health_platform_data(user_id, data_type)',
     );
     await db.execute(
-      'CREATE INDEX idx_health_data_time ON health_platform_data(start_time, end_time)'
+      'CREATE INDEX idx_health_data_time ON health_platform_data(start_time, end_time)',
     );
 
     // Step 6: Extend sessions table with wearable data fields
     await db.execute('ALTER TABLE sessions ADD COLUMN avg_heart_rate INTEGER');
     await db.execute('ALTER TABLE sessions ADD COLUMN max_heart_rate INTEGER');
     await db.execute('ALTER TABLE sessions ADD COLUMN min_heart_rate INTEGER');
-    await db.execute('ALTER TABLE sessions ADD COLUMN avg_heart_rate_variability REAL');
+    await db.execute(
+      'ALTER TABLE sessions ADD COLUMN avg_heart_rate_variability REAL',
+    );
     await db.execute('ALTER TABLE sessions ADD COLUMN total_steps INTEGER');
     await db.execute('ALTER TABLE sessions ADD COLUMN avg_cadence REAL');
     await db.execute('ALTER TABLE sessions ADD COLUMN calories_burned REAL');
     await db.execute('ALTER TABLE sessions ADD COLUMN heart_rate_zones TEXT');
-    await db.execute('ALTER TABLE sessions ADD COLUMN has_wearable_data INTEGER DEFAULT 0');
-    await db.execute('ALTER TABLE sessions ADD COLUMN connected_device_ids TEXT');
+    await db.execute(
+      'ALTER TABLE sessions ADD COLUMN has_wearable_data INTEGER DEFAULT 0',
+    );
+    await db.execute(
+      'ALTER TABLE sessions ADD COLUMN connected_device_ids TEXT',
+    );
   }
 
   /// Migration v4 → v5: Add profile image support
   Future<void> _migrateToV5(Database db) async {
     final result = await db.rawQuery("PRAGMA table_info(users)");
     final exists = result.any(
-            (column) => column['name'] == 'profile_image_path'
+      (column) => column['name'] == 'profile_image_path',
     );
 
     if (!exists) {
-      await db.execute(
-          'ALTER TABLE users ADD COLUMN profile_image_path TEXT'
-      );
+      await db.execute('ALTER TABLE users ADD COLUMN profile_image_path TEXT');
     }
   }
 
@@ -350,13 +354,13 @@ class DatabaseHelper {
 
     if (!columnNames.contains('is_verified')) {
       await db.execute(
-          'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0'
+        'ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0',
       );
     }
 
     if (!columnNames.contains('verification_status')) {
       await db.execute(
-          "ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'unverified'"
+        "ALTER TABLE users ADD COLUMN verification_status TEXT DEFAULT 'unverified'",
       );
     }
   }
@@ -368,7 +372,7 @@ class DatabaseHelper {
 
     if (!columnNames.contains('password_hash')) {
       await db.execute(
-          "ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''"
+        "ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''",
       );
     }
   }
@@ -380,18 +384,18 @@ class DatabaseHelper {
 
     if (!columnNames.contains('status')) {
       await db.execute(
-          "ALTER TABLE user_benefits ADD COLUMN status TEXT DEFAULT 'earned'"
+        "ALTER TABLE user_benefits ADD COLUMN status TEXT DEFAULT 'earned'",
       );
     }
 
     if (!columnNames.contains('redeemed_at')) {
       await db.execute(
-          "ALTER TABLE user_benefits ADD COLUMN redeemed_at INTEGER"
+        "ALTER TABLE user_benefits ADD COLUMN redeemed_at INTEGER",
       );
     }
 
     await db.execute(
-        "UPDATE user_benefits SET status = 'earned' WHERE status IS NULL"
+      "UPDATE user_benefits SET status = 'earned' WHERE status IS NULL",
     );
   }
 
@@ -402,7 +406,7 @@ class DatabaseHelper {
 
     if (!columnNames.contains('redemption_code')) {
       await db.execute(
-          "ALTER TABLE user_benefits ADD COLUMN redemption_code TEXT"
+        "ALTER TABLE user_benefits ADD COLUMN redemption_code TEXT",
       );
     }
   }
@@ -462,7 +466,7 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE UNIQUE INDEX idx_continuous_config_user ON continuous_tracking_config(user_id)'
+      'CREATE UNIQUE INDEX idx_continuous_config_user ON continuous_tracking_config(user_id)',
     );
 
     // Step 2: Create continuous_tracking_state table (runtime state)
@@ -483,7 +487,7 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE UNIQUE INDEX idx_continuous_state_user ON continuous_tracking_state(user_id)'
+      'CREATE UNIQUE INDEX idx_continuous_state_user ON continuous_tracking_state(user_id)',
     );
 
     // Step 3: Create activity_segments table (segments within sessions)
@@ -503,10 +507,10 @@ class DatabaseHelper {
       )
     ''');
     await db.execute(
-      'CREATE INDEX idx_activity_segments_session ON activity_segments(session_id)'
+      'CREATE INDEX idx_activity_segments_session ON activity_segments(session_id)',
     );
     await db.execute(
-      'CREATE INDEX idx_activity_segments_time ON activity_segments(start_time, end_time)'
+      'CREATE INDEX idx_activity_segments_time ON activity_segments(start_time, end_time)',
     );
   }
 
@@ -531,7 +535,8 @@ class DatabaseHelper {
     await _createUserPreferencesTable(db);
 
     // Step 4: Create default preferences for existing users
-    await db.execute('''
+    await db.execute(
+      '''
       INSERT INTO user_preferences (
         id,
         user_id,
@@ -554,7 +559,12 @@ class DatabaseHelper {
         ?,
         ?
       FROM users
-    ''', [DateTime.now().millisecondsSinceEpoch, DateTime.now().millisecondsSinceEpoch]);
+    ''',
+      [
+        DateTime.now().millisecondsSinceEpoch,
+        DateTime.now().millisecondsSinceEpoch,
+      ],
+    );
   }
 
   /// Create users table
@@ -598,10 +608,10 @@ class DatabaseHelper {
 
     // Indexes for common queries
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_user_biometrics_user_id ON user_biometrics_reported(user_id)'
+      'CREATE INDEX IF NOT EXISTS idx_user_biometrics_user_id ON user_biometrics_reported(user_id)',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_user_biometrics_report_date ON user_biometrics_reported(report_date)'
+      'CREATE INDEX IF NOT EXISTS idx_user_biometrics_report_date ON user_biometrics_reported(report_date)',
     );
   }
 
@@ -626,7 +636,7 @@ class DatabaseHelper {
 
     // Index for user lookups (one-to-one relationship)
     await db.execute(
-      'CREATE UNIQUE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id)'
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id)',
     );
   }
 
@@ -653,8 +663,12 @@ class DatabaseHelper {
     // Indexes for common queries
     await db.execute('CREATE INDEX idx_sessions_user_id ON sessions(user_id)');
     await db.execute('CREATE INDEX idx_sessions_status ON sessions(status)');
-    await db.execute('CREATE INDEX idx_sessions_tracking_date ON sessions(tracking_date)');
-    await db.execute('CREATE INDEX idx_sessions_start_time ON sessions(start_time)');
+    await db.execute(
+      'CREATE INDEX idx_sessions_tracking_date ON sessions(tracking_date)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_sessions_start_time ON sessions(start_time)',
+    );
   }
 
   /// Create gps_points table (v2 - GPS tracking)
@@ -676,12 +690,12 @@ class DatabaseHelper {
 
     // Composite index for efficient session queries
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_gps_points_session_timestamp ON gps_points(session_id, timestamp)'
+      'CREATE INDEX IF NOT EXISTS idx_gps_points_session_timestamp ON gps_points(session_id, timestamp)',
     );
 
     // Index for cleanup queries
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_gps_points_created_at ON gps_points(created_at)'
+      'CREATE INDEX IF NOT EXISTS idx_gps_points_created_at ON gps_points(created_at)',
     );
   }
 
@@ -722,9 +736,15 @@ class DatabaseHelper {
     ''');
 
     // Indexes for common queries
-    await db.execute('CREATE INDEX idx_user_benefits_user_id ON user_benefits(user_id)');
-    await db.execute('CREATE INDEX idx_user_benefits_benefit_id ON user_benefits(benefit_id)');
-    await db.execute('CREATE INDEX idx_user_benefits_earned_at ON user_benefits(earned_at)');
+    await db.execute(
+      'CREATE INDEX idx_user_benefits_user_id ON user_benefits(user_id)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_user_benefits_benefit_id ON user_benefits(benefit_id)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_user_benefits_earned_at ON user_benefits(earned_at)',
+    );
   }
 
   /// Create sync_queue table (tracks pending changes to sync)
@@ -743,8 +763,12 @@ class DatabaseHelper {
     ''');
 
     // Index for processing queue
-    await db.execute('CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)');
-    await db.execute('CREATE INDEX idx_sync_queue_entity ON sync_queue(entity_type, entity_id)');
+    await db.execute(
+      'CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_sync_queue_entity ON sync_queue(entity_type, entity_id)',
+    );
   }
 
   /// Close the database connection

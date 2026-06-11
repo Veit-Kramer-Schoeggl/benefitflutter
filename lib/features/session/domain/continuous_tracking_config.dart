@@ -41,8 +41,8 @@ class ContinuousTrackingConfig {
     required this.minDisplacementMeters,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Create a default configuration for a user
   factory ContinuousTrackingConfig.defaultFor(String userId) {
@@ -129,7 +129,8 @@ class ContinuousTrackingConfig {
       resetPoints: resetPoints ?? this.resetPoints,
       activityDetection: activityDetection ?? this.activityDetection,
       gpsIntervalSeconds: gpsIntervalSeconds ?? this.gpsIntervalSeconds,
-      minDisplacementMeters: minDisplacementMeters ?? this.minDisplacementMeters,
+      minDisplacementMeters:
+          minDisplacementMeters ?? this.minDisplacementMeters,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );

@@ -5,18 +5,30 @@ import 'package:benefitflutter/core/enums/activity_type.dart';
 void main() {
   group('DetectionSource', () {
     test('fromJson parses valid values', () {
-      expect(DetectionSource.fromJson('manual'), equals(DetectionSource.manual));
+      expect(
+        DetectionSource.fromJson('manual'),
+        equals(DetectionSource.manual),
+      );
       expect(DetectionSource.fromJson('auto'), equals(DetectionSource.auto));
-      expect(DetectionSource.fromJson('corrected'), equals(DetectionSource.corrected));
+      expect(
+        DetectionSource.fromJson('corrected'),
+        equals(DetectionSource.corrected),
+      );
     });
 
     test('fromJson is case insensitive', () {
-      expect(DetectionSource.fromJson('MANUAL'), equals(DetectionSource.manual));
+      expect(
+        DetectionSource.fromJson('MANUAL'),
+        equals(DetectionSource.manual),
+      );
       expect(DetectionSource.fromJson('Auto'), equals(DetectionSource.auto));
     });
 
     test('fromJson returns manual for unknown values', () {
-      expect(DetectionSource.fromJson('unknown'), equals(DetectionSource.manual));
+      expect(
+        DetectionSource.fromJson('unknown'),
+        equals(DetectionSource.manual),
+      );
       expect(DetectionSource.fromJson(null), equals(DetectionSource.manual));
     });
 
@@ -314,7 +326,9 @@ void main() {
           id: 'seg-1',
           sessionId: 'session-1',
           activityType: ActivityType.running,
-          startTime: DateTime.now().subtract(const Duration(hours: 2, minutes: 15)),
+          startTime: DateTime.now().subtract(
+            const Duration(hours: 2, minutes: 15),
+          ),
           endTime: DateTime.now(),
           detectionSource: DetectionSource.manual,
         );

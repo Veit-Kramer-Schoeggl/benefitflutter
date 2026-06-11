@@ -34,11 +34,11 @@ class SeedService {
     required BenefitRepository benefitRepository,
     required DatabaseHelper databaseHelper,
     required SharedPreferences prefs,
-  })  : _userRepository = userRepository,
-        _sessionRepository = sessionRepository,
-        _benefitRepository = benefitRepository,
-        _databaseHelper = databaseHelper,
-        _prefs = prefs;
+  }) : _userRepository = userRepository,
+       _sessionRepository = sessionRepository,
+       _benefitRepository = benefitRepository,
+       _databaseHelper = databaseHelper,
+       _prefs = prefs;
 
   /// Factory constructor for easy creation
   static Future<SeedService> create({
@@ -201,7 +201,9 @@ class SeedService {
     for (final benefit in benefits) {
       try {
         await benefitDao.insertBenefit(benefit);
-        _log('  ✓ Created benefit: ${benefit.title} (€${benefit.discountAmount})');
+        _log(
+          '  ✓ Created benefit: ${benefit.title} (€${benefit.discountAmount})',
+        );
       } catch (e) {
         _log('  ✗ Failed to create benefit ${benefit.title}: $e');
       }
@@ -219,7 +221,9 @@ class SeedService {
         final distance = session.distanceMeters != null
             ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)}km'
             : 'N/A';
-        _log('  ✓ Created session: ${session.activityType.name} - $distance ($status)');
+        _log(
+          '  ✓ Created session: ${session.activityType.name} - $distance ($status)',
+        );
       } catch (e) {
         _log('  ✗ Failed to create session ${session.id}: $e');
       }
@@ -234,7 +238,9 @@ class SeedService {
     for (final gpsPoint in gpsPoints) {
       try {
         await gpsPointDao.insert(gpsPoint);
-        _log('  ✓ Created GPS point: ${gpsPoint.latitude.toStringAsFixed(4)}, ${gpsPoint.longitude.toStringAsFixed(4)}');
+        _log(
+          '  ✓ Created GPS point: ${gpsPoint.latitude.toStringAsFixed(4)}, ${gpsPoint.longitude.toStringAsFixed(4)}',
+        );
       } catch (e) {
         _log('  ✗ Failed to create GPS point ${gpsPoint.id}: $e');
       }
@@ -267,7 +273,9 @@ class SeedService {
     for (final biometric in biometrics) {
       try {
         await biometricsDao.insert(biometric);
-        _log('  ✓ Created biometric: ${biometric.heightCm}cm, ${biometric.weightKg}kg');
+        _log(
+          '  ✓ Created biometric: ${biometric.heightCm}cm, ${biometric.weightKg}kg',
+        );
       } catch (e) {
         _log('  ✗ Failed to create biometric: $e');
       }
@@ -282,7 +290,9 @@ class SeedService {
     for (final pref in preferences) {
       try {
         await prefsDao.insert(pref);
-        _log('  ✓ Created preferences: ${pref.defaultLocationCity}, ${pref.distanceUnit}');
+        _log(
+          '  ✓ Created preferences: ${pref.defaultLocationCity}, ${pref.distanceUnit}',
+        );
       } catch (e) {
         _log('  ✗ Failed to create preferences: $e');
       }
@@ -389,7 +399,11 @@ class SeedService {
     _log('   Sensor Summaries: ${summary['sensorSummaries']}');
     _log('   Health Platform Data: ${summary['healthPlatformData']}');
     _log('   User Benefits: ${summary['userBenefits']}');
-    _log('   Total Distance: ${(summary['totalDistance'] / 1000).toStringAsFixed(1)}km');
-    _log('   Total Duration: ${(summary['totalDuration'] / 60).toStringAsFixed(0)} minutes');
+    _log(
+      '   Total Distance: ${(summary['totalDistance'] / 1000).toStringAsFixed(1)}km',
+    );
+    _log(
+      '   Total Duration: ${(summary['totalDuration'] / 60).toStringAsFixed(0)} minutes',
+    );
   }
 }

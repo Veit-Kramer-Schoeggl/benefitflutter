@@ -45,10 +45,7 @@ class BenefitDao {
   }
 
   /// Mark a user benefit as redeemed
-  Future<void> redeemUserBenefit(
-      String id,
-      String redemptionCode,
-      ) async {
+  Future<void> redeemUserBenefit(String id, String redemptionCode) async {
     final db = await _dbHelper.database;
     final now = DateTime.now();
 
@@ -79,6 +76,7 @@ class BenefitDao {
 
     return results.map((map) => _userBenefitFromMap(map)).toList();
   }
+
   /// Find user benifits by id
   Future<UserBenefit?> findUserBenefitById(String id) async {
     final db = await _dbHelper.database;
@@ -116,12 +114,15 @@ class BenefitDao {
   Future<double> calculateTotalSavings(String userId) async {
     final db = await _dbHelper.database;
 
-    final results = await db.rawQuery('''
+    final results = await db.rawQuery(
+      '''
       SELECT SUM(b.discount_amount) as total
       FROM user_benefits ub
       INNER JOIN benefits b ON ub.benefit_id = b.id
       WHERE ub.user_id = ?
-    ''', [userId]);
+    ''',
+      [userId],
+    );
 
     if (results.isEmpty || results.first['total'] == null) {
       return 0.0;
@@ -142,7 +143,9 @@ class BenefitDao {
       discountAmount: (map['discount_amount'] as num).toDouble(),
       requiredDistance: map['required_distance'] as int?,
       requiredSessions: map['required_sessions'] as int?,
-      createdAt: SqliteTypeConverters.dateTimeFromSqlite(map['created_at'] as int),
+      createdAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['created_at'] as int,
+      ),
     );
   }
 
@@ -168,7 +171,9 @@ class BenefitDao {
       userId: map['user_id'] as String,
       benefitId: map['benefit_id'] as String,
       sessionId: map['session_id'] as String,
-      earnedAt: SqliteTypeConverters.dateTimeFromSqlite(map['earned_at'] as int),
+      earnedAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['earned_at'] as int,
+      ),
       status: map['status'] == 'redeemed'
           ? BenefitStatus.redeemed
           : BenefitStatus.earned,

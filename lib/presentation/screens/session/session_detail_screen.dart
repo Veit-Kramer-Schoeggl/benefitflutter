@@ -10,10 +10,7 @@ import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
 class SessionDetailScreen extends StatefulWidget {
   final String sessionId;
 
-  const SessionDetailScreen({
-    super.key,
-    required this.sessionId,
-  });
+  const SessionDetailScreen({super.key, required this.sessionId});
 
   @override
   State<SessionDetailScreen> createState() => _SessionDetailScreenState();
@@ -49,9 +46,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
       setState(() {
         _session = session;
-        _gpsPoints = points
-            .where((p) => p.meetsQualityRequirements())
-            .toList();
+        _gpsPoints = points.where((p) => p.meetsQualityRequirements()).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -89,22 +84,16 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: [
-        _buildSummaryCard(),
-        const SizedBox(height: 16),
-        _buildMap(),
-      ],
+      children: [_buildSummaryCard(), const SizedBox(height: 16), _buildMap()],
     );
   }
 
   // ===================== SUMMARY =====================
 
   Widget _buildSummaryCard() {
-    final distanceKm =
-        (_session!.distanceMeters ?? 0) / 1000.0;
+    final distanceKm = (_session!.distanceMeters ?? 0) / 1000.0;
 
-    final duration =
-    Duration(seconds: _session!.durationSeconds ?? 0);
+    final duration = Duration(seconds: _session!.durationSeconds ?? 0);
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -115,10 +104,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
           children: [
             Text(
               _session!.activityType.name,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _row('Distance', '${distanceKm.toStringAsFixed(2)} km'),
@@ -151,9 +137,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   // ===================== MAP =====================
   Widget _buildMap() {
     if (_gpsPoints.length < 2) {
-      return const Center(
-        child: Text('Not enough GPS data to display route.'),
-      );
+      return const Center(child: Text('Not enough GPS data to display route.'));
     }
 
     final routePoints = _gpsPoints

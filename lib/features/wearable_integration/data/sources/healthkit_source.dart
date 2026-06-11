@@ -50,7 +50,9 @@ class HealthKitSource implements WearableRepository {
     if (!hasPerms) return [];
 
     final devices = await getAvailableDevices();
-    return devices.map((d) => d.copyWith(status: ConnectionStatus.connected)).toList();
+    return devices
+        .map((d) => d.copyWith(status: ConnectionStatus.connected))
+        .toList();
   }
 
   /// Connect to HealthKit (request permissions)
@@ -88,10 +90,15 @@ class HealthKitSource implements WearableRepository {
       health.HealthDataType.WORKOUT,
     ];
 
-    final permissions = types.map((type) => health.HealthDataAccess.READ).toList();
+    final permissions = types
+        .map((type) => health.HealthDataAccess.READ)
+        .toList();
 
     try {
-      final granted = await _health.requestAuthorization(types, permissions: permissions);
+      final granted = await _health.requestAuthorization(
+        types,
+        permissions: permissions,
+      );
       return granted;
     } catch (e) {
       return false;
@@ -155,7 +162,9 @@ class HealthKitSource implements WearableRepository {
         endTime: endTime,
       );
 
-      return healthDataPoints.map((point) => _convertHealthDataPoint(point, '', dataType)).toList();
+      return healthDataPoints
+          .map((point) => _convertHealthDataPoint(point, '', dataType))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -170,7 +179,10 @@ class HealthKitSource implements WearableRepository {
   ) async {
     if (!Platform.isIOS) return [];
 
-    final healthTypes = dataTypes.map(_mapToHealthType).whereType<health.HealthDataType>().toList();
+    final healthTypes = dataTypes
+        .map(_mapToHealthType)
+        .whereType<health.HealthDataType>()
+        .toList();
     if (healthTypes.isEmpty) return [];
 
     try {
@@ -296,7 +308,8 @@ class HealthKitSource implements WearableRepository {
     // Extract value based on type
     String value;
     if (point.value is health.NumericHealthValue) {
-      value = (point.value as health.NumericHealthValue).numericValue.toString();
+      value = (point.value as health.NumericHealthValue).numericValue
+          .toString();
     } else if (point.value is health.WorkoutHealthValue) {
       final workout = point.value as health.WorkoutHealthValue;
       value = workout.toString();

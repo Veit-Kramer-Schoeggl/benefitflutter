@@ -5,25 +5,16 @@ class PasswordResetResult {
   final bool success;
   final String? error;
 
-  const PasswordResetResult._({
-    required this.success,
-    this.error,
-  });
+  const PasswordResetResult._({required this.success, this.error});
 
   /// Create a successful password reset result
   factory PasswordResetResult.success() {
-    return const PasswordResetResult._(
-      success: true,
-      error: null,
-    );
+    return const PasswordResetResult._(success: true, error: null);
   }
 
   /// Create a failed password reset result
   factory PasswordResetResult.failure({required String error}) {
-    return PasswordResetResult._(
-      success: false,
-      error: error,
-    );
+    return PasswordResetResult._(success: false, error: error);
   }
 
   /// Whether this result represents a failure

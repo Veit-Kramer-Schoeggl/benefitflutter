@@ -20,7 +20,9 @@ class HealthSyncService {
     } else if (Platform.isIOS) {
       _healthSource = HealthKitSource();
     } else {
-      throw UnsupportedError('Health platform integration only supported on Android/iOS');
+      throw UnsupportedError(
+        'Health platform integration only supported on Android/iOS',
+      );
     }
   }
 
@@ -77,7 +79,9 @@ class HealthSyncService {
       if (errorMsg.contains('permission launcher not found') ||
           errorMsg.contains('not found') ||
           errorMsg.contains('not installed')) {
-        throw Exception('Health Connect is not installed. Please install it from the Play Store to sync health data.');
+        throw Exception(
+          'Health Connect is not installed. Please install it from the Play Store to sync health data.',
+        );
       }
       // Rethrow other errors
       rethrow;
@@ -120,7 +124,11 @@ class HealthSyncService {
   }
 
   /// Sync steps data
-  Future<void> syncSteps(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncSteps(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.steps,
@@ -134,7 +142,9 @@ class HealthSyncService {
       }
 
       // Update userId for all data points
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
 
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} steps data points');
@@ -144,7 +154,11 @@ class HealthSyncService {
   }
 
   /// Sync heart rate data
-  Future<void> syncHeartRate(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncHeartRate(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.heartRate,
@@ -157,7 +171,9 @@ class HealthSyncService {
         return;
       }
 
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} heart rate data points');
     } catch (e) {
@@ -166,7 +182,11 @@ class HealthSyncService {
   }
 
   /// Sync distance data
-  Future<void> syncDistance(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncDistance(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.distance,
@@ -179,7 +199,9 @@ class HealthSyncService {
         return;
       }
 
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} distance data points');
     } catch (e) {
@@ -188,7 +210,11 @@ class HealthSyncService {
   }
 
   /// Sync calories data
-  Future<void> syncCalories(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncCalories(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.calories,
@@ -201,7 +227,9 @@ class HealthSyncService {
         return;
       }
 
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} calories data points');
     } catch (e) {
@@ -210,7 +238,11 @@ class HealthSyncService {
   }
 
   /// Sync weight data
-  Future<void> syncWeight(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncWeight(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.weight,
@@ -223,7 +255,9 @@ class HealthSyncService {
         return;
       }
 
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} weight data points');
     } catch (e) {
@@ -232,7 +266,11 @@ class HealthSyncService {
   }
 
   /// Sync resting heart rate data
-  Future<void> syncRestingHeartRate(String userId, DateTime startTime, DateTime endTime) async {
+  Future<void> syncRestingHeartRate(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       final dataPoints = await _healthSource.getHistoricalData(
         HealthDataType.restingHeartRate,
@@ -245,7 +283,9 @@ class HealthSyncService {
         return;
       }
 
-      final updatedPoints = dataPoints.map((p) => p.copyWith(userId: userId)).toList();
+      final updatedPoints = dataPoints
+          .map((p) => p.copyWith(userId: userId))
+          .toList();
       await _healthDao.insertBatch(updatedPoints);
       _log('Synced ${dataPoints.length} resting heart rate data points');
     } catch (e) {
@@ -271,10 +311,22 @@ class HealthSyncService {
       final endTime = session.endTime!;
 
       // Fetch relevant data
-      final avgHR = await _healthDao.getAverageHeartRate(session.userId, startTime, endTime);
+      final avgHR = await _healthDao.getAverageHeartRate(
+        session.userId,
+        startTime,
+        endTime,
+      );
       final steps = await _healthDao.getDailySteps(session.userId, startTime);
-      final distance = await _healthDao.getTotalDistance(session.userId, startTime, endTime);
-      final calories = await _healthDao.getTotalCalories(session.userId, startTime, endTime);
+      final distance = await _healthDao.getTotalDistance(
+        session.userId,
+        startTime,
+        endTime,
+      );
+      final calories = await _healthDao.getTotalCalories(
+        session.userId,
+        startTime,
+        endTime,
+      );
 
       // Update session with enriched data
       return session.copyWith(
@@ -305,7 +357,11 @@ class HealthSyncService {
   }
 
   /// Get average heart rate for a date range
-  Future<double?> getAverageHeartRate(String userId, DateTime startTime, DateTime endTime) async {
+  Future<double?> getAverageHeartRate(
+    String userId,
+    DateTime startTime,
+    DateTime endTime,
+  ) async {
     try {
       return await _healthDao.getAverageHeartRate(userId, startTime, endTime);
     } catch (e) {
@@ -335,7 +391,10 @@ class HealthSyncService {
   }
 
   /// Get weekly summary (steps, distance, calories)
-  Future<Map<String, dynamic>> getWeeklySummary(String userId, DateTime weekStart) async {
+  Future<Map<String, dynamic>> getWeeklySummary(
+    String userId,
+    DateTime weekStart,
+  ) async {
     try {
       return await _healthDao.getWeeklySummary(userId, weekStart);
     } catch (e) {

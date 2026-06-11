@@ -10,8 +10,10 @@ class StatisticsTab extends StatelessWidget {
 
   const StatisticsTab({super.key, required this.provider});
 
-  Widget _buildMonthlyDistanceChart(BuildContext context, Map<String, double> monthlyData) {
-
+  Widget _buildMonthlyDistanceChart(
+    BuildContext context,
+    Map<String, double> monthlyData,
+  ) {
     final int currentYear = DateTime.now().year;
     final Map<int, double> chartData = {};
     final Map<int, String> chartLabels = {};
@@ -42,7 +44,8 @@ class StatisticsTab extends StatelessWidget {
   Widget _buildMonthlyDurationChart() {
     final int currentYear = DateTime.now().year;
 
-    final Map<String, double> durationMonthlyData = provider.getDurationPerMonth();
+    final Map<String, double> durationMonthlyData = provider
+        .getDurationPerMonth();
 
     final Map<int, double> chartData = {};
     final Map<int, String> chartLabels = {};
@@ -85,8 +88,8 @@ class StatisticsTab extends StatelessWidget {
   }
 
   Widget _buildWeeklyDurationChart() {
-    final durationWeeklyDataFromProvider =
-    provider.getDurationPerWeekdayMinutes();
+    final durationWeeklyDataFromProvider = provider
+        .getDurationPerWeekdayMinutes();
 
     final Map<int, double> fullWeeklyDurationData = {};
     final Map<int, String> labels = {
@@ -100,8 +103,7 @@ class StatisticsTab extends StatelessWidget {
     };
 
     for (int i = 1; i <= 7; i++) {
-      fullWeeklyDurationData[i] =
-          durationWeeklyDataFromProvider[i] ?? 0.0;
+      fullWeeklyDurationData[i] = durationWeeklyDataFromProvider[i] ?? 0.0;
     }
 
     return CustomLineChart(

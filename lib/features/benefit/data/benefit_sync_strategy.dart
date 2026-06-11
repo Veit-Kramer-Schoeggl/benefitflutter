@@ -40,7 +40,10 @@ class BenefitSyncStrategy extends BaseSyncStrategy<UserBenefit> {
   }
 
   @override
-  Future<UserBenefit> resolveConflict(UserBenefit local, UserBenefit remote) async {
+  Future<UserBenefit> resolveConflict(
+    UserBenefit local,
+    UserBenefit remote,
+  ) async {
     // Simple strategy: Remote wins
     // UserBenefits are immutable once created, conflicts should be rare
     return remote;

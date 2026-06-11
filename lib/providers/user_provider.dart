@@ -27,10 +27,10 @@ class UserProvider extends ChangeNotifier {
     required AuthService authService,
     required TokenStorage tokenStorage,
     RateLimiterService? rateLimiter,
-  })  : _repository = repository,
-        _authService = authService,
-        _tokenStorage = tokenStorage,
-        _rateLimiter = rateLimiter ?? RateLimiterService();
+  }) : _repository = repository,
+       _authService = authService,
+       _tokenStorage = tokenStorage,
+       _rateLimiter = rateLimiter ?? RateLimiterService();
 
   // ===== STATE VARIABLES =====
 
@@ -137,7 +137,9 @@ class UserProvider extends ChangeNotifier {
         if (tokens.isExpired) {
           debugPrint('UserProvider: Tokens expired, attempting refresh');
           try {
-            final newTokens = await _authService.refreshToken(tokens.refreshToken);
+            final newTokens = await _authService.refreshToken(
+              tokens.refreshToken,
+            );
             await _tokenStorage.saveTokens(newTokens);
             _currentTokens = newTokens;
           } catch (e) {
@@ -158,7 +160,9 @@ class UserProvider extends ChangeNotifier {
         final userId = _extractUserIdFromToken(tokens.accessToken);
         if (userId != null) {
           _currentUser = await _repository.getUserById(userId);
-          debugPrint('UserProvider: Restored session for ${_currentUser?.name}');
+          debugPrint(
+            'UserProvider: Restored session for ${_currentUser?.name}',
+          );
         }
       } else {
         debugPrint('UserProvider: No stored session found');
@@ -205,7 +209,8 @@ class UserProvider extends ChangeNotifier {
         final remaining = await _rateLimiter.getLockoutRemaining();
         final minutes = remaining.inMinutes;
         final seconds = remaining.inSeconds % 60;
-        _error = 'Too many login attempts. Try again in ${minutes}m ${seconds}s';
+        _error =
+            'Too many login attempts. Try again in ${minutes}m ${seconds}s';
         _isLoading = false;
         notifyListeners();
         return false;
@@ -239,7 +244,8 @@ class UserProvider extends ChangeNotifier {
         final remaining = await _rateLimiter.getRemainingAttempts();
 
         if (remaining > 0) {
-          _error = '${result.error ?? 'Login failed'}. $remaining attempts remaining.';
+          _error =
+              '${result.error ?? 'Login failed'}. $remaining attempts remaining.';
         } else {
           final lockoutRemaining = await _rateLimiter.getLockoutRemaining();
           final minutes = lockoutRemaining.inMinutes;
@@ -291,7 +297,8 @@ class UserProvider extends ChangeNotifier {
       await _rateLimiter.recordFailedAttempt();
       // Show user-friendly error instead of technical details
       final errorStr = e.toString().toLowerCase();
-      if (errorStr.contains('user not found') || errorStr.contains('no account')) {
+      if (errorStr.contains('user not found') ||
+          errorStr.contains('no account')) {
         _error = 'No account found with this email';
       } else {
         _error = 'Login failed. Please check your credentials.';
@@ -474,7 +481,9 @@ class UserProvider extends ChangeNotifier {
       );
 
       if (!result.success) {
-        debugPrint('UserProvider: register() failed with error: ${result.error}');
+        debugPrint(
+          'UserProvider: register() failed with error: ${result.error}',
+        );
         _error = result.error ?? 'Registration failed';
         _isLoading = false;
         notifyListeners();
@@ -488,7 +497,9 @@ class UserProvider extends ChangeNotifier {
       _pendingRegistrationPassword = password;
       _pendingVerificationCode = result.verificationCode;
 
-      debugPrint('UserProvider: Registration successful (verification code issued)');
+      debugPrint(
+        'UserProvider: Registration successful (verification code issued)',
+      );
       _error = null;
       _isLoading = false;
       notifyListeners();
@@ -566,7 +577,9 @@ class UserProvider extends ChangeNotifier {
       _pendingRegistrationPassword = null;
       _pendingVerificationCode = null;
 
-      debugPrint('UserProvider: Verification successful for ${_currentUser?.name}');
+      debugPrint(
+        'UserProvider: Verification successful for ${_currentUser?.name}',
+      );
       _error = null;
       _isLoading = false;
       notifyListeners();
@@ -622,7 +635,9 @@ class UserProvider extends ChangeNotifier {
       // Store email for deletion confirmation
       _pendingDeletionEmail = result.email;
 
-      debugPrint('UserProvider: Account deletion requested (confirmation code issued)');
+      debugPrint(
+        'UserProvider: Account deletion requested (confirmation code issued)',
+      );
       _error = null;
       _isLoading = false;
       notifyListeners();

@@ -215,7 +215,10 @@ void main() {
         expect(HrDeviceProfiles.chestStrapMultiplier, lessThanOrEqualTo(1.0));
         expect(HrDeviceProfiles.wristWatchMultiplier, lessThanOrEqualTo(1.0));
         expect(HrDeviceProfiles.wristBandMultiplier, lessThanOrEqualTo(1.0));
-        expect(HrDeviceProfiles.unknownDeviceMultiplier, lessThanOrEqualTo(1.0));
+        expect(
+          HrDeviceProfiles.unknownDeviceMultiplier,
+          lessThanOrEqualTo(1.0),
+        );
       });
 
       test('unknown has lowest multiplier', () {

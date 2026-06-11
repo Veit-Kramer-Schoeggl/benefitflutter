@@ -28,8 +28,8 @@ class AuthInterceptor extends Interceptor {
     required AuthService authService,
     this.onAuthFailure,
     this.excludedPaths = const ['/auth/login', '/auth/register'],
-  })  : _tokenStorage = tokenStorage,
-        _authService = authService;
+  }) : _tokenStorage = tokenStorage,
+       _authService = authService;
 
   @override
   void onRequest(

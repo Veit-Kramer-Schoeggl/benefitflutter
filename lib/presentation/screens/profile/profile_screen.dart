@@ -16,7 +16,6 @@ import 'package:uuid/uuid.dart';
 import 'package:benefitflutter/presentation/screens/wearable/device_connection_screen.dart';
 import 'package:path_provider/path_provider.dart';
 
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -91,14 +90,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // Load latest biometrics
-      _currentBiometrics = await userProvider.getLatestBiometrics(_currentUser!.id);
+      _currentBiometrics = await userProvider.getLatestBiometrics(
+        _currentUser!.id,
+      );
 
       // Load preferences
       _currentPreferences = await userProvider.getPreferences(_currentUser!.id);
 
       // Update UI state
       setState(() {
-        displayName = _currentUser?.displayName ?? _currentUser?.name ?? "Your Name";
+        displayName =
+            _currentUser?.displayName ?? _currentUser?.name ?? "Your Name";
         country = _currentPreferences?.defaultLocationCity ?? "Austria";
         selectedGender = _formatGender(_currentUser?.gender);
         selectedHeight = _currentBiometrics?.heightCm != null
@@ -242,9 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           title: const Text("Profile"),
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -287,11 +287,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundImage: _currentUser?.profileImagePath != null
                             ? FileImage(File(_currentUser!.profileImagePath!))
                             : const AssetImage(
-                          'assets/images/icons/profile/icon_profil.png',
-                        ),
-                      ),
+                                'assets/images/icons/profile/icon_profil.png',
+                              ),
                       ),
                     ),
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     displayName,
@@ -310,7 +310,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _currentUser?.isVerified == true
                           ? Colors.green
@@ -342,8 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => _openSelectionMenu(
                 title: "Gender",
                 values: const ["Male", "Female", "Other"],
-                onSelected: (value) =>
-                    setState(() => selectedGender = value),
+                onSelected: (value) => setState(() => selectedGender = value),
               ),
             ),
 
@@ -355,8 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => _openSelectionMenu(
                 title: "Height (cm)",
                 values: List.generate(120, (i) => "${140 + i} cm"),
-                onSelected: (value) =>
-                    setState(() => selectedHeight = value),
+                onSelected: (value) => setState(() => selectedHeight = value),
               ),
             ),
 
@@ -368,8 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onTap: () => _openSelectionMenu(
                 title: "Weight (kg)",
                 values: List.generate(120, (i) => "${40 + i} kg"),
-                onSelected: (value) =>
-                    setState(() => selectedWeight = value),
+                onSelected: (value) => setState(() => selectedWeight = value),
               ),
             ),
 
@@ -410,8 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             // --------------- BIOMETRIC UNLOCK -----------------
-            if (_biometricAvailable)
-              _buildBiometricToggleCard(),
+            if (_biometricAvailable) _buildBiometricToggleCard(),
 
             // --------------- DELETE ACCOUNT -----------------
             _buildNavigationCard(
@@ -473,10 +472,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   onPressed: _handleLogout,
                   icon: const Icon(Icons.logout),
-                  label: const Text(
-                    "Sign Out",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  label: const Text("Sign Out", style: TextStyle(fontSize: 16)),
                 ),
               ),
             ),
@@ -508,9 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Sign Out'),
           ),
         ],
@@ -526,7 +520,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Navigate to login screen
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
   }
@@ -535,8 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final appDir = await getApplicationDocumentsDirectory();
 
     final fileName = '${_currentUser!.id}_profile.jpg';
-    final savedImage = await File(image.path)
-        .copy('${appDir.path}/$fileName');
+    final savedImage = await File(image.path).copy('${appDir.path}/$fileName');
 
     return savedImage.path;
   }
@@ -563,9 +558,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final savedPath = await _saveImageToAppDirectory(image);
 
       // Update user with new path
-      final updatedUser = _currentUser!.copyWith(
-        profileImagePath: savedPath,
-      );
+      final updatedUser = _currentUser!.copyWith(profileImagePath: savedPath);
 
       // Save to DB
       await context.read<UserProvider>().updateUser(updatedUser);
@@ -575,7 +568,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _currentUser = updatedUser;
         _isSaving = false;
       });
-
     } catch (e) {
       setState(() => _isSaving = false);
 
@@ -635,10 +627,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListTile(
           leading: Icon(icon, color: brandGreen),
           title: Text(title),
-          subtitle: Text(
-            subtitle,
-            style: const TextStyle(color: Colors.grey),
-          ),
+          subtitle: Text(subtitle, style: const TextStyle(color: Colors.grey)),
           trailing: const Icon(Icons.chevron_right),
           onTap: onTap,
         ),
@@ -769,8 +758,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
             Flexible(
@@ -779,13 +767,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: values
                     .map(
                       (v) => ListTile(
-                    title: Text(v),
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelected(v);
-                    },
-                  ),
-                )
+                        title: Text(v),
+                        onTap: () {
+                          Navigator.pop(context);
+                          onSelected(v);
+                        },
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -801,7 +789,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openSettingsDialog() {
     final nameController = TextEditingController(text: displayName);
     final countryController = TextEditingController(text: country);
-    final emailController = TextEditingController(text: _currentUser?.email ?? '');
+    final emailController = TextEditingController(
+      text: _currentUser?.email ?? '',
+    );
     final originalEmail = _currentUser?.email ?? '';
 
     showDialog(
@@ -933,7 +923,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text("Verify Identity"),
         content: const Text(
           "Simulate identity verification process?\n\n"
-              "This will mark your account as verified.",
+          "This will mark your account as verified.",
         ),
         actions: [
           TextButton(
@@ -973,7 +963,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       }
-
     } catch (e) {
       setState(() => _isSaving = false);
     }
@@ -1056,25 +1045,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       final confirmPw = confirmController.text.trim();
 
                       // Check empty fields first
-                      if (currentPw.isEmpty || newPw.isEmpty || confirmPw.isEmpty) {
+                      if (currentPw.isEmpty ||
+                          newPw.isEmpty ||
+                          confirmPw.isEmpty) {
                         setDialogState(() {
                           if (currentPw.isEmpty) {
-                            currentPasswordError = "Current password is required";
+                            currentPasswordError =
+                                "Current password is required";
                           }
                           if (newPw.isEmpty) {
                             newPasswordError = "New password is required";
                           }
                           if (confirmPw.isEmpty) {
-                            confirmPasswordError = "Please confirm your new password";
+                            confirmPasswordError =
+                                "Please confirm your new password";
                           }
                         });
                         return;
                       }
 
                       // FIRST: Verify current password before checking new password
-                      if (!PasswordUtils.verifyPassword(currentPw, _currentUser!.passwordHash)) {
+                      if (!PasswordUtils.verifyPassword(
+                        currentPw,
+                        _currentUser!.passwordHash,
+                      )) {
                         setDialogState(() {
-                          currentPasswordError = "Current password is incorrect";
+                          currentPasswordError =
+                              "Current password is incorrect";
                         });
                         return;
                       }
@@ -1111,7 +1108,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (!success) {
                         setDialogState(() {
                           isLoading = false;
-                          newPasswordError = userProvider.error ?? "Error saving password";
+                          newPasswordError =
+                              userProvider.error ?? "Error saving password";
                         });
                         return;
                       }
@@ -1149,10 +1147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -1161,7 +1156,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final proceedToVerification = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 56),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          color: Colors.red,
+          size: 56,
+        ),
         title: const Text(
           "Delete Your Account?",
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -1172,10 +1171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               "⚠️ This action is PERMANENT and IRREVERSIBLE.",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
             ),
             SizedBox(height: 16),
             Text("The following will be permanently deleted:"),
@@ -1296,7 +1292,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       });
 
                       final userProvider = this.context.read<UserProvider>();
-                      final success = await userProvider.confirmAccountDeletion(code);
+                      final success = await userProvider.confirmAccountDeletion(
+                        code,
+                      );
 
                       if (!success) {
                         setDialogState(() {
@@ -1309,10 +1307,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Success - navigate to login
                       Navigator.pop(dialogContext);
                       if (mounted) {
-                        Navigator.of(this.context).pushNamedAndRemoveUntil(
-                          '/login',
-                          (route) => false,
-                        );
+                        Navigator.of(
+                          this.context,
+                        ).pushNamedAndRemoveUntil('/login', (route) => false);
                       }
                     },
               child: isLoading

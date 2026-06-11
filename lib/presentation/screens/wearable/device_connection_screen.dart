@@ -66,7 +66,10 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
   }
 
   Future<void> _handleHealthPlatformConnect() async {
-    final healthProvider = Provider.of<HealthPlatformProvider>(context, listen: false);
+    final healthProvider = Provider.of<HealthPlatformProvider>(
+      context,
+      listen: false,
+    );
 
     // Check if Health Connect is installed
     final isInstalled = await healthProvider.isHealthConnectInstalled();
@@ -91,7 +94,9 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
               onPressed: () async {
                 Navigator.pop(context);
                 // Open Play Store to Health Connect
-                final url = Uri.parse('https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata');
+                final url = Uri.parse(
+                  'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata',
+                );
                 try {
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -100,9 +105,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                   debugPrint('Failed to open Play Store: $e');
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: brandGreen,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: brandGreen),
               child: const Text('Install'),
             ),
           ],
@@ -147,9 +150,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                     debugPrint('Failed to open settings: $e');
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: brandGreen,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: brandGreen),
                 child: const Text('Open Settings'),
               ),
           ],
@@ -255,11 +256,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.favorite,
-                      color: brandGreen,
-                      size: 28,
-                    ),
+                    Icon(Icons.favorite, color: brandGreen, size: 28),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -294,19 +291,13 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Connect to Health Connect (Android) or HealthKit (iOS) to sync your health data.',
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.black54, fontSize: 14),
                 ),
                 if (isConnected && lastSyncTime != null) ...[
                   const SizedBox(height: 12),
                   Text(
                     'Last synced: ${_formatLastSyncTime(lastSyncTime)}',
-                    style: const TextStyle(
-                      color: Colors.black45,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.black45, fontSize: 12),
                   ),
                 ],
                 const SizedBox(height: 16),
@@ -325,7 +316,9 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Health data synced successfully'),
+                                    content: Text(
+                                      'Health data synced successfully',
+                                    ),
                                     backgroundColor: Colors.green,
                                   ),
                                 );
@@ -348,7 +341,9 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : Text(
@@ -372,9 +367,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
   Widget _buildBleCard() {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -382,19 +375,12 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.bluetooth,
-                  color: brandGreen,
-                  size: 28,
-                ),
+                Icon(Icons.bluetooth, color: brandGreen, size: 28),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
                     'Bluetooth Devices',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -402,10 +388,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
             const SizedBox(height: 12),
             const Text(
               'Connect heart rate monitors and other fitness sensors via Bluetooth.',
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.black54, fontSize: 14),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -453,10 +436,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
       children: [
         const Text(
           'Connected Devices',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_isLoadingDevices)
@@ -477,18 +457,11 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.devices,
-                      size: 48,
-                      color: Colors.grey,
-                    ),
+                    Icon(Icons.devices, size: 48, color: Colors.grey),
                     SizedBox(height: 12),
                     Text(
                       'No devices connected',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                   ],
                 ),
@@ -505,43 +478,26 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: brandGreen.withValues(alpha: 0.2),
-          child: Icon(
-            _getDeviceIcon(device.type),
-            color: brandGreen,
-          ),
+          child: Icon(_getDeviceIcon(device.type), color: brandGreen),
         ),
         title: Text(
           device.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
           _getDeviceTypeString(device.type),
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.black54, fontSize: 14),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: _getStatusColor(device.status),
                 borderRadius: BorderRadius.circular(8),
@@ -618,10 +574,12 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            ...device.capabilities.map((capability) => Padding(
-                  padding: const EdgeInsets.only(left: 8, top: 2),
-                  child: Text('• ${_getSensorTypeString(capability)}'),
-                )),
+            ...device.capabilities.map(
+              (capability) => Padding(
+                padding: const EdgeInsets.only(left: 8, top: 2),
+                child: Text('• ${_getSensorTypeString(capability)}'),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -640,10 +598,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '$label:',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(value),
         ],
       ),

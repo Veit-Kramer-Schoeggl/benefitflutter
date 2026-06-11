@@ -57,10 +57,10 @@ class User {
       'password_hash': passwordHash,
       if (displayName != null) 'display_name': displayName,
       if (gender != null) 'gender': gender,
-      if (dateOfBirth != null) 'date_of_birth': dateOfBirth!.millisecondsSinceEpoch,
+      if (dateOfBirth != null)
+        'date_of_birth': dateOfBirth!.millisecondsSinceEpoch,
       if (timezone != null) 'timezone': timezone,
-      if (profileImagePath != null)
-        'profile_image_path': profileImagePath,
+      if (profileImagePath != null) 'profile_image_path': profileImagePath,
       'is_verified': isVerified ? 1 : 0,
       'verification_status': verificationStatus,
     };
@@ -96,7 +96,8 @@ class User {
   }
 
   @override
-  String toString() => 'User(id: $id, name: $name, email: $email, displayName: $displayName, gender: $gender)';
+  String toString() =>
+      'User(id: $id, name: $name, email: $email, displayName: $displayName, gender: $gender)';
 
   @override
   bool operator ==(Object other) {

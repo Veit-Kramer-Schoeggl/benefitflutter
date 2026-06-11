@@ -71,9 +71,7 @@ class VerificationCodeField extends StatelessWidget {
           textAlign: TextAlign.center,
           enabled: enabled,
           maxLength: 6,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -90,9 +88,7 @@ class VerificationCodeField extends StatelessWidget {
             ),
             errorText: errorText,
             counterText: '',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 24,
               vertical: 20,
@@ -187,9 +183,7 @@ class VerificationCodeFormField extends StatelessWidget {
           textAlign: TextAlign.center,
           enabled: enabled,
           maxLength: 6,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -205,9 +199,7 @@ class VerificationCodeFormField extends StatelessWidget {
               letterSpacing: 16,
             ),
             counterText: '',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 24,
               vertical: 20,
@@ -244,10 +236,7 @@ class _MockCodeHint extends StatelessWidget {
           Expanded(
             child: Text(
               '(Mock: Your code is $code)',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.amber.shade800,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.amber.shade800),
             ),
           ),
         ],

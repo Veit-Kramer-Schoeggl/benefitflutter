@@ -26,12 +26,8 @@ class BenefitList extends StatelessWidget {
         final benefitVM = benefits[index];
         return BenefitCard(
           benefitVM: benefitVM,
-          onTap: onBenefitTap != null
-              ? () => onBenefitTap!(benefitVM)
-              : null,
-          onRedeem: onRedeem != null
-              ? () => onRedeem!(benefitVM)
-              : null,
+          onTap: onBenefitTap != null ? () => onBenefitTap!(benefitVM) : null,
+          onRedeem: onRedeem != null ? () => onRedeem!(benefitVM) : null,
         );
       },
     );

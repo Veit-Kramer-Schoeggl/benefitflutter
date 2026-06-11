@@ -11,7 +11,7 @@ class AppLockProvider extends ChangeNotifier {
   final BiometricService _biometricService;
 
   AppLockProvider({BiometricService? biometricService})
-      : _biometricService = biometricService ?? BiometricService();
+    : _biometricService = biometricService ?? BiometricService();
 
   // ===== STATE =====
 
@@ -65,7 +65,9 @@ class AppLockProvider extends ChangeNotifier {
   /// - Time since last pause
   /// - Whether activity tracking is active (skip lock if tracking)
   Future<void> onAppResumed({bool isTrackingActive = false}) async {
-    debugPrint('AppLockProvider: App resumed, tracking active: $isTrackingActive');
+    debugPrint(
+      'AppLockProvider: App resumed, tracking active: $isTrackingActive',
+    );
 
     // Skip lock if activity tracking is active
     if (isTrackingActive) {
@@ -89,12 +91,15 @@ class AppLockProvider extends ChangeNotifier {
     final timeSincePause = DateTime.now().difference(_lastPausedTime!);
     if (timeSincePause < SecurityConfig.biometricLockDelay) {
       debugPrint(
-          'AppLockProvider: Only ${timeSincePause.inSeconds}s since pause, skipping lock');
+        'AppLockProvider: Only ${timeSincePause.inSeconds}s since pause, skipping lock',
+      );
       return;
     }
 
     // Lock the app
-    debugPrint('AppLockProvider: Locking app after ${timeSincePause.inMinutes}m');
+    debugPrint(
+      'AppLockProvider: Locking app after ${timeSincePause.inMinutes}m',
+    );
     _isLocked = true;
     notifyListeners();
   }
@@ -136,7 +141,8 @@ class AppLockProvider extends ChangeNotifier {
     // Failed attempt
     _failedAttempts++;
     debugPrint(
-        'AppLockProvider: Biometric failed, attempt $_failedAttempts/${SecurityConfig.maxBiometricAttempts}');
+      'AppLockProvider: Biometric failed, attempt $_failedAttempts/${SecurityConfig.maxBiometricAttempts}',
+    );
 
     if (_failedAttempts >= SecurityConfig.maxBiometricAttempts) {
       debugPrint('AppLockProvider: Max attempts reached, requiring password');
@@ -198,7 +204,9 @@ class AppLockProvider extends ChangeNotifier {
 
     final timeSinceLastUnlock = DateTime.now().difference(lastUnlock);
     if (timeSinceLastUnlock > SecurityConfig.biometricLockDelay) {
-      debugPrint('AppLockProvider: Last unlock was ${timeSinceLastUnlock.inMinutes}m ago, locking');
+      debugPrint(
+        'AppLockProvider: Last unlock was ${timeSinceLastUnlock.inMinutes}m ago, locking',
+      );
       _isLocked = true;
       notifyListeners();
     }

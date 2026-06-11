@@ -14,10 +14,7 @@ import 'package:benefitflutter/core/enums/activity_type.dart';
 class SessionSummaryScreen extends StatefulWidget {
   final Session session;
 
-  const SessionSummaryScreen({
-    super.key,
-    required this.session,
-  });
+  const SessionSummaryScreen({super.key, required this.session});
 
   @override
   State<SessionSummaryScreen> createState() => _SessionSummaryScreenState();
@@ -149,10 +146,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _formatDate(widget.session.startTime),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],
             ),
@@ -165,9 +159,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   Widget _buildPrimaryStatsCard() {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -176,7 +168,8 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             _buildStatRow(
               icon: Icons.straighten,
               label: 'Distance',
-              value: '${((widget.session.distanceMeters ?? 0) / 1000).toStringAsFixed(2)} km',
+              value:
+                  '${((widget.session.distanceMeters ?? 0) / 1000).toStringAsFixed(2)} km',
               color: Colors.blue,
             ),
             const Divider(height: 24),
@@ -216,25 +209,22 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
       );
     }
 
-    final hasHRData = widget.session.avgHeartRate != null ||
+    final hasHRData =
+        widget.session.avgHeartRate != null ||
         _sensorSummary?.avgHeartRate != null;
 
     if (!hasHRData) {
       return const SizedBox.shrink();
     }
 
-    final avgHR = widget.session.avgHeartRate ??
-        _sensorSummary?.avgHeartRate?.round();
-    final maxHR = widget.session.maxHeartRate ??
-        _sensorSummary?.maxHeartRate;
-    final minHR = widget.session.minHeartRate ??
-        _sensorSummary?.minHeartRate;
+    final avgHR =
+        widget.session.avgHeartRate ?? _sensorSummary?.avgHeartRate?.round();
+    final maxHR = widget.session.maxHeartRate ?? _sensorSummary?.maxHeartRate;
+    final minHR = widget.session.minHeartRate ?? _sensorSummary?.minHeartRate;
 
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -242,18 +232,11 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.favorite,
-                  color: Colors.red,
-                  size: 24,
-                ),
+                const Icon(Icons.favorite, color: Colors.red, size: 24),
                 const SizedBox(width: 12),
                 const Text(
                   'Heart Rate',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -262,17 +245,11 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             // HR Statistics
             Row(
               children: [
-                Expanded(
-                  child: _buildHRStat('Average', avgHR, Colors.blue),
-                ),
+                Expanded(child: _buildHRStat('Average', avgHR, Colors.blue)),
                 if (maxHR != null)
-                  Expanded(
-                    child: _buildHRStat('Max', maxHR, Colors.red),
-                  ),
+                  Expanded(child: _buildHRStat('Max', maxHR, Colors.red)),
                 if (minHR != null)
-                  Expanded(
-                    child: _buildHRStat('Min', minHR, Colors.green),
-                  ),
+                  Expanded(child: _buildHRStat('Min', minHR, Colors.green)),
               ],
             ),
 
@@ -284,10 +261,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               const SizedBox(height: 16),
               const Text(
                 'Time in Zones',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               _buildHeartRateZones(),
@@ -312,17 +286,11 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black54,
-          ),
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
         ),
         const Text(
           'BPM',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.black38,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.black38),
         ),
       ],
     );
@@ -370,9 +338,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   Widget _buildAdditionalMetricsCard() {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -380,10 +346,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
           children: [
             const Text(
               'Additional Metrics',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             if (_sensorSummary?.totalSteps != null)
@@ -412,9 +375,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
   Widget _buildMapPreviewCard() {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -437,10 +398,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
               children: [
                 const Text(
                   'Route Map',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 TextButton.icon(
                   onPressed: () {
@@ -482,18 +440,12 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-            ),
+            style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ],
     );

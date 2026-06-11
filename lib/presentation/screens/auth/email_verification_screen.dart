@@ -8,7 +8,8 @@ class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
 
   @override
-  State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
+  State<EmailVerificationScreen> createState() =>
+      _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -65,15 +66,14 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         child: Consumer<UserProvider>(
           builder: (context, userProvider, child) {
             // Redirect if no pending registration (and not just verified)
-            if (userProvider.pendingRegistrationUserId == null && !userProvider.isAuthenticated) {
+            if (userProvider.pendingRegistrationUserId == null &&
+                !userProvider.isAuthenticated) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   Navigator.of(context).pushReplacementNamed('/register');
                 }
               });
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             return SingleChildScrollView(
@@ -99,17 +99,16 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     Text(
                       'Verify Your Email',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Enter the 6-digit verification code',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 48),
 
@@ -152,7 +151,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     SizedBox(
                       height: 50,
                       child: FilledButton(
-                        onPressed: userProvider.isLoading ? null : _handleVerify,
+                        onPressed: userProvider.isLoading
+                            ? null
+                            : _handleVerify,
                         style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -164,8 +165,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : const Text(

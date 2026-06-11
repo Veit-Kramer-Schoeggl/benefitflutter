@@ -14,7 +14,8 @@ class ActivityListItem extends StatelessWidget {
     this.onLongPress,
   });
 
-  static const String _activityIconPath = 'assets/images/icons/activity/icon_activity.png';
+  static const String _activityIconPath =
+      'assets/images/icons/activity/icon_activity.png';
 
   @override
   Widget build(BuildContext context) {
@@ -46,8 +47,8 @@ class ActivityListItem extends StatelessWidget {
                     Text(
                       entry.activityType,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: darkGrey,
-                          fontWeight: FontWeight.bold
+                        color: darkGrey,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -75,10 +76,7 @@ class ActivityListItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     entry.formattedDuration,
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: primaryColor, fontSize: 12),
                   ),
                 ],
               ),

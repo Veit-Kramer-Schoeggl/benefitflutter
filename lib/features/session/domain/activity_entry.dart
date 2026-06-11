@@ -70,7 +70,10 @@ class ActivityEntry {
     final fields = prefString.split('::');
 
     // Check for correct length of 7 fields
-    if (fields.length != 7) throw FormatException('Invalid format for ActivityEntry (expected: 7 fields, found: ${fields.length})');
+    if (fields.length != 7)
+      throw FormatException(
+        'Invalid format for ActivityEntry (expected: 7 fields, found: ${fields.length})',
+      );
 
     final parsedDistance = double.parse(fields[1]);
     final parsedDurationSeconds = int.parse(fields[2]);
@@ -82,7 +85,9 @@ class ActivityEntry {
     return ActivityEntry(
       sessionId: fields[0],
       distanceKm: parsedDistance > 0.0 ? parsedDistance : null,
-      duration: parsedDurationSeconds > 0 ? Duration(seconds: parsedDurationSeconds) : null,
+      duration: parsedDurationSeconds > 0
+          ? Duration(seconds: parsedDurationSeconds)
+          : null,
       startTime: DateTime.parse(fields[3]),
       activityType: fields[4],
       isManual: parsedIsManual,
@@ -93,9 +98,9 @@ class ActivityEntry {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is ActivityEntry &&
-              runtimeType == other.runtimeType &&
-              sessionId == other.sessionId;
+      other is ActivityEntry &&
+          runtimeType == other.runtimeType &&
+          sessionId == other.sessionId;
 
   @override
   int get hashCode => sessionId.hashCode;

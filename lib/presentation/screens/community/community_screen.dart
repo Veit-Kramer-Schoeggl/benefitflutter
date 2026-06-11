@@ -38,18 +38,13 @@ class CommunityScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _ChallengeCard(
-                image: 'assets/images/runners/run_2.jpg',
-              ),
+              child: _ChallengeCard(image: 'assets/images/runners/run_2.jpg'),
             ),
           ),
 
           // --------- EVENTS ---------
           const SliverToBoxAdapter(
-            child: _SectionHeader(
-              title: 'Events',
-              actionText: 'Vergangene',
-            ),
+            child: _SectionHeader(title: 'Events', actionText: 'Vergangene'),
           ),
           SliverToBoxAdapter(
             child: SizedBox(
@@ -78,10 +73,7 @@ class CommunityScreen extends StatelessWidget {
 
           // --------- COMMUNITIES ---------
           const SliverToBoxAdapter(
-            child: _SectionHeader(
-              title: 'Communities',
-              actionText: 'Mehr',
-            ),
+            child: _SectionHeader(title: 'Communities', actionText: 'Mehr'),
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -114,10 +106,7 @@ class _HeaderBanner extends StatelessWidget {
   final Color primaryGreen;
   final String image;
 
-  const _HeaderBanner({
-    required this.primaryGreen,
-    required this.image,
-  });
+  const _HeaderBanner({required this.primaryGreen, required this.image});
 
   @override
   Widget build(BuildContext context) {
@@ -172,10 +161,7 @@ class _SectionHeader extends StatelessWidget {
   final String title;
   final String actionText;
 
-  const _SectionHeader({
-    required this.title,
-    required this.actionText,
-  });
+  const _SectionHeader({required this.title, required this.actionText});
 
   @override
   Widget build(BuildContext context) {
@@ -293,15 +279,12 @@ class _ChallengeCard extends StatelessWidget {
                     color: Colors.black87,
                     child: const Text(
                       '155.317 TEILNEHMER*INNEN',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.white),
                     ),
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -345,11 +328,13 @@ class _EventCard extends StatelessWidget {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: Image.asset(image, fit: BoxFit.cover, cacheWidth: 1080),
+                      child: Image.asset(
+                        image,
+                        fit: BoxFit.cover,
+                        cacheWidth: 1080,
+                      ),
                     ),
-                    Container(
-                      color: Colors.black38,
-                    ),
+                    Container(color: Colors.black38),
                     Positioned(
                       bottom: 8,
                       left: 8,
@@ -375,8 +360,10 @@ class _EventCard extends StatelessWidget {
 
               // Text section
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -399,7 +386,7 @@ class _EventCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -422,9 +409,7 @@ class _CommunityChip extends StatelessWidget {
     return Chip(
       label: Text(label),
       backgroundColor: Colors.white,
-      shape: StadiumBorder(
-        side: BorderSide(color: Colors.grey[300]!),
-      ),
+      shape: StadiumBorder(side: BorderSide(color: Colors.grey[300]!)),
     );
   }
 }

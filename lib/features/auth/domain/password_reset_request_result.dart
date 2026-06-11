@@ -56,10 +56,7 @@ class PasswordResetRequestResult {
 
   @override
   int get hashCode =>
-      success.hashCode ^
-      email.hashCode ^
-      resetCode.hashCode ^
-      error.hashCode;
+      success.hashCode ^ email.hashCode ^ resetCode.hashCode ^ error.hashCode;
 
   @override
   String toString() {

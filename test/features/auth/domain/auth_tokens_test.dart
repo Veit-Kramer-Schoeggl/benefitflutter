@@ -66,17 +66,22 @@ void main() {
         expect(almostExpiredTokens.needsRefresh, isTrue);
       });
 
-      test('returns false when token has more than 5 minutes remaining (boundary)', () {
-        // Add 1 second buffer to avoid timing issues
-        final fiveMinPlusTokens = AuthTokens(
-          accessToken: 'access',
-          refreshToken: 'refresh',
-          expiresAt: DateTime.now().add(const Duration(minutes: 5, seconds: 1)),
-        );
+      test(
+        'returns false when token has more than 5 minutes remaining (boundary)',
+        () {
+          // Add 1 second buffer to avoid timing issues
+          final fiveMinPlusTokens = AuthTokens(
+            accessToken: 'access',
+            refreshToken: 'refresh',
+            expiresAt: DateTime.now().add(
+              const Duration(minutes: 5, seconds: 1),
+            ),
+          );
 
-        // At > 5 minutes, needsRefresh should be false
-        expect(fiveMinPlusTokens.needsRefresh, isFalse);
-      });
+          // At > 5 minutes, needsRefresh should be false
+          expect(fiveMinPlusTokens.needsRefresh, isFalse);
+        },
+      );
 
       test('returns true when token is already expired', () {
         final expiredTokens = AuthTokens(

@@ -63,11 +63,7 @@ class UserPreferencesDao {
   /// Delete preferences by ID
   Future<void> delete(String id) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'user_preferences',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('user_preferences', where: 'id = ?', whereArgs: [id]);
   }
 
   /// Delete preferences by user ID
@@ -109,8 +105,12 @@ class UserPreferencesDao {
       'theme': preferences.theme,
       'language': preferences.language,
       'timezone': preferences.timezone,
-      'created_at': SqliteTypeConverters.dateTimeToSqlite(preferences.createdAt),
-      'updated_at': SqliteTypeConverters.dateTimeToSqlite(preferences.updatedAt),
+      'created_at': SqliteTypeConverters.dateTimeToSqlite(
+        preferences.createdAt,
+      ),
+      'updated_at': SqliteTypeConverters.dateTimeToSqlite(
+        preferences.updatedAt,
+      ),
     };
   }
 }

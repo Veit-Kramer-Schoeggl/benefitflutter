@@ -102,9 +102,13 @@ class UserBiometricsDao {
     return UserBiometricsReported(
       id: map['id'] as String,
       userId: map['user_id'] as String,
-      reportDate: DateTime.fromMillisecondsSinceEpoch(map['report_date'] as int),
+      reportDate: DateTime.fromMillisecondsSinceEpoch(
+        map['report_date'] as int,
+      ),
       heightCm: map['height_cm'] as int?,
-      weightKg: map['weight_kg'] != null ? (map['weight_kg'] as num).toDouble() : null,
+      weightKg: map['weight_kg'] != null
+          ? (map['weight_kg'] as num).toDouble()
+          : null,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
     );
@@ -115,7 +119,9 @@ class UserBiometricsDao {
     return {
       'id': biometrics.id,
       'user_id': biometrics.userId,
-      'report_date': SqliteTypeConverters.dateTimeToSqlite(biometrics.reportDate),
+      'report_date': SqliteTypeConverters.dateTimeToSqlite(
+        biometrics.reportDate,
+      ),
       'height_cm': biometrics.heightCm,
       'weight_kg': biometrics.weightKg,
       'created_at': SqliteTypeConverters.dateTimeToSqlite(biometrics.createdAt),

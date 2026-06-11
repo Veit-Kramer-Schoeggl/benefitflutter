@@ -66,20 +66,26 @@ void main() {
         expect(steps, 0);
       });
 
-      test('getTodayAverageHeartRate returns null when not connected', () async {
-        final hr = await provider.getTodayAverageHeartRate('test-user');
-        expect(hr, isNull);
-      });
+      test(
+        'getTodayAverageHeartRate returns null when not connected',
+        () async {
+          final hr = await provider.getTodayAverageHeartRate('test-user');
+          expect(hr, isNull);
+        },
+      );
 
       test('getLatestWeight returns null when not connected', () async {
         final weight = await provider.getLatestWeight('test-user');
         expect(weight, isNull);
       });
 
-      test('getLatestRestingHeartRate returns null when not connected', () async {
-        final rhr = await provider.getLatestRestingHeartRate('test-user');
-        expect(rhr, isNull);
-      });
+      test(
+        'getLatestRestingHeartRate returns null when not connected',
+        () async {
+          final rhr = await provider.getLatestRestingHeartRate('test-user');
+          expect(rhr, isNull);
+        },
+      );
 
       test('getWeeklySummary returns empty data when not connected', () async {
         final summary = await provider.getWeeklySummary('test-user');

@@ -11,10 +11,7 @@ class AppLockScreen extends StatefulWidget {
   /// Callback when user requests password login
   final VoidCallback? onPasswordRequired;
 
-  const AppLockScreen({
-    super.key,
-    this.onPasswordRequired,
-  });
+  const AppLockScreen({super.key, this.onPasswordRequired});
 
   @override
   State<AppLockScreen> createState() => _AppLockScreenState();
@@ -37,7 +34,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
   Future<void> _loadBiometricType() async {
     final appLockProvider = context.read<AppLockProvider>();
-    final type = await appLockProvider.biometricService.getPrimaryBiometricType();
+    final type = await appLockProvider.biometricService
+        .getPrimaryBiometricType();
     if (mounted) {
       setState(() {
         _biometricType = type;
@@ -62,7 +60,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
         if (!success && !appLockProvider.isPermanentlyLocked) {
           final remaining = appLockProvider.remainingAttempts;
           if (remaining > 0) {
-            _errorMessage = 'Authentication failed. $remaining attempts remaining.';
+            _errorMessage =
+                'Authentication failed. $remaining attempts remaining.';
           }
         }
       });
@@ -121,18 +120,18 @@ class _AppLockScreenState extends State<AppLockScreen> {
                   Text(
                     'BeneFit',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
 
                   // Lock message
                   Text(
                     'App Locked',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
                   ),
 
                   const Spacer(),
@@ -149,7 +148,11 @@ class _AppLockScreenState extends State<AppLockScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red[700],
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -228,8 +231,9 @@ class _AppLockScreenState extends State<AppLockScreen> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
                               )
                             : Icon(_getBiometricIconData(), size: 28),

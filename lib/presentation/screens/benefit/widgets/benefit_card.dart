@@ -3,8 +3,8 @@ import 'package:benefitflutter/features/benefit/domain/benefit_view_model.dart';
 
 class BenefitCard extends StatelessWidget {
   final BenefitViewModel benefitVM;
-  final VoidCallback? onTap;      // For QR icon
-  final VoidCallback? onRedeem;   // For redeem button
+  final VoidCallback? onTap; // For QR icon
+  final VoidCallback? onRedeem; // For redeem button
 
   const BenefitCard({
     super.key,
@@ -26,10 +26,9 @@ class BenefitCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -48,26 +47,21 @@ class BenefitCard extends StatelessWidget {
                 children: [
                   Text(
                     benefitVM.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     benefitVM.description,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Earned ${benefitVM.formattedDate}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey[500],
                       fontSize: 12,
                     ),
@@ -102,10 +96,7 @@ class BenefitCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         'Redeemed',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,

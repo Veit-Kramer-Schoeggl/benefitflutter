@@ -37,11 +37,15 @@ class DeepLinkHandler {
   /// Process a deep link URI
   void _handleLink(Uri uri) {
     // Do not log the full URI: it can carry secrets (e.g. password-reset token).
-    debugPrint('DeepLinkHandler: Received link - scheme=${uri.scheme} host=${uri.host}');
+    debugPrint(
+      'DeepLinkHandler: Received link - scheme=${uri.scheme} host=${uri.host}',
+    );
 
     // Only handle our custom scheme
     if (uri.scheme != 'benefit') {
-      debugPrint('DeepLinkHandler: Ignoring non-benefit scheme - ${uri.scheme}');
+      debugPrint(
+        'DeepLinkHandler: Ignoring non-benefit scheme - ${uri.scheme}',
+      );
       return;
     }
 
@@ -49,7 +53,9 @@ class DeepLinkHandler {
       case 'reset-password':
         final token = uri.queryParameters['token'];
         // Never log the reset token itself; only whether one is present.
-        debugPrint('DeepLinkHandler: Navigating to reset-password (token present: ${token != null && token.isNotEmpty})');
+        debugPrint(
+          'DeepLinkHandler: Navigating to reset-password (token present: ${token != null && token.isNotEmpty})',
+        );
         if (token != null && token.isNotEmpty) {
           navigatorKey.currentState?.pushNamed(
             '/reset-password',

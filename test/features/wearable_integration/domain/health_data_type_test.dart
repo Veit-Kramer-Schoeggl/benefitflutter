@@ -17,10 +17,7 @@ void main() {
       });
 
       test('fromJson throws on unknown value', () {
-        expect(
-          () => HealthDataType.fromJson('unknown'),
-          throwsArgumentError,
-        );
+        expect(() => HealthDataType.fromJson('unknown'), throwsArgumentError);
       });
 
       test('round-trip conversion works', () {
@@ -36,14 +33,20 @@ void main() {
       test('returns human-readable names', () {
         expect(HealthDataType.steps.displayName, 'Steps');
         expect(HealthDataType.heartRate.displayName, 'Heart Rate');
-        expect(HealthDataType.heartRateVariability.displayName, 'Heart Rate Variability');
+        expect(
+          HealthDataType.heartRateVariability.displayName,
+          'Heart Rate Variability',
+        );
         expect(HealthDataType.distance.displayName, 'Distance');
         expect(HealthDataType.calories.displayName, 'Calories');
         expect(HealthDataType.sleep.displayName, 'Sleep');
         expect(HealthDataType.weight.displayName, 'Weight');
         expect(HealthDataType.bloodOxygen.displayName, 'Blood Oxygen');
         expect(HealthDataType.vo2Max.displayName, 'VO2 Max');
-        expect(HealthDataType.restingHeartRate.displayName, 'Resting Heart Rate');
+        expect(
+          HealthDataType.restingHeartRate.displayName,
+          'Resting Heart Rate',
+        );
         expect(HealthDataType.activeEnergyBurned.displayName, 'Active Energy');
         expect(HealthDataType.workout.displayName, 'Workout');
       });
@@ -92,8 +95,16 @@ void main() {
         );
         final after = DateTime.now();
 
-        expect(point.syncedAt.isAfter(before) || point.syncedAt.isAtSameMomentAs(before), true);
-        expect(point.syncedAt.isBefore(after) || point.syncedAt.isAtSameMomentAs(after), true);
+        expect(
+          point.syncedAt.isAfter(before) ||
+              point.syncedAt.isAtSameMomentAs(before),
+          true,
+        );
+        expect(
+          point.syncedAt.isBefore(after) ||
+              point.syncedAt.isAtSameMomentAs(after),
+          true,
+        );
       });
 
       test('sets createdAt to now if not provided', () {
@@ -107,8 +118,16 @@ void main() {
         );
         final after = DateTime.now();
 
-        expect(point.createdAt.isAfter(before) || point.createdAt.isAtSameMomentAs(before), true);
-        expect(point.createdAt.isBefore(after) || point.createdAt.isAtSameMomentAs(after), true);
+        expect(
+          point.createdAt.isAfter(before) ||
+              point.createdAt.isAtSameMomentAs(before),
+          true,
+        );
+        expect(
+          point.createdAt.isBefore(after) ||
+              point.createdAt.isAtSameMomentAs(after),
+          true,
+        );
       });
     });
 

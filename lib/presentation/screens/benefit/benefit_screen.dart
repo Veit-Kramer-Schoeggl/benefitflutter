@@ -28,8 +28,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
   void initState() {
     super.initState();
     // Fetch data after first frame is rendered
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
   }
 
   /// Handle database reseed with confirmation and feedback
@@ -81,7 +80,9 @@ class _BenefitScreenState extends State<BenefitScreen> {
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 16),
                 Expanded(
-                  child: Text('Database reseeded successfully!\n1 user, 4 benefits, 6 sessions, 8 GPS points'),
+                  child: Text(
+                    'Database reseeded successfully!\n1 user, 4 benefits, 6 sessions, 8 GPS points',
+                  ),
                 ),
               ],
             ),
@@ -92,7 +93,6 @@ class _BenefitScreenState extends State<BenefitScreen> {
 
       // Step 5: Refresh the benefits list
       context.read<BenefitProvider>().fetchBenefits();
-
     } catch (e) {
       // Step 6: Show error message
       if (!mounted) return;
@@ -104,9 +104,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
               children: [
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Text('Reseed failed: ${e.toString()}'),
-                ),
+                Expanded(child: Text('Reseed failed: ${e.toString()}')),
               ],
             ),
             backgroundColor: Colors.red,
@@ -140,9 +138,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Reset Data'),
           ),
         ],
@@ -155,9 +151,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('BeneFit'),
-      ),
+      appBar: AppBar(title: const Text('BeneFit')),
       body: Consumer<BenefitProvider>(
         builder: (context, provider, child) {
           // Loading state (initial fetch)
@@ -187,9 +181,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Total savings card (prominent display)
-                  TotalSavingsCard(
-                    totalSavings: provider.totalSavings,
-                  ),
+                  TotalSavingsCard(totalSavings: provider.totalSavings),
 
                   // Section header
                   Padding(
@@ -197,8 +189,8 @@ class _BenefitScreenState extends State<BenefitScreen> {
                     child: Text(
                       'Earned BeneFits',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
 
@@ -208,13 +200,13 @@ class _BenefitScreenState extends State<BenefitScreen> {
                     // TODO: Navigate to session detail screen
                     // 👉 Öffnet QR Screen wenn Benefit bereits redeemed ist
                     onBenefitTap: (benefitVM) {
-                      if (benefitVM.userBenefit.status == BenefitStatus.redeemed) {
+                      if (benefitVM.userBenefit.status ==
+                          BenefitStatus.redeemed) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => BenefitQrScreen(
-                              benefitVM: benefitVM,
-                            ),
+                            builder: (_) =>
+                                BenefitQrScreen(benefitVM: benefitVM),
                           ),
                         );
                       }
@@ -224,8 +216,8 @@ class _BenefitScreenState extends State<BenefitScreen> {
                       final userId = context.read<UserProvider>().userId;
                       if (userId == null) return;
 
-                      if (benefitVM.userBenefit.status == BenefitStatus.earned) {
-
+                      if (benefitVM.userBenefit.status ==
+                          BenefitStatus.earned) {
                         await provider.redeemBenefit(
                           userBenefitId: benefitVM.userBenefit.id,
                         );
@@ -235,9 +227,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
                         final updatedVM = context
                             .read<BenefitProvider>()
                             .earnedBenefits
-                            .firstWhere(
-                              (b) => b.id == benefitVM.id,
-                        );
+                            .firstWhere((b) => b.id == benefitVM.id);
                       }
                     },
                   ),
@@ -254,14 +244,19 @@ class _BenefitScreenState extends State<BenefitScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          const Icon(Icons.bug_report, size: 20, color: Colors.orange),
+                          const Icon(
+                            Icons.bug_report,
+                            size: 20,
+                            color: Colors.orange,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Developer Tools',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Colors.orange,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ],
                       ),
@@ -278,7 +273,9 @@ class _BenefitScreenState extends State<BenefitScreen> {
                         label: const Text('Reset Seed Data'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange,
-                          side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
+                          side: BorderSide(
+                            color: Colors.orange.withValues(alpha: 0.5),
+                          ),
                         ),
                       ),
                     ),

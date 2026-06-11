@@ -38,8 +38,10 @@ enum SessionStatus {
   }
 
   /// Check if session is in a final state
-  bool get isFinal => this == SessionStatus.completed || this == SessionStatus.cancelled;
+  bool get isFinal =>
+      this == SessionStatus.completed || this == SessionStatus.cancelled;
 
   /// Check if session is ongoing
-  bool get isOngoing => this == SessionStatus.active || this == SessionStatus.paused;
+  bool get isOngoing =>
+      this == SessionStatus.active || this == SessionStatus.paused;
 }

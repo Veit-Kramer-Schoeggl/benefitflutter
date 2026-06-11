@@ -81,8 +81,9 @@ void main() {
       test('should load benefits successfully', () async {
         // Arrange
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         mockRepository.mockTotalSavings = 15.0;
 
         // Track state changes
@@ -140,8 +141,9 @@ void main() {
         // Act - second call succeeds
         mockRepository.shouldThrowError = false;
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         await provider.fetchBenefits(testUserId);
 
         // Assert - error should be cleared
@@ -201,8 +203,9 @@ void main() {
       test('should refresh benefits successfully', () async {
         // Arrange - initial state
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         await provider.fetchBenefits(testUserId);
 
         // Act - refresh
@@ -222,8 +225,9 @@ void main() {
       test('should keep existing data on refresh error', () async {
         // Arrange - successful initial fetch
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         mockRepository.mockTotalSavings = 15.0;
         await provider.fetchBenefits(testUserId);
 
@@ -250,8 +254,9 @@ void main() {
         // Act - successful refresh
         mockRepository.shouldThrowError = false;
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         await provider.refresh(testUserId);
 
         // Assert - error should be cleared
@@ -270,8 +275,9 @@ void main() {
         // Act - retry with success
         mockRepository.shouldThrowError = false;
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
         await provider.retry(testUserId);
 
         // Assert
@@ -288,8 +294,9 @@ void main() {
       test('isEmpty should be false when loading', () async {
         // Arrange
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
 
         // Act
         final future = provider.fetchBenefits(testUserId);
@@ -303,8 +310,9 @@ void main() {
       test('isEmpty should be false when has benefits', () async {
         // Arrange
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
 
         // Act
         await provider.fetchBenefits(testUserId);
@@ -318,8 +326,9 @@ void main() {
       test('should notify listeners on state changes', () async {
         // Arrange
         mockRepository.mockBenefits = MockData.sampleBenefits();
-        mockRepository.mockUserBenefits =
-            MockData.sampleUserBenefits(userId: testUserId);
+        mockRepository.mockUserBenefits = MockData.sampleUserBenefits(
+          userId: testUserId,
+        );
 
         int notificationCount = 0;
         provider.addListener(() {

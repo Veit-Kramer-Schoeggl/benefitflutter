@@ -56,11 +56,11 @@ class PasswordRequirementsText extends StatelessWidget {
 
   /// Get the list of requirements from PasswordValidator
   static List<String> get requirements => [
-        'At least ${PasswordValidator.minLength} characters',
-        'One uppercase letter (A-Z)',
-        'One lowercase letter (a-z)',
-        'One number (0-9)',
-      ];
+    'At least ${PasswordValidator.minLength} characters',
+    'One uppercase letter (A-Z)',
+    'One lowercase letter (a-z)',
+    'One number (0-9)',
+  ];
 
   /// Get compact requirements string
   static String get compactString =>
@@ -68,9 +68,9 @@ class PasswordRequirementsText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final defaultStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Colors.grey.shade600,
-        );
+    final defaultStyle = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600);
     final style = textStyle ?? defaultStyle;
 
     return switch (format) {

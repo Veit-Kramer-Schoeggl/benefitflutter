@@ -112,7 +112,8 @@ class AuthException implements Exception {
   const AuthException(this.message, {this.code});
 
   @override
-  String toString() => 'AuthException: $message${code != null ? ' ($code)' : ''}';
+  String toString() =>
+      'AuthException: $message${code != null ? ' ($code)' : ''}';
 }
 
 /// Mock implementation for development/testing
@@ -126,12 +127,14 @@ class MockAuthService implements AuthService {
   static final Map<String, Map<String, String>> _testCredentials = {
     'test@gmail.com': {
       // Hash of '1234'
-      'passwordHash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+      'passwordHash':
+          '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
       'userId': 'test-user-123',
     },
     'test2@gmail.com': {
       // Hash of '1234'
-      'passwordHash': '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
+      'passwordHash':
+          '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4',
       'userId': 'test-user-321',
     },
   };
@@ -181,9 +184,10 @@ class MockAuthService implements AuthService {
   /// Format: mock::{type}::{userId}::{random}
   String _generateMockToken(String type, String userId) {
     final random = Random();
-    final randomPart = List.generate(32, (_) => random.nextInt(256))
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+    final randomPart = List.generate(
+      32,
+      (_) => random.nextInt(256),
+    ).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     return 'mock::$type::$userId::$randomPart';
   }
 
@@ -405,9 +409,7 @@ class MockAuthService implements AuthService {
 
     // Verify code
     if (pending['resetCode'] != code) {
-      return PasswordResetResult.failure(
-        error: 'Invalid reset code',
-      );
+      return PasswordResetResult.failure(error: 'Invalid reset code');
     }
 
     // Hash new password before storing
@@ -531,9 +533,7 @@ class MockAuthService implements AuthService {
 
     // Verify code
     if (pending['deletionCode'] != code) {
-      return AccountDeletionResult.failure(
-        error: 'Invalid verification code',
-      );
+      return AccountDeletionResult.failure(error: 'Invalid verification code');
     }
 
     // Remove user from credentials
@@ -555,8 +555,9 @@ class MockAuthService implements AuthService {
     // Check if email exists in test credentials, registered users, or pending registrations
     final existsInTest = _testCredentials.containsKey(normalizedEmail);
     final existsInRegistered = _registeredUsers.containsKey(normalizedEmail);
-    final existsInPending = _pendingRegistrations.values
-        .any((reg) => reg['email'] == normalizedEmail);
+    final existsInPending = _pendingRegistrations.values.any(
+      (reg) => reg['email'] == normalizedEmail,
+    );
 
     // Return true if available (not found anywhere)
     return !existsInTest && !existsInRegistered && !existsInPending;

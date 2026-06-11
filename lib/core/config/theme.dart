@@ -55,9 +55,7 @@ class AppTheme {
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
 
@@ -67,13 +65,8 @@ class AppTheme {
           backgroundColor: primaryGreen,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          textStyle: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -100,14 +93,8 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: darkGrey,
         ),
-        bodyLarge: TextStyle(
-          fontSize: 16,
-          color: darkGrey,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          color: darkGrey,
-        ),
+        bodyLarge: TextStyle(fontSize: 16, color: darkGrey),
+        bodyMedium: TextStyle(fontSize: 14, color: darkGrey),
         labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
@@ -116,10 +103,7 @@ class AppTheme {
       ),
 
       // Icon theme
-      iconTheme: IconThemeData(
-        color: darkGrey,
-        size: 24,
-      ),
+      iconTheme: IconThemeData(color: darkGrey, size: 24),
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(

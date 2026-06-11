@@ -65,8 +65,9 @@ void main() {
         final milliseconds = 1704067200000; // Jan 1, 2024
 
         // Act
-        final result =
-            SqliteTypeConverters.nullableDateTimeFromSqlite(milliseconds);
+        final result = SqliteTypeConverters.nullableDateTimeFromSqlite(
+          milliseconds,
+        );
 
         // Assert
         expect(result, isNotNull);
@@ -198,8 +199,9 @@ void main() {
 
       test('nullableEnumToSqlite handles null enum', () {
         // Act
-        final result =
-            SqliteTypeConverters.nullableEnumToSqlite<ActivityType>(null);
+        final result = SqliteTypeConverters.nullableEnumToSqlite<ActivityType>(
+          null,
+        );
 
         // Assert
         expect(result, isNull);
@@ -221,10 +223,11 @@ void main() {
 
       test('nullableEnumFromSqlite handles null string', () {
         // Act
-        final result = SqliteTypeConverters.nullableEnumFromSqlite<ActivityType>(
-          null,
-          ActivityType.fromJson,
-        );
+        final result =
+            SqliteTypeConverters.nullableEnumFromSqlite<ActivityType>(
+              null,
+              ActivityType.fromJson,
+            );
 
         // Assert
         expect(result, isNull);

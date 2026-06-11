@@ -5,7 +5,10 @@ void main() {
   group('DeviceProfiles', () {
     group('getDeviceMultiplier', () {
       test('returns 1.0 for unknown devices', () {
-        expect(DeviceProfiles.getDeviceMultiplier('unknown_device'), equals(1.0));
+        expect(
+          DeviceProfiles.getDeviceMultiplier('unknown_device'),
+          equals(1.0),
+        );
       });
 
       test('returns 1.0 for empty string', () {

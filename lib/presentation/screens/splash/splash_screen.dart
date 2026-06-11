@@ -36,14 +36,17 @@ class _SplashScreenState extends State<SplashScreen> {
         final isAuthenticated = userProvider.isAuthenticated;
 
         if (isAuthenticated) {
-          setState(() => _status = 'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!');
+          setState(
+            () => _status =
+                'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!',
+          );
           await Future.delayed(const Duration(milliseconds: 500));
         }
 
         // Navigate to appropriate screen
-        Navigator.of(context).pushReplacementNamed(
-          isAuthenticated ? '/home' : '/login',
-        );
+        Navigator.of(
+          context,
+        ).pushReplacementNamed(isAuthenticated ? '/home' : '/login');
       }
     } catch (e) {
       // Handle errors
@@ -108,10 +111,7 @@ class _SplashScreenState extends State<SplashScreen> {
               // Status text
               Text(
                 _status,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),

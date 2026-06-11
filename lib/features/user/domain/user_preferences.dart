@@ -51,7 +51,8 @@ class UserPreferences {
     return {
       'id': id,
       'user_id': userId,
-      if (defaultLocationCity != null) 'default_location_city': defaultLocationCity,
+      if (defaultLocationCity != null)
+        'default_location_city': defaultLocationCity,
       'distance_unit': distanceUnit,
       'temperature_unit': temperatureUnit,
       'weight_unit': weightUnit,
@@ -93,7 +94,8 @@ class UserPreferences {
   }
 
   @override
-  String toString() => 'UserPreferences(id: $id, userId: $userId, city: $defaultLocationCity, units: $distanceUnit/$weightUnit)';
+  String toString() =>
+      'UserPreferences(id: $id, userId: $userId, city: $defaultLocationCity, units: $distanceUnit/$weightUnit)';
 
   @override
   bool operator ==(Object other) {

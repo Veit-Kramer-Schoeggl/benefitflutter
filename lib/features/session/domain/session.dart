@@ -91,11 +91,15 @@ class Session {
           ? (json['calories_burned'] as num).toDouble()
           : null,
       heartRateZones: json['heart_rate_zones'] != null
-          ? Map<String, int>.from(jsonDecode(json['heart_rate_zones'] as String))
+          ? Map<String, int>.from(
+              jsonDecode(json['heart_rate_zones'] as String),
+            )
           : null,
       hasWearableData: json['has_wearable_data'] == 1,
       connectedDeviceIds: json['connected_device_ids'] != null
-          ? List<String>.from(jsonDecode(json['connected_device_ids'] as String))
+          ? List<String>.from(
+              jsonDecode(json['connected_device_ids'] as String),
+            )
           : null,
     );
   }
@@ -122,9 +126,13 @@ class Session {
       'total_steps': totalSteps,
       'avg_cadence': avgCadence,
       'calories_burned': caloriesBurned,
-      'heart_rate_zones': heartRateZones != null ? jsonEncode(heartRateZones) : null,
+      'heart_rate_zones': heartRateZones != null
+          ? jsonEncode(heartRateZones)
+          : null,
       'has_wearable_data': hasWearableData ? 1 : 0,
-      'connected_device_ids': connectedDeviceIds != null ? jsonEncode(connectedDeviceIds) : null,
+      'connected_device_ids': connectedDeviceIds != null
+          ? jsonEncode(connectedDeviceIds)
+          : null,
     };
   }
 
@@ -169,7 +177,8 @@ class Session {
       avgHeartRate: avgHeartRate ?? this.avgHeartRate,
       maxHeartRate: maxHeartRate ?? this.maxHeartRate,
       minHeartRate: minHeartRate ?? this.minHeartRate,
-      avgHeartRateVariability: avgHeartRateVariability ?? this.avgHeartRateVariability,
+      avgHeartRateVariability:
+          avgHeartRateVariability ?? this.avgHeartRateVariability,
       totalSteps: totalSteps ?? this.totalSteps,
       avgCadence: avgCadence ?? this.avgCadence,
       caloriesBurned: caloriesBurned ?? this.caloriesBurned,
@@ -225,11 +234,11 @@ class Session {
       avgHeartRate != null || maxHeartRate != null || minHeartRate != null;
 
   /// Whether this session has any motion data
-  bool get hasMotionData =>
-      totalSteps != null || avgCadence != null;
+  bool get hasMotionData => totalSteps != null || avgCadence != null;
 
   @override
-  String toString() => 'Session(id: $id, type: $activityType, status: $status, hasWearableData: $hasWearableData)';
+  String toString() =>
+      'Session(id: $id, type: $activityType, status: $status, hasWearableData: $hasWearableData)';
 
   @override
   bool operator ==(Object other) {

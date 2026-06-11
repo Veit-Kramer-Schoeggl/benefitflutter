@@ -103,8 +103,12 @@ class ContinuousTrackingConfigDao {
       activityDetection: map['activity_detection'] as String? ?? 'hybrid',
       gpsIntervalSeconds: map['gps_interval_seconds'] as int? ?? 300,
       minDisplacementMeters: map['min_displacement_meters'] as int? ?? 100,
-      createdAt: SqliteTypeConverters.dateTimeFromSqlite(map['created_at'] as int),
-      updatedAt: SqliteTypeConverters.dateTimeFromSqlite(map['updated_at'] as int),
+      createdAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['created_at'] as int,
+      ),
+      updatedAt: SqliteTypeConverters.dateTimeFromSqlite(
+        map['updated_at'] as int,
+      ),
     );
   }
 

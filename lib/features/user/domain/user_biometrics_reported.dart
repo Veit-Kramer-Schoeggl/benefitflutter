@@ -26,9 +26,13 @@ class UserBiometricsReported {
     return UserBiometricsReported(
       id: json['id'] as String,
       userId: json['user_id'] as String,
-      reportDate: DateTime.fromMillisecondsSinceEpoch(json['report_date'] as int),
+      reportDate: DateTime.fromMillisecondsSinceEpoch(
+        json['report_date'] as int,
+      ),
       heightCm: json['height_cm'] as int?,
-      weightKg: json['weight_kg'] != null ? (json['weight_kg'] as num).toDouble() : null,
+      weightKg: json['weight_kg'] != null
+          ? (json['weight_kg'] as num).toDouble()
+          : null,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
     );
@@ -69,7 +73,8 @@ class UserBiometricsReported {
   }
 
   @override
-  String toString() => 'UserBiometricsReported(id: $id, userId: $userId, heightCm: $heightCm, weightKg: $weightKg, reportDate: $reportDate)';
+  String toString() =>
+      'UserBiometricsReported(id: $id, userId: $userId, heightCm: $heightCm, weightKg: $weightKg, reportDate: $reportDate)';
 
   @override
   bool operator ==(Object other) {

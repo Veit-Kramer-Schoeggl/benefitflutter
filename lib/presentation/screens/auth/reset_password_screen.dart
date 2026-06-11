@@ -187,12 +187,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 !_resetSuccessful) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  Navigator.of(context).pushReplacementNamed('/forgot-password');
+                  Navigator.of(
+                    context,
+                  ).pushReplacementNamed('/forgot-password');
                 }
               });
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
 
             return SingleChildScrollView(
@@ -200,189 +200,190 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                    const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                    // Icon
-                    const Center(
-                      child: Icon(
-                        Icons.lock_reset,
-                        size: 80,
-                        color: Colors.orange,
+                  // Icon
+                  const Center(
+                    child: Icon(
+                      Icons.lock_reset,
+                      size: 80,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Title
+                  Text(
+                    'Reset Password',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enter your reset code and new password',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Code input field with mock code hint
+                  VerificationCodeField(
+                    controller: _codeController,
+                    labelText: 'Reset Code',
+                    enabled: !userProvider.isLoading,
+                    errorText: _codeError,
+                    mockCode: userProvider.pendingResetCode,
+                    showMockCodeHint: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // New password field
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.next,
+                    enabled: !userProvider.isLoading,
+                    onChanged: (_) {
+                      // Clear error when user types
+                      if (_passwordError != null) {
+                        setState(() => _passwordError = null);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      hintText: 'Enter your new password',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      errorText: _passwordError,
+                      helperText: _passwordError == null
+                          ? 'Min 8 chars, uppercase, lowercase, number'
+                          : null,
+                      helperMaxLines: 2,
                     ),
-                    const SizedBox(height: 24),
-
-                    // Title
-                    Text(
-                      'Reset Password',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
+                  ),
+                  if (_passwordText.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      'Enter your reset code and new password',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                    PasswordStrengthIndicator(
+                      password: _passwordText,
+                      style: PasswordStrengthStyle.checksOnly,
                     ),
-                    const SizedBox(height: 32),
+                  ],
+                  const SizedBox(height: 16),
 
-                    // Code input field with mock code hint
-                    VerificationCodeField(
-                      controller: _codeController,
-                      labelText: 'Reset Code',
-                      enabled: !userProvider.isLoading,
-                      errorText: _codeError,
-                      mockCode: userProvider.pendingResetCode,
-                      showMockCodeHint: true,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // New password field
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      enabled: !userProvider.isLoading,
-                      onChanged: (_) {
-                        // Clear error when user types
-                        if (_passwordError != null) {
-                          setState(() => _passwordError = null);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'New Password',
-                        hintText: 'Enter your new password',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
+                  // Confirm password field
+                  TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    textInputAction: TextInputAction.done,
+                    enabled: !userProvider.isLoading,
+                    onSubmitted: (_) => _handleReset(),
+                    onChanged: (_) {
+                      // Clear error when user types
+                      if (_confirmPasswordError != null) {
+                        setState(() => _confirmPasswordError = null);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      hintText: 'Re-enter your new password',
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        errorText: _passwordError,
-                        helperText: _passwordError == null
-                            ? 'Min 8 chars, uppercase, lowercase, number'
-                            : null,
-                        helperMaxLines: 2,
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
                       ),
-                    ),
-                    if (_passwordText.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      PasswordStrengthIndicator(
-                        password: _passwordText,
-                        style: PasswordStrengthStyle.checksOnly,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
-                    const SizedBox(height: 16),
+                      errorText: _confirmPasswordError,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Confirm password field
-                    TextField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      textInputAction: TextInputAction.done,
-                      enabled: !userProvider.isLoading,
-                      onSubmitted: (_) => _handleReset(),
-                      onChanged: (_) {
-                        // Clear error when user types
-                        if (_confirmPasswordError != null) {
-                          setState(() => _confirmPasswordError = null);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        hintText: 'Re-enter your new password',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                  // Error message
+                  if (userProvider.hasError) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red[700]),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              userProvider.error!,
+                              style: TextStyle(color: Colors.red[700]),
+                            ),
                           ),
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirmPassword = !_obscureConfirmPassword;
-                            });
-                          },
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        errorText: _confirmPasswordError,
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
+                  ],
 
-                    // Error message
-                    if (userProvider.hasError) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red[200]!),
+                  // Reset password button
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: userProvider.isLoading ? null : _handleReset,
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: Colors.red[700]),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                userProvider.error!,
-                                style: TextStyle(color: Colors.red[700]),
+                      ),
+                      child: userProvider.isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Reset Password',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Reset password button
-                    SizedBox(
-                      height: 50,
-                      child: FilledButton(
-                        onPressed: userProvider.isLoading ? null : _handleReset,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: userProvider.isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text(
-                                'Reset Password',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
                     ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              );
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            );
           },
         ),
       ),

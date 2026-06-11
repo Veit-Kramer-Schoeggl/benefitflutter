@@ -41,10 +41,7 @@ class _HeartRateDisplayState extends State<HeartRateDisplay>
     );
 
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
     if (widget.isConnected && widget.currentHeartRate != null) {
@@ -132,10 +129,7 @@ class _HeartRateDisplayState extends State<HeartRateDisplay>
               const SizedBox(height: 8),
               Text(
                 widget.deviceName!,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black45,
-                ),
+                style: const TextStyle(fontSize: 12, color: Colors.black45),
               ),
             ],
 
@@ -223,18 +217,11 @@ class _HeartRateDisplayState extends State<HeartRateDisplay>
   Widget _buildDisconnectedState() {
     return Column(
       children: [
-        Icon(
-          Icons.bluetooth_disabled,
-          size: 48,
-          color: Colors.grey[400],
-        ),
+        Icon(Icons.bluetooth_disabled, size: 48, color: Colors.grey[400]),
         const SizedBox(height: 8),
         Text(
           widget.isConnected ? 'Waiting for data...' : 'No device connected',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
         if (!widget.isConnected && widget.onTap != null) ...[
           const SizedBox(height: 12),
@@ -257,10 +244,7 @@ class _HeartRateDisplayState extends State<HeartRateDisplay>
       decoration: BoxDecoration(
         color: zone.color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: zone.color,
-          width: 1.5,
-        ),
+        border: Border.all(color: zone.color, width: 1.5),
       ),
       child: Text(
         zone.name,

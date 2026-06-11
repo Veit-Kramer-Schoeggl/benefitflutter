@@ -126,7 +126,10 @@ void main() {
           originalTokens.refreshToken,
         );
 
-        expect(newTokens.accessToken, isNot(equals(originalTokens.accessToken)));
+        expect(
+          newTokens.accessToken,
+          isNot(equals(originalTokens.accessToken)),
+        );
         expect(
           newTokens.refreshToken,
           isNot(equals(originalTokens.refreshToken)),
@@ -375,8 +378,14 @@ void main() {
           code: regResult.verificationCode!,
         );
 
-        expect(verifyResult.tokens!.accessToken, contains('::${regResult.userId}::'));
-        expect(verifyResult.tokens!.refreshToken, contains('::${regResult.userId}::'));
+        expect(
+          verifyResult.tokens!.accessToken,
+          contains('::${regResult.userId}::'),
+        );
+        expect(
+          verifyResult.tokens!.refreshToken,
+          contains('::${regResult.userId}::'),
+        );
       });
     });
 
@@ -392,7 +401,9 @@ void main() {
       });
 
       test('returns success for existing test email (user 2)', () async {
-        final result = await authService.requestPasswordReset('test2@gmail.com');
+        final result = await authService.requestPasswordReset(
+          'test2@gmail.com',
+        );
 
         expect(result.success, isTrue);
         expect(result.email, equals('test2@gmail.com'));
@@ -410,14 +421,18 @@ void main() {
           code: regResult.verificationCode!,
         );
 
-        final result = await authService.requestPasswordReset('resettest@test.com');
+        final result = await authService.requestPasswordReset(
+          'resettest@test.com',
+        );
 
         expect(result.success, isTrue);
         expect(result.email, equals('resettest@test.com'));
       });
 
       test('returns failure for unknown email', () async {
-        final result = await authService.requestPasswordReset('unknown@test.com');
+        final result = await authService.requestPasswordReset(
+          'unknown@test.com',
+        );
 
         expect(result.success, isFalse);
         expect(result.error, contains('No account'));
@@ -431,7 +446,9 @@ void main() {
       });
 
       test('trims whitespace from email', () async {
-        final result = await authService.requestPasswordReset('  test@gmail.com  ');
+        final result = await authService.requestPasswordReset(
+          '  test@gmail.com  ',
+        );
 
         expect(result.success, isTrue);
         expect(result.email, equals('test@gmail.com'));
@@ -445,8 +462,12 @@ void main() {
       });
 
       test('allows multiple reset requests (overwrites previous)', () async {
-        final result1 = await authService.requestPasswordReset('test@gmail.com');
-        final result2 = await authService.requestPasswordReset('test@gmail.com');
+        final result1 = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
+        final result2 = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
 
         expect(result1.success, isTrue);
         expect(result2.success, isTrue);
@@ -457,7 +478,9 @@ void main() {
 
     group('resetPassword', () {
       test('returns success with correct code', () async {
-        final requestResult = await authService.requestPasswordReset('test@gmail.com');
+        final requestResult = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
 
         final result = await authService.resetPassword(
           email: 'test@gmail.com',
@@ -494,7 +517,9 @@ void main() {
       });
 
       test('clears pending reset after successful reset', () async {
-        final requestResult = await authService.requestPasswordReset('test@gmail.com');
+        final requestResult = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
 
         // First reset succeeds
         await authService.resetPassword(
@@ -515,7 +540,9 @@ void main() {
       });
 
       test('allows login with new password for test credentials', () async {
-        final requestResult = await authService.requestPasswordReset('test@gmail.com');
+        final requestResult = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
 
         await authService.resetPassword(
           email: 'test@gmail.com',
@@ -524,7 +551,10 @@ void main() {
         );
 
         // Login with new password should work
-        final loginResult = await authService.login('test@gmail.com', 'NewPassword456');
+        final loginResult = await authService.login(
+          'test@gmail.com',
+          'NewPassword456',
+        );
         expect(loginResult.success, isTrue);
       });
 
@@ -541,7 +571,9 @@ void main() {
         );
 
         // Request and perform reset
-        final requestResult = await authService.requestPasswordReset('pwtest@test.com');
+        final requestResult = await authService.requestPasswordReset(
+          'pwtest@test.com',
+        );
         await authService.resetPassword(
           email: 'pwtest@test.com',
           code: requestResult.resetCode!,
@@ -549,16 +581,24 @@ void main() {
         );
 
         // Login with new password
-        final loginResult = await authService.login('pwtest@test.com', 'NewPassword789');
+        final loginResult = await authService.login(
+          'pwtest@test.com',
+          'NewPassword789',
+        );
         expect(loginResult.success, isTrue);
 
         // Old password should no longer work
-        final oldLoginResult = await authService.login('pwtest@test.com', 'OldPassword123');
+        final oldLoginResult = await authService.login(
+          'pwtest@test.com',
+          'OldPassword123',
+        );
         expect(oldLoginResult.success, isFalse);
       });
 
       test('normalizes email to lowercase', () async {
-        final requestResult = await authService.requestPasswordReset('test@gmail.com');
+        final requestResult = await authService.requestPasswordReset(
+          'test@gmail.com',
+        );
 
         final result = await authService.resetPassword(
           email: 'TEST@GMAIL.COM',

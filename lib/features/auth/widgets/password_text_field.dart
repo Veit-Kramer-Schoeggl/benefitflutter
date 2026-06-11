@@ -146,9 +146,7 @@ class _PasswordTextFieldState extends State<PasswordTextField> {
         helperText: _helperText,
         helperMaxLines: 2,
         suffixIcon: IconButton(
-          icon: Icon(
-            _obscureText ? Icons.visibility_off : Icons.visibility,
-          ),
+          icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
           onPressed: _toggleVisibility,
         ),
       ),
@@ -264,9 +262,7 @@ class _PasswordFormFieldState extends State<PasswordFormField> {
         helperMaxLines: 2,
         errorMaxLines: 2,
         suffixIcon: IconButton(
-          icon: Icon(
-            _obscureText ? Icons.visibility_off : Icons.visibility,
-          ),
+          icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
           onPressed: _toggleVisibility,
         ),
       ),

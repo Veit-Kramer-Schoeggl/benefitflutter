@@ -48,8 +48,8 @@ class WearableDevice {
     this.metadata,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Create a copy with updated fields
   WearableDevice copyWith({
@@ -118,10 +118,8 @@ class WearableDevice {
       metadata: json['metadata'] != null
           ? jsonDecode(json['metadata'] as String) as Map<String, dynamic>
           : null,
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
-      updatedAt:
-          DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updated_at'] as int),
     );
   }
 
@@ -129,8 +127,7 @@ class WearableDevice {
   bool get isConnected => status.isConnected;
 
   /// Whether this device supports heart rate monitoring
-  bool get supportsHeartRate =>
-      capabilities.contains(SensorType.heartRate);
+  bool get supportsHeartRate => capabilities.contains(SensorType.heartRate);
 
   /// Whether this device supports step counting
   bool get supportsSteps => capabilities.contains(SensorType.steps);
@@ -172,9 +169,7 @@ class WearableDevice {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is WearableDevice &&
-        other.id == id &&
-        other.userId == userId;
+    return other is WearableDevice && other.id == id && other.userId == userId;
   }
 
   @override

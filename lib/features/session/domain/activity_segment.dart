@@ -68,8 +68,8 @@ class ActivitySegment {
     this.confidence,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   /// Create from JSON (API response/database)
   factory ActivitySegment.fromJson(Map<String, dynamic> json) {
@@ -82,7 +82,9 @@ class ActivitySegment {
       distanceMeters: json['distance_meters'] != null
           ? (json['distance_meters'] as num).toDouble()
           : null,
-      detectionSource: DetectionSource.fromJson(json['detection_source'] as String?),
+      detectionSource: DetectionSource.fromJson(
+        json['detection_source'] as String?,
+      ),
       confidence: json['confidence'] != null
           ? (json['confidence'] as num).toDouble()
           : null,

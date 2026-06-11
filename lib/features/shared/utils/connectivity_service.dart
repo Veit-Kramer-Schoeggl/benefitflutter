@@ -67,10 +67,12 @@ class ConnectivityService {
   /// Supports multiple simultaneous connections (e.g., WiFi + Ethernet)
   /// Returns true if ANY connection is active
   bool _isConnected(List<ConnectivityResult> results) {
-    return results.any((result) =>
-        result == ConnectivityResult.wifi ||
-        result == ConnectivityResult.mobile ||
-        result == ConnectivityResult.ethernet);
+    return results.any(
+      (result) =>
+          result == ConnectivityResult.wifi ||
+          result == ConnectivityResult.mobile ||
+          result == ConnectivityResult.ethernet,
+    );
   }
 
   /// Dispose of resources

@@ -35,11 +35,7 @@ class WearableDeviceDao {
   /// Delete a wearable device
   Future<void> delete(String deviceId) async {
     final db = await _dbHelper.database;
-    await db.delete(
-      'wearable_devices',
-      where: 'id = ?',
-      whereArgs: [deviceId],
-    );
+    await db.delete('wearable_devices', where: 'id = ?', whereArgs: [deviceId]);
   }
 
   /// Get a device by ID

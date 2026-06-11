@@ -128,9 +128,9 @@ class HealthDataPoint {
     this.metadata,
     DateTime? syncedAt,
     DateTime? createdAt,
-  })  : id = id ?? const Uuid().v4(),
-        syncedAt = syncedAt ?? DateTime.now(),
-        createdAt = createdAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       syncedAt = syncedAt ?? DateTime.now(),
+       createdAt = createdAt ?? DateTime.now();
 
   /// Create a copy with updated fields
   HealthDataPoint copyWith({
@@ -182,16 +182,14 @@ class HealthDataPoint {
       userId: json['user_id'] as String,
       dataType: HealthDataType.fromJson(json['data_type'] as String),
       value: json['value'] as String,
-      startTime:
-          DateTime.fromMillisecondsSinceEpoch(json['start_time'] as int),
+      startTime: DateTime.fromMillisecondsSinceEpoch(json['start_time'] as int),
       endTime: DateTime.fromMillisecondsSinceEpoch(json['end_time'] as int),
       sourceApp: json['source_app'] as String?,
       metadata: json['metadata'] != null
           ? jsonDecode(json['metadata'] as String) as Map<String, dynamic>
           : null,
       syncedAt: DateTime.fromMillisecondsSinceEpoch(json['synced_at'] as int),
-      createdAt:
-          DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['created_at'] as int),
     );
   }
 
@@ -251,9 +249,7 @@ class HealthDataPoint {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is HealthDataPoint &&
-        other.id == id &&
-        other.userId == userId;
+    return other is HealthDataPoint && other.id == id && other.userId == userId;
   }
 
   @override

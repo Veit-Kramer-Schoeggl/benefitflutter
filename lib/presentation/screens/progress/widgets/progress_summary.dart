@@ -27,7 +27,9 @@ class ProgressSummary extends StatelessWidget {
     required BuildContext context,
   }) {
     final Color darkGrey = AppTheme.darkGrey;
-    final cardShape = Theme.of(context).cardTheme.shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
+    final cardShape =
+        Theme.of(context).cardTheme.shape ??
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10));
 
     return Expanded(
       child: Card(
@@ -41,7 +43,10 @@ class ProgressSummary extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(fontSize: 12, color: darkGrey.withOpacity(0.7)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: darkGrey.withOpacity(0.7),
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -88,16 +93,34 @@ class ProgressSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
 
-    final Color primaryColor = Theme.of(context).colorScheme.primary; // primaryGreen
+    final Color primaryColor = Theme.of(
+      context,
+    ).colorScheme.primary; // primaryGreen
     final Color darkGrey = AppTheme.darkGrey; // darkGrey
 
     // 1. Weekly statistics (Monday to today)
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1)).copyWith(hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
-    final weekStats = _getStatsForRange((entry) => entry.startTime.isAfter(startOfWeek.subtract(const Duration(milliseconds: 1))));
+    final startOfWeek = now
+        .subtract(Duration(days: now.weekday - 1))
+        .copyWith(
+          hour: 0,
+          minute: 0,
+          second: 0,
+          millisecond: 0,
+          microsecond: 0,
+        );
+    final weekStats = _getStatsForRange(
+      (entry) => entry.startTime.isAfter(
+        startOfWeek.subtract(const Duration(milliseconds: 1)),
+      ),
+    );
 
     // 2. Monthly statistics
     final startOfMonth = DateTime(now.year, now.month, 1);
-    final monthStats = _getStatsForRange((entry) => entry.startTime.isAfter(startOfMonth.subtract(const Duration(milliseconds: 1))));
+    final monthStats = _getStatsForRange(
+      (entry) => entry.startTime.isAfter(
+        startOfMonth.subtract(const Duration(milliseconds: 1)),
+      ),
+    );
 
     // 3. Total statistics
     final totalStats = provider.getTotalStats();
@@ -119,7 +142,8 @@ class ProgressSummary extends StatelessWidget {
               _buildStatCard(
                 context: context,
                 title: 'This Week',
-                primaryValue: '${weekStats['distanceKm'].toStringAsFixed(1)} km',
+                primaryValue:
+                    '${weekStats['distanceKm'].toStringAsFixed(1)} km',
                 secondaryValue: _formatDuration(weekStats['duration']),
                 primaryColor: primaryColor,
               ),
@@ -127,7 +151,8 @@ class ProgressSummary extends StatelessWidget {
               _buildStatCard(
                 context: context,
                 title: 'This Month',
-                primaryValue: '${monthStats['distanceKm'].toStringAsFixed(1)} km',
+                primaryValue:
+                    '${monthStats['distanceKm'].toStringAsFixed(1)} km',
                 secondaryValue: _formatDuration(monthStats['duration']),
                 primaryColor: primaryColor,
               ),
