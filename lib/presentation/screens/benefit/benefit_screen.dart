@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
@@ -12,7 +13,6 @@ import 'package:benefitflutter/presentation/screens/benefit/widgets/benefit_list
 import 'package:benefitflutter/presentation/screens/benefit/widgets/empty_benefits_widget.dart';
 import 'package:benefitflutter/core/seed/seed_service.dart';
 import 'package:benefitflutter/core/config/repository_config.dart';
-import 'package:benefitflutter/presentation/screens/benefit/benefit_qr_screen.dart';
 import 'package:benefitflutter/features/benefit/domain/user_benefit.dart';
 
 /// Benefit screen - Tab 3: Benefits, savings & rewards
@@ -204,13 +204,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
                     onBenefitTap: (benefitVM) {
                       if (benefitVM.userBenefit.status ==
                           BenefitStatus.redeemed) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                BenefitQrScreen(benefitVM: benefitVM),
-                          ),
-                        );
+                        context.push('/benefit-qr', extra: benefitVM);
                       }
                     },
 

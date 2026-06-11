@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,7 +9,6 @@ import 'package:benefitflutter/features/wearable_integration/data/sources/ble_da
 import 'package:benefitflutter/features/wearable_integration/domain/wearable_device.dart';
 import 'package:benefitflutter/features/wearable_integration/domain/enums.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
-import 'device_pairing_screen.dart';
 
 /// Device Connection Screen - Main hub for wearable device management
 ///
@@ -395,12 +395,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
-                  final result = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DevicePairingScreen(),
-                    ),
-                  );
+                  final result = await context.push<bool>('/device-pairing');
 
                   // Reload devices if a new device was connected
                   if (result == true) {

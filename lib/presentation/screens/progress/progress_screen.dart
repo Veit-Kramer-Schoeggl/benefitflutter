@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:benefitflutter/providers/progress_provider.dart';
@@ -6,7 +7,6 @@ import 'package:benefitflutter/features/session/domain/activity_entry.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/statistics_tab.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/activities_tab.dart';
 import 'package:benefitflutter/core/config/theme.dart';
-import 'package:benefitflutter/presentation/screens/session/session_detail_screen.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 
@@ -361,12 +361,7 @@ class _ProgressScreenState extends State<ProgressScreen>
   }
 
   void _openSessionDetails(BuildContext context, ActivityEntry entry) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SessionDetailScreen(sessionId: entry.sessionId),
-      ),
-    );
+    context.push('/session/${entry.sessionId}');
   }
 
   // ignore: unused_element — dead code (manual edit/delete dialog not wired to UI); pending dead-code decision (see documentation/ARCHITECTURE_REVIEW.md).

@@ -1,15 +1,25 @@
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:benefitflutter/providers/auth_provider.dart';
 
 /// Handles deep links for the BeneFit app
 ///
 /// Supports:
 /// - benefit://reset-password?token=xxx
+///
+/// Navigates via [GoRouter]. Cold-start links are buffered until the session
+/// has been restored ([AuthProvider.isInitialized]), otherwise the router's
+/// boot redirect ("not initialized → /splash") would discard the target.
 class DeepLinkHandler {
   final AppLinks _appLinks = AppLinks();
-  final GlobalKey<NavigatorState> navigatorKey;
+  final GoRouter router;
+  final AuthProvider authProvider;
 
-  DeepLinkHandler({required this.navigatorKey});
+  Uri? _pendingLink;
+
+  DeepLinkHandler({required this.router, required this.authProvider});
 
   /// Initialize deep link handling
   ///
@@ -49,6 +59,27 @@ class DeepLinkHandler {
       return;
     }
 
+    // Cold start: defer until the session restore finished, so the router's
+    // boot redirect doesn't bounce us back to /splash and lose the link.
+    if (!authProvider.isInitialized) {
+      _pendingLink = uri;
+      void replay() {
+        if (authProvider.isInitialized) {
+          authProvider.removeListener(replay);
+          final pending = _pendingLink;
+          _pendingLink = null;
+          if (pending != null) _navigate(pending);
+        }
+      }
+
+      authProvider.addListener(replay);
+      return;
+    }
+
+    _navigate(uri);
+  }
+
+  void _navigate(Uri uri) {
     switch (uri.host) {
       case 'reset-password':
         final token = uri.queryParameters['token'];
@@ -56,15 +87,8 @@ class DeepLinkHandler {
         debugPrint(
           'DeepLinkHandler: Navigating to reset-password (token present: ${token != null && token.isNotEmpty})',
         );
-        if (token != null && token.isNotEmpty) {
-          navigatorKey.currentState?.pushNamed(
-            '/reset-password',
-            arguments: {'token': token},
-          );
-        } else {
-          // No token - still navigate to reset screen
-          navigatorKey.currentState?.pushNamed('/reset-password');
-        }
+        // Token via `extra` keeps it out of the URL/route history.
+        router.go('/reset-password', extra: token);
         break;
       default:
         debugPrint('DeepLinkHandler: Unknown host - ${uri.host}');

@@ -1,6 +1,7 @@
 import 'dart:ui'; // for ImageFilter.blur
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/activity_provider.dart';
 import 'package:benefitflutter/providers/connectivity_provider.dart';
@@ -8,7 +9,6 @@ import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/tracking_state.dart';
 import 'package:benefitflutter/presentation/shared/widgets/error_display_widget.dart';
 import 'package:benefitflutter/presentation/screens/wearable/widgets/heart_rate_display.dart';
-import 'package:benefitflutter/presentation/screens/wearable/device_connection_screen.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 
 /// Activity screen - Running session with real GPS tracking
@@ -256,15 +256,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             child: HeartRateDisplayCompact(
                               currentHeartRate: provider.currentHeartRate,
                               isConnected: provider.hasHeartRateMonitor,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const DeviceConnectionScreen(),
-                                  ),
-                                );
-                              },
+                              onTap: () => context.push('/device-connection'),
                             ),
                           ),
 

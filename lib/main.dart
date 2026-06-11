@@ -2,19 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/core/config/theme.dart';
 import 'package:benefitflutter/core/config/repository_config.dart';
+import 'package:benefitflutter/core/router/app_router.dart';
 import 'package:benefitflutter/core/seed/seed_service.dart';
 import 'package:benefitflutter/core/seed/seed_config.dart';
-import 'package:benefitflutter/presentation/screens/splash/splash_screen.dart';
-import 'package:benefitflutter/presentation/screens/auth/login_screen.dart';
-import 'package:benefitflutter/presentation/screens/auth/register_screen.dart';
-import 'package:benefitflutter/presentation/screens/auth/email_verification_screen.dart';
-import 'package:benefitflutter/presentation/screens/auth/forgot_password_screen.dart';
-import 'package:benefitflutter/presentation/screens/auth/reset_password_screen.dart';
 import 'package:benefitflutter/presentation/screens/security/app_lock_screen.dart';
-import 'package:benefitflutter/presentation/navigation/main_navigation.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/providers/profile_provider.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
@@ -31,9 +26,6 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:benefitflutter/core/deep_link/deep_link_handler.dart';
 import 'package:benefitflutter/core/logging/app_logger.dart';
 import 'package:benefitflutter/core/config/app_config.dart';
-
-/// Global navigator key for deep link navigation
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   // Catch-all guard for async errors that escape the framework handlers.
@@ -133,8 +125,21 @@ Future<void> _bootstrap() async {
     userRepository: RepositoryConfig.getUserRepository(),
   );
 
-  // Initialize deep link handler
-  final deepLinkHandler = DeepLinkHandler(navigatorKey: navigatorKey);
+  // AuthProvider is created here (not in the MultiProvider) so the go_router
+  // redirect and the deep-link handler can both reference the same instance.
+  final authProvider = AuthProvider(
+    repository: RepositoryConfig.getUserRepository(),
+    authService: authService,
+    tokenStorage: tokenStorage,
+  );
+  final router = createAppRouter(authProvider);
+
+  // Deep link handler navigates via the router (buffers cold-start links until
+  // the session has been restored).
+  final deepLinkHandler = DeepLinkHandler(
+    router: router,
+    authProvider: authProvider,
+  );
   await deepLinkHandler.initialize();
 
   runApp(
@@ -142,13 +147,7 @@ Future<void> _bootstrap() async {
     MultiProvider(
       providers: [
         // Auth Provider - MUST BE FIRST - identity, sessions, account flows
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(
-            repository: RepositoryConfig.getUserRepository(),
-            authService: authService,
-            tokenStorage: tokenStorage,
-          ),
-        ),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         // Profile Provider - editable profile data; reads identity from AuthProvider
         ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
           create: (_) => ProfileProvider(RepositoryConfig.getUserRepository()),
@@ -195,14 +194,16 @@ Future<void> _bootstrap() async {
         // App Lock Provider - manages biometric app lock
         ChangeNotifierProvider(create: (_) => AppLockProvider()),
       ],
-      child: const BeneFitApp(),
+      child: BeneFitApp(router: router),
     ),
   );
 }
 
 /// Root application widget with lifecycle observer
 class BeneFitApp extends StatefulWidget {
-  const BeneFitApp({super.key});
+  final GoRouter router;
+
+  const BeneFitApp({super.key, required this.router});
 
   @override
   State<BeneFitApp> createState() => _BeneFitAppState();
@@ -269,59 +270,30 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
   }
 
   void _handlePasswordRequired() {
-    // Navigate to login screen and reset lock state after successful login
-    final appLockProvider = context.read<AppLockProvider>();
-    final authProvider = context.read<AuthProvider>();
-
-    // Logout and go to login screen
-    authProvider.logout();
-    appLockProvider.reset();
-    navigatorKey.currentState?.pushNamedAndRemoveUntil(
-      '/login',
-      (route) => false,
-    );
+    // Forced logout from the app-lock overlay → back to login.
+    context.read<AuthProvider>().logout();
+    context.read<AppLockProvider>().reset();
+    // Dismiss any imperative dialogs still open on the root navigator so they
+    // don't linger as ghosts over the login screen.
+    rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+    widget.router.go('/login');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppLockProvider>(
-      builder: (context, appLockProvider, child) {
-        return MaterialApp(
-          // Navigator key for deep link handling
-          navigatorKey: navigatorKey,
-
-          // App metadata
-          title: 'BeneFit',
-          debugShowCheckedModeBanner: false,
-
-          // Theme
-          theme: AppTheme.lightTheme,
-
-          // Show lock screen overlay when locked
-          builder: (context, child) {
+    return MaterialApp.router(
+      title: 'BeneFit',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      routerConfig: widget.router,
+      // App-lock overlay layers above all routes (incl. root-navigator pushes).
+      builder: (context, child) {
+        return Consumer<AppLockProvider>(
+          builder: (context, appLockProvider, _) {
             if (appLockProvider.isLocked) {
               return AppLockScreen(onPasswordRequired: _handlePasswordRequired);
             }
             return child ?? const SizedBox.shrink();
-          },
-
-          // Routing configuration
-          initialRoute: '/',
-          routes: {
-            '/': (context) => const SplashScreen(),
-            '/login': (context) => const LoginScreen(),
-            '/register': (context) => const RegisterScreen(),
-            '/verify': (context) => const EmailVerificationScreen(),
-            '/forgot-password': (context) => const ForgotPasswordScreen(),
-            '/reset-password': (context) => const ResetPasswordScreen(),
-            '/home': (context) => const MainNavigationScreen(),
-          },
-
-          // Handle unknown routes
-          onUnknownRoute: (settings) {
-            return MaterialPageRoute(
-              builder: (context) => const SplashScreen(),
-            );
           },
         );
       },

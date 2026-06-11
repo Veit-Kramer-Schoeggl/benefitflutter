@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import "package:image_picker/image_picker.dart";
 import 'package:benefitflutter/core/utils/password_utils.dart';
@@ -15,7 +16,6 @@ import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/providers/profile_provider.dart';
 import 'package:benefitflutter/providers/app_lock_provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:benefitflutter/presentation/screens/wearable/device_connection_screen.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -390,12 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.watch,
               subtitle: "Manage wearable devices",
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DeviceConnectionScreen(),
-                  ),
-                );
+                context.push('/device-connection');
               },
             ),
 
@@ -527,13 +522,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final authProvider = context.read<AuthProvider>();
       await authProvider.logout();
 
-      // Navigate to login screen (fire-and-forget route future)
+      // Navigate to login screen (go clears the stack like the old
+      // pushNamedAndRemoveUntil)
       if (mounted) {
-        unawaited(
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil('/login', (route) => false),
-        );
+        context.go('/login');
       }
     }
   }
@@ -1323,11 +1315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Success - navigate to login
                       if (dialogContext.mounted) Navigator.pop(dialogContext);
                       if (mounted) {
-                        unawaited(
-                          Navigator.of(
-                            this.context,
-                          ).pushNamedAndRemoveUntil('/login', (route) => false),
-                        );
+                        this.context.go('/login');
                       }
                     },
               child: isLoading
