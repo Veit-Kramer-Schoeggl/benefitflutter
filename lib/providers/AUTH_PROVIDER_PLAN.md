@@ -28,6 +28,11 @@
 > the original test-user scope below. The code examples in this document are the original PLAN
 > drafts (which used a single `UserProvider`) and do not match the final API exactly — read
 > them as historical design context; the shipped API is `AuthProvider` + `ProfileProvider`.
+>
+> **Routing note:** routing is now **go_router** (`lib/core/router/app_router.dart`,
+> `MaterialApp.router`). The auth gate is a central `redirect` keyed on
+> `AuthProvider.isInitialized`/`isAuthenticated` (with `refreshListenable: authProvider`),
+> not the splash-screen/named-route mechanism described in the older snippets below.
 
 ## Problem Statement
 The original problem this plan addressed: the app used hardcoded user IDs scattered across
@@ -382,13 +387,15 @@ if (userId == null) return LoadingOrLoginWidget();
 - Note: the live app uses `MockAuthService`; PostgREST/remote sync is still TODO.
 
 ### 5.2 Auth Guards — PARTIALLY IMPLEMENTED
-- Protect screens that require authentication (routing via named routes in `main.dart`)
-- Redirect to login if not authenticated ✅ (the `SplashScreen`
-  (`lib/presentation/screens/splash/splash_screen.dart` ~44-45) navigates to `/login` after
-  `authProvider.initialize()` when not authenticated). Note: the only `navigatorKey` → `/login`
-  navigation in the live app is the app-lock flow `_handlePasswordRequired()` in `main.dart`,
-  not an auth-failure flow; `AuthProvider.handleAuthFailure()` exists but is **not** currently
-  called anywhere.
+- Protect screens that require authentication (routing is now **go_router** — the
+  central `redirect` in `lib/core/router/app_router.dart` gates the app)
+- Redirect to login if not authenticated ✅ (the `redirect` keeps unauthenticated
+  users in the auth area and sends them to `/login`; `refreshListenable: authProvider`
+  re-runs it when auth state changes. The `SplashScreen` is now a pure loader that only
+  calls `authProvider.initialize()` — it no longer navigates itself.) Note: the only
+  forced `go('/login')` in the live app is the app-lock flow `_handlePasswordRequired()`
+  in `main.dart` (`widget.router.go('/login')` after `logout()`), not an auth-failure
+  flow; `AuthProvider.handleAuthFailure()` exists but is **not** currently called anywhere.
 - Handle token expiration ⚠️ (`AuthInterceptor` implements refresh-on-401 with a `needsRefresh`
   5-min window, but it is **not** wired into the live app — it is never instantiated/registered,
   so this is currently dead code)

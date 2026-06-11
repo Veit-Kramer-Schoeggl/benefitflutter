@@ -13,10 +13,10 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 ## Overview
 
 - **Database:** SQLite (benefit_app.db)
-- **Current Version:** 11 (after continuous tracking tables migration)
+- **Current Version:** 12 (after data-integrity hardening: orphan cleanup, email de-dup, UNIQUE email index)
 - **Pattern:** Offline-first with sync queue
 - **Location:** Platform databases directory (`getDatabasesPath()`)
-- **Foreign keys:** Enforced at runtime via `PRAGMA foreign_keys = ON` (set in `DatabaseHelper.onConfigure`), so the `ON DELETE CASCADE` / `SET NULL` rules below are active. A one-time `PRAGMA foreign_key_check` logs any pre-existing orphan rows (cleanup migration is a Phase 1 task).
+- **Foreign keys:** Enforced at runtime via `PRAGMA foreign_keys = ON` (set in `DatabaseHelper.onConfigure`), so the `ON DELETE CASCADE` / `SET NULL` rules below are active. A one-time `PRAGMA foreign_key_check` logs any pre-existing orphan rows on open. The v12 migration deletes such orphan child rows as part of its data-integrity pass (see migration v12 below).
 
 ## Core Tables
 
@@ -41,9 +41,9 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 
 **Indexes:**
 - Primary key on `id`
-- Index on `email` (`idx_users_email`, not unique)
+- Unique index on `email` (`idx_users_email_unique`, v12; replaces the earlier non-unique `idx_users_email`)
 
-**Security Note:** Passwords are stored as SHA-256 hashes (64 hex characters). Plain text passwords are never stored.
+**Security Note:** Passwords are stored as SHA-256 hashes (64 hex characters). Plain text passwords are never stored. DB-backed authentication looks up the user via `UserDao.findByEmail` (`email = ? COLLATE NOCASE`) and verifies with `PasswordUtils.verifyPassword`.
 
 ### sessions
 
@@ -496,6 +496,13 @@ DAOs live in `lib/features/wearable_integration/data/daos/`.
 - Created `continuous_tracking_config` table (+ unique index on `user_id`)
 - Created `continuous_tracking_state` table (+ unique index on `user_id`)
 - Created `activity_segments` table (+ indexes on `session_id` and `(start_time, end_time)`)
+
+### v12 (Data-Integrity Hardening)
+- Deletes leftover orphan child rows (rows whose required parent no longer exists) across session- and user-owned tables, left over from before FK enforcement
+- De-duplicates users by email without losing history: re-parents the duplicate's `sessions` and `user_benefits` to the kept (newest by `updated_at`/`created_at`/`id`) user, then deletes the duplicate (FK cascade removes its redundant singleton rows)
+- Replaces the non-unique `idx_users_email` with a UNIQUE index `idx_users_email_unique` on `users(email)` (fresh databases create the unique index directly)
+
+> **Note:** v12 changes data and the email index only — no new columns or tables. `UserDao` gained a `findByEmail` query (used by DB-backed auth) but that required no schema change since the email column and index already existed.
 
 ## GPS Tracking Configuration
 

@@ -10,12 +10,15 @@
 > `data/` / `domain/` / `usecases/` / `services/` split shown below.
 >
 > Actual current top-level structure under `lib/` is:
-> `main.dart`, `core/` (config, constants, deep_link, enums, network, seed,
-> utils), `features/` (auth, benefit, security, session, shared, user,
-> wearable_integration), `presentation/` (navigation, screens, shared), and
-> `providers/`. There is no `lib/app.dart`, `lib/data/`, `lib/domain/`, or
-> `lib/services/`; the root widget lives in `main.dart`, and named routes are
-> defined in `main.dart` (there is no `core/config/routes.dart`).
+> `main.dart`, `core/` (config, constants, deep_link, enums, logging, network,
+> router, seed, utils), `features/` (auth, benefit, security, session, shared,
+> user, wearable_integration), `presentation/` (navigation, screens, shared),
+> and `providers/`. There is no `lib/app.dart`, `lib/data/`, `lib/domain/`, or
+> `lib/services/`; the root widget lives in `main.dart`. Routing now uses
+> **go_router** (`MaterialApp.router`) with a single `GoRouter` defined in
+> `lib/core/router/app_router.dart` (redirect-based auth-gate, `StatefulShellRoute`
+> for the 5 tabs) — the older Navigator 1.0 named-route map in `main.dart` is gone,
+> and there is no `core/config/routes.dart`.
 >
 > The tree below is the aspirational target and is intentionally left as-is.
 

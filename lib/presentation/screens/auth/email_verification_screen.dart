@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
@@ -39,17 +38,18 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     final success = await userProvider.verifyEmail(_codeController.text);
 
     if (success && mounted) {
-      // Navigate to home on success (fire-and-forget route future)
-      unawaited(Navigator.of(context).pushReplacementNamed('/home'));
+      // Navigate to home on success.
+      context.go('/home/activity');
     }
   }
 
-  /// Handle back button - clear pending registration
+  /// Handle back button - clear pending registration.
+  /// Reached via `go` from register (no back stack), so navigate explicitly.
   void _handleBack() {
     final userProvider = context.read<AuthProvider>();
     userProvider.clearPendingRegistration();
     userProvider.clearError();
-    Navigator.of(context).pop();
+    context.go('/login');
   }
 
   @override
@@ -72,7 +72,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 !userProvider.isAuthenticated) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  Navigator.of(context).pushReplacementNamed('/register');
+                  context.go('/register');
                 }
               });
               return const Center(child: CircularProgressIndicator());

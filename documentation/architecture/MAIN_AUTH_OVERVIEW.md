@@ -10,7 +10,9 @@
 
 ## Purpose
 
-The main.dart file serves as the entry point for the BeneFit app, defining the routing structure and integrating authentication flow. It determines whether users see the login screen or main app based on their authentication status.
+The main.dart file serves as the entry point for the BeneFit app, wiring up the router and integrating the authentication flow. It determines whether users see the login screen or main app based on their authentication status.
+
+Routing uses **go_router**: `main.dart` builds the router with `createAppRouter(authProvider)` and renders `MaterialApp.router`. The route tree and the central auth redirect live in [`lib/core/router/app_router.dart`](../../lib/core/router/app_router.dart).
 
 ## Navigation Flow
 
@@ -18,53 +20,52 @@ The main.dart file serves as the entry point for the BeneFit app, defining the r
 ┌─────────────────────────────────────────────────────────┐
 │                   App Navigation Flow                    │
 │                                                          │
-│   main() ──► MaterialApp                                │
+│   main() ──► MaterialApp.router (createAppRouter)        │
 │                  │                                       │
 │                  ▼                                       │
-│              Routes:                                     │
-│              '/'      → SplashScreen                    │
-│              '/login' → LoginScreen                     │
-│              '/home'  → MainNavigationScreen (5 tabs)   │
-│                                                          │
+│         initialLocation: '/splash'                      │
 │                  │                                       │
 │                  ▼                                       │
-│           initialRoute: '/'                             │
+│            SplashScreen (pure loader)                   │
+│         calls AuthProvider.initialize()                 │
 │                  │                                       │
-│                  ▼                                       │
-│            SplashScreen                                 │
-│                  │                                       │
-│           Check auth status                             │
+│         central redirect re-runs                        │
+│         (refreshListenable: authProvider)               │
 │                  │                                       │
 │         ┌───────┴───────┐                               │
 │         │               │                               │
 │    Logged in      Not logged in                         │
 │         │               │                               │
 │         ▼               ▼                               │
-│      '/home'        '/login'                            │
+│  '/home/activity'    '/login'                           │
 └─────────────────────────────────────────────────────────┘
 ```
 
-> **Note:** This is a simplified high-level flow showing the main paths. The full list of routes is in [Named Routes](#named-routes) below.
+> **Note:** This is a simplified high-level flow showing the main paths. The full route list is in [Routes](#routes) below.
 
 ## Key Concepts
 
-### Named Routes
-The app uses named routes for navigation, making it easy to navigate between screens and manage the navigation stack:
-- `'/'` - Splash screen (initial route)
+### Routes
+Routing is declared with **go_router** in `lib/core/router/app_router.dart`. The app boots at `/splash` and navigation between auth/home is driven by a central `redirect` (see [Auth Redirect](#auth-redirect)), not imperative calls:
+- `'/splash'` - Splash loader (initial location)
 - `'/login'` - Login screen
 - `'/register'` - Registration screen
 - `'/verify'` - Email verification screen
 - `'/forgot-password'` - Request password reset
-- `'/reset-password'` - Reset password (also reached via deep link)
-- `'/home'` - Main app with bottom navigation
+- `'/reset-password'` - Reset password (also reached via deep link; token passed via `extra`)
+- `'/home/{community,progress,activity,benefit,profile}'` - Main app, a `StatefulShellRoute.indexedStack` with 5 tabs (default `/home/activity`)
+- Full-screen pushes on the root navigator: `'/session/:id'`, `'/device-connection'`, `'/device-pairing'`, `'/benefit-qr'`
 
-Unknown routes fall back to the splash screen (`onUnknownRoute`).
+Unknown routes are surfaced via the router's `errorBuilder`, which falls back to the splash screen (which then redirects).
 
-### Push Replacement
-The splash screen uses `pushReplacementNamed` to navigate, which:
-- Removes the splash screen from the navigation stack
-- Prevents users from pressing "back" to return to splash
-- Creates a clean navigation flow
+### Auth Redirect
+Instead of the splash screen imperatively navigating, a central `redirect` in `app_router.dart` gates the app:
+- It holds on `/splash` until `AuthProvider.isInitialized` is `true` (session restore done).
+- Once initialized, it routes to `/home/activity` (if `isAuthenticated`) or `/login`.
+- Unauthenticated users are kept inside the auth area; an authenticated user on `/login` is sent home.
+- `refreshListenable: authProvider` re-runs the redirect whenever auth state changes.
+
+Screens navigate with `context.go` / `context.push` (no named routes or global `navigatorKey`). A runtime **app-lock overlay** is layered in `MaterialApp.router`'s `builder`.
 
 ### Provider Setup
 Main.dart configures the Provider tree:
@@ -75,7 +76,7 @@ Main.dart configures the Provider tree:
 
 ## The 5 Main Tabs
 
-After authentication, users access the main app with five tabs. The bar opens on the **Activity** tab by default (`_currentIndex = 2`):
+After authentication, users access the main app with five tabs (a `StatefulShellRoute.indexedStack`). The redirect lands users on the **Activity** tab by default (`/home/activity`, branch index 2):
 
 | Tab Index | Screen | Purpose |
 |-----------|--------|---------|
@@ -89,7 +90,10 @@ After authentication, users access the main app with five tabs. The bar opens on
 
 ```
 lib/
-├── main.dart                    # Entry point + routes
+├── main.dart                    # Entry point; builds router + MaterialApp.router
+├── core/
+│   └── router/
+│       └── app_router.dart      # go_router route tree + central auth redirect
 ├── presentation/
 │   ├── screens/
 │   │   ├── splash/              # Initial loading

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/utils/password_validator.dart';
@@ -6,7 +7,11 @@ import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
 
 /// Reset password screen - enter code and new password
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  /// Optional reset code delivered via deep link (`benefit://reset-password?token=`),
+  /// passed by the router as `extra`/query. When present it pre-fills the code field.
+  final String? token;
+
+  const ResetPasswordScreen({super.key, this.token});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -30,10 +35,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   void initState() {
     super.initState();
     _passwordController.addListener(_onPasswordChanged);
-    // Check for deep link token after frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForDeepLinkToken();
-    });
+    // Pre-fill the code from a deep-link token, if any.
+    if (widget.token != null && widget.token!.isNotEmpty) {
+      _codeController.text = widget.token!;
+    }
   }
 
   void _onPasswordChanged() {
@@ -49,14 +54,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  /// Check for token from deep link arguments
-  void _checkForDeepLinkToken() {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is Map<String, String> && args['token'] != null) {
-      _codeController.text = args['token']!;
-    }
   }
 
   /// Handle reset password button press
@@ -148,8 +145,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         actions: [
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushReplacementNamed('/login');
+              Navigator.of(context).pop(); // close dialog
+              context.go('/login');
             },
             child: const Text('Sign In'),
           ),
@@ -163,7 +160,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final userProvider = context.read<AuthProvider>();
     userProvider.clearPendingReset();
     userProvider.clearError();
-    Navigator.of(context).pop();
+    // May have been reached via deep link (go) with no back stack → go to login.
+    context.go('/login');
   }
 
   @override
@@ -181,15 +179,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       body: SafeArea(
         child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
-            // Redirect if no pending reset (and not just reset successfully)
+            // Redirect if no pending reset AND no deep-link token (and not just
+            // reset successfully).
             if (userProvider.pendingResetEmail == null &&
+                widget.token == null &&
                 !userProvider.isLoading &&
                 !_resetSuccessful) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushReplacementNamed('/forgot-password');
+                  context.go('/forgot-password');
                 }
               });
               return const Center(child: CircularProgressIndicator());

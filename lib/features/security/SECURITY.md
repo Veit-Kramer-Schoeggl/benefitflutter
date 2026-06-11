@@ -42,14 +42,22 @@
 
 ### Data Encryption
 - [x] Auth tokens stored via `flutter_secure_storage`
-  - Android: EncryptedSharedPreferences
+  - Android: custom AES ciphers (flutter_secure_storage 10/11). The deprecated
+    `encryptedSharedPreferences` flag has been removed from `AndroidOptions`; the
+    plugin auto-migrates existing data to the custom cipher implementation.
   - iOS: Keychain with first_unlock_this_device accessibility
-- [x] Rate limit state stored securely
-- [x] Biometric preferences stored securely
+- [x] Rate limit state stored securely (`rate_limit_storage.dart`)
+- [x] Biometric preferences stored securely (`security_preferences.dart`)
 
 ### Password Security
-- [x] Passwords hashed with SHA-256 before storage
+- [x] Passwords hashed with SHA-256 before storage (`PasswordUtils.hashPassword`)
 - [x] Plain-text passwords never stored
+- [x] Authentication verifies against the durable SQLite users table:
+  `MockAuthService` (when given a `UserRepository`) looks up the user via
+  `UserRepository.getUserByEmail` (→ `UserDao.findByEmail`, `email = ? COLLATE
+  NOCASE`) and checks the candidate with `PasswordUtils.verifyPassword`. Password
+  changes, resets, and registrations are written to the DB, so they survive a
+  process restart.
 - [x] Password validation enforces minimum requirements:
   - 8+ characters
   - 1 uppercase letter
@@ -60,13 +68,18 @@
 | Item | Location | Status | Notes |
 |------|----------|--------|-------|
 | API Base URL | `security_config.dart` | Fixed | Moved to centralized config |
-| Test Credentials | `auth_service.dart`, `seed_data.dart` | Acceptable | Mock service for development |
+| Test Credentials | `auth_service.dart`, `seed_data.dart` | Acceptable | In-memory fallback in mock service for development; DB-backed auth is used in production |
 | Certificate Fingerprints | `certificate_pinning.dart` | Placeholder | Replace before production |
 
 ### Debug Logging
 - [x] All sensitive data logging uses `debugPrint()` which is compiled out in release
 - [x] Token values not logged directly
 - [x] Verification codes only logged in debug mode
+
+### Static Analysis Gates
+- [x] `strict-casts: true` enabled in `analysis_options.yaml`
+- [x] CI runs `dart analyze --fatal-infos lib` (infos fail the build) plus a
+  `dart format` check, tests, and a debug APK build (`.github/workflows/ci.yml`)
 
 ---
 

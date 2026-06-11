@@ -8,14 +8,20 @@
 
 # Authentication Implementation Roadmap
 
+> **Routing note:** Sprint task lists below mention Navigator-1.0 named routes
+> (e.g. "add `/register` route") — these reflect the plan at the time. Routing has
+> since migrated to **go_router** (`lib/core/router/app_router.dart`,
+> `MaterialApp.router`); the auth gate is now a central `redirect`, not the splash
+> screen navigating imperatively. See the updated "Current State" checklist below.
+
 ## Current State (as of Sprint 1)
 
 ### Completed
 - [x] **AuthProvider** - Centralized auth/identity state management with ChangeNotifier (split out of the former `UserProvider`; editable profile data now lives in `ProfileProvider`)
 - [x] **Session persistence** - JWT tokens stored securely via `TokenStorage` (flutter_secure_storage) and restored across app restarts
 - [x] **Login screen** - Email/password form with validation and error display
-- [x] **Splash screen** - Initializes auth, routes to login or home
-- [x] **Named routes** - `/`, `/login`, `/home`
+- [x] **Splash screen** - Pure loader that calls `AuthProvider.initialize()`; the central go_router redirect routes to login or home once initialized
+- [x] **Routing (go_router)** - Route tree + central auth redirect in `lib/core/router/app_router.dart`; `main.dart` uses `MaterialApp.router`. Replaced the original Navigator-1.0 named-routes map (`/`, `/login`, `/home`). Home is a `StatefulShellRoute.indexedStack` (`/home/{community,progress,activity,benefit,profile}`, default Activity)
 - [x] **Logout** - ProfileScreen has logout button with confirmation dialog
 - [x] **ProxyProvider pattern** - Configured in main.dart for dependent providers
 - [x] **ActivityProvider** - Has `updateUserId()` method for dynamic user ID

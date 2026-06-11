@@ -1,55 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/presentation/screens/activity/activity_screen.dart';
-import 'package:benefitflutter/presentation/screens/progress/progress_screen.dart';
-import 'package:benefitflutter/presentation/screens/benefit/benefit_screen.dart';
-import 'package:benefitflutter/presentation/screens/profile/profile_screen.dart';
-import 'package:benefitflutter/presentation/screens/community/community_screen.dart';
 import 'package:benefitflutter/providers/progress_provider.dart';
 
-/// Main navigation screen with 5 bottom tabs
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+/// Main navigation scaffold with 5 bottom tabs, driven by go_router's
+/// [StatefulNavigationShell] (each tab is a branch with its own navigator, so
+/// per-tab state survives switching — same UX as the previous IndexedStack).
+class MainNavigationScreen extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
 
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
+  const MainNavigationScreen({super.key, required this.navigationShell});
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 2; // Start at Activity tab (index 2)
-
-  // List of screens for each tab
-  final List<Widget> _screens = const [
-    CommunityScreen(), // Tab 0: Community
-    ProgressScreen(), // Tab 1: Progress
-    ActivityScreen(), // Tab 2: Activity
-    BenefitScreen(), // Tab 3: Benefits & rewards
-    ProfileScreen(), // Tab 4: Profile
-  ];
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    // Reload Progress data when navigating to Progress tab (index 1)
+  void _onTabTapped(BuildContext context, int index) {
+    // Reload Progress data when navigating to the Progress tab (index 1),
+    // preserving the previous behaviour. Hooked before the branch switch.
     if (index == 1) {
-      // Use addPostFrameCallback to ensure context is available
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (context.mounted) {
           context.read<ProgressProvider>().loadActivities();
         }
       });
     }
+
+    // Tapping the active tab returns it to its root.
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = navigationShell.currentIndex;
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+        currentIndex: currentIndex,
+        onTap: (index) => _onTabTapped(context, index),
         type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
@@ -57,7 +44,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               'assets/images/icons/community/icon_community.png',
               width: 24,
               height: 24,
-              color: _currentIndex == 0
+              color: currentIndex == 0
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),
@@ -68,7 +55,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               'assets/images/icons/progress/icon_progress.png',
               width: 24,
               height: 24,
-              color: _currentIndex == 1
+              color: currentIndex == 1
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),
@@ -79,7 +66,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               'assets/images/icons/activity/icon_activity.png',
               width: 24,
               height: 24,
-              color: _currentIndex == 2
+              color: currentIndex == 2
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),
@@ -90,7 +77,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               'assets/images/icons/benefit/icon_benefit.png',
               width: 24,
               height: 24,
-              color: _currentIndex == 3
+              color: currentIndex == 3
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),
@@ -101,7 +88,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               'assets/images/icons/profile/icon_profil.png',
               width: 24,
               height: 24,
-              color: _currentIndex == 4
+              color: currentIndex == 4
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),

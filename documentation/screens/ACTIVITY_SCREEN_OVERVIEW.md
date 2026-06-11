@@ -73,8 +73,9 @@ A single multi-purpose button drives the session. Its label and action change wi
 ### During Tracking
 - Timer updates every second
 - Distance accumulates from GPS data and is shown in km
+- GPS points are **batch-inserted**: qualifying points are buffered in memory and flushed to the database in batches of 10 (and on pause/stop/app-background), not written one-by-one. Distance and the UI read the in-memory point list, so batching doesn't delay the display
 - Live heart rate requires a connected BLE monitor. The Start button does not currently pass a `heartRateDeviceId` to `startSession()`, so `currentHeartRate` stays null and the heart-rate display shows "--" (with a tap-to-connect action) unless a monitor is connected
-- Session data persists in the database
+- Session data persists in the database (the session row is updated as distance changes; raw GPS points are batched as above)
 - User can pause (tap) at any time; tapping again resumes
 
 ### Stopping a Session

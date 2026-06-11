@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:benefitflutter/features/benefit/domain/benefit_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 
 class BenefitQrScreen extends StatelessWidget {
-  final BenefitViewModel benefitVM;
+  /// Nullable because it is passed via go_router `extra`, which is lost on a
+  /// process-restart/restore. When null we show a fallback instead of crashing.
+  final BenefitViewModel? benefitVM;
 
   const BenefitQrScreen({super.key, required this.benefitVM});
 
@@ -14,12 +17,42 @@ class BenefitQrScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
 
-    final redemptionCode = benefitVM.userBenefit.redemptionCode ?? 'NO-CODE';
+    final vm = benefitVM;
+    if (vm == null) {
+      // extra was lost (e.g. Android killed the process while backgrounded).
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Redeem Benefit'),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'This benefit could not be loaded. Please reopen it from '
+                  'the Benefits tab.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => context.go('/home/benefit'),
+                  child: const Text('Back to Benefits'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final redemptionCode = vm.userBenefit.redemptionCode ?? 'NO-CODE';
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BenefitProvider>().loadPartners(
-        benefitVM.userBenefit.benefitId,
-      );
+      context.read<BenefitProvider>().loadPartners(vm.userBenefit.benefitId);
     });
 
     return Scaffold(
@@ -54,7 +87,7 @@ class BenefitQrScreen extends StatelessWidget {
               children: [
                 // Title
                 Text(
-                  benefitVM.title,
+                  vm.title,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -65,7 +98,7 @@ class BenefitQrScreen extends StatelessWidget {
 
                 // Optional discount info
                 Text(
-                  benefitVM.formattedAmount,
+                  vm.formattedAmount,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: primaryColor,
                     fontWeight: FontWeight.w500,

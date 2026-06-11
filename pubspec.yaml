@@ -98,6 +98,7 @@ dependencies:
   app_links: ^7.0.0
   logger: ^2.7.0
   sentry_flutter: ^8.14.2
+  go_router: ^17.3.0
 
 dev_dependencies:
   flutter_test:

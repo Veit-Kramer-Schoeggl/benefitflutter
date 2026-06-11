@@ -22,7 +22,7 @@ The screen is organised into two tabs (`STATISTICS` and `ACTIVITIES`) driven by 
 | **Statistics Charts** | Weekly / monthly / yearly distance and duration charts plus summary cards |
 | **Activity List** | Activities grouped by date (Today / Yesterday / This Week / Older) |
 | **Manual Entry** *(planned)* | Add, edit, and delete manual activities via a dialog — provider methods and dialog code exist but are not yet wired to a UI entry point |
-| **Session Details** | Tapping any activity opens `SessionDetailScreen` |
+| **Session Details** | Tapping any activity opens `SessionDetailScreen` (go_router: `context.push('/session/:id')`) |
 | **Earned So Far Bar** | Bottom bar showing total savings from `BenefitProvider` |
 | **Empty State** | Friendly message when no activities exist |
 

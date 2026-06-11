@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/utils/password_validator.dart';
@@ -176,8 +177,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         actions: [
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushReplacementNamed('/verify');
+              Navigator.of(context).pop(); // close dialog
+              context.go('/verify');
             },
             child: const Text('Continue to Verification'),
           ),

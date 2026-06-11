@@ -1,10 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 
-/// Splash screen - shows loading animation and checks authentication
+/// Splash screen - pure loading screen shown while the session is restored.
+///
+/// Navigation is handled declaratively by the go_router redirect + the
+/// AuthProvider `refreshListenable`: once [AuthProvider.initialize] completes
+/// (`isInitialized` flips), the router moves the user to /home or /login.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -13,57 +15,16 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  String _status = 'Initializing...';
+  final String _status = 'Loading...';
 
   @override
   void initState() {
     super.initState();
-    _checkAuthAndNavigate();
-  }
-
-  /// Check authentication status and navigate to appropriate screen
-  Future<void> _checkAuthAndNavigate() async {
-    try {
-      // Step 1: Show initial status
-      setState(() => _status = 'Loading...');
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Step 2: Initialize AuthProvider (checks for stored session)
-      setState(() => _status = 'Checking session...');
-      if (!mounted) return;
-      final userProvider = context.read<AuthProvider>();
-      await userProvider.initialize();
-
-      // Step 3: Navigate based on auth status
-      if (!mounted) return;
-      final isAuthenticated = userProvider.isAuthenticated;
-
-      if (isAuthenticated) {
-        setState(
-          () => _status =
-              'Welcome back, ${userProvider.currentUser?.name ?? 'User'}!',
-        );
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-
-      // Navigate to appropriate screen (fire-and-forget route future)
-      if (!mounted) return;
-      unawaited(
-        Navigator.of(
-          context,
-        ).pushReplacementNamed(isAuthenticated ? '/home' : '/login'),
-      );
-    } catch (e) {
-      // Handle errors
-      debugPrint('SplashScreen error: $e');
-      setState(() => _status = 'Error: $e');
-      await Future.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        // On error, go to login screen (fire-and-forget route future)
-        unawaited(Navigator.of(context).pushReplacementNamed('/login'));
-      }
-    }
+    // Trigger session restore exactly once (idempotent). The redirect reacts
+    // to the resulting notifyListeners and routes away from /splash.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AuthProvider>().initialize();
+    });
   }
 
   @override

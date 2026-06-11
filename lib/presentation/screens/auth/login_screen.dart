@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/core/seed/seed_service.dart';
@@ -97,8 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      // Navigate to home on success (fire-and-forget route future)
-      unawaited(Navigator.of(context).pushReplacementNamed('/home'));
+      // Navigate to home on success.
+      context.go('/home/activity');
     } else if (mounted) {
       // Check if now locked out after failed attempt
       final isLocked = await userProvider.rateLimiter.isLockedOut();
@@ -373,9 +374,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: TextButton(
                         onPressed: userProvider.isLoading
                             ? null
-                            : () => Navigator.of(
-                                context,
-                              ).pushNamed('/forgot-password'),
+                            : () => context.push('/forgot-password'),
                         child: const Text('Forgot Password?'),
                       ),
                     ),
@@ -566,7 +565,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? null
                               : () {
                                   userProvider.clearError();
-                                  Navigator.of(context).pushNamed('/register');
+                                  context.push('/register');
                                 },
                           child: const Text('Create Account'),
                         ),
