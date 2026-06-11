@@ -442,7 +442,7 @@ class UserProvider extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    debugPrint('UserProvider: register() called for email: $email');
+    debugPrint('UserProvider: register() called');
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -488,7 +488,7 @@ class UserProvider extends ChangeNotifier {
       _pendingRegistrationPassword = password;
       _pendingVerificationCode = result.verificationCode;
 
-      debugPrint('UserProvider: Registration successful, verification code: ${result.verificationCode}');
+      debugPrint('UserProvider: Registration successful (verification code issued)');
       _error = null;
       _isLoading = false;
       notifyListeners();
@@ -622,7 +622,7 @@ class UserProvider extends ChangeNotifier {
       // Store email for deletion confirmation
       _pendingDeletionEmail = result.email;
 
-      debugPrint('UserProvider: Account deletion requested, code: ${result.deletionCode}');
+      debugPrint('UserProvider: Account deletion requested (confirmation code issued)');
       _error = null;
       _isLoading = false;
       notifyListeners();
@@ -765,7 +765,7 @@ class UserProvider extends ChangeNotifier {
       _pendingResetEmail = result.email;
       _pendingResetCode = result.resetCode;
 
-      debugPrint('UserProvider: Password reset requested, code: ${result.resetCode}');
+      debugPrint('UserProvider: Password reset requested (reset code issued)');
       _error = null;
       _isLoading = false;
       notifyListeners();
