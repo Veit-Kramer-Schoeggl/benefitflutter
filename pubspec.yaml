@@ -96,6 +96,7 @@ dependencies:
 
   # Deep link handling for password reset URLs
   app_links: ^7.0.0
+  logger: ^2.7.0
 
 dev_dependencies:
   flutter_test:
