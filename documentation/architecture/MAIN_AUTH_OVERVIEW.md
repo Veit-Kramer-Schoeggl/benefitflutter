@@ -44,13 +44,21 @@ The main.dart file serves as the entry point for the BeneFit app, defining the r
 └─────────────────────────────────────────────────────────┘
 ```
 
+> **Note:** This is a simplified high-level flow showing the main paths. The full list of routes is in [Named Routes](#named-routes) below.
+
 ## Key Concepts
 
 ### Named Routes
 The app uses named routes for navigation, making it easy to navigate between screens and manage the navigation stack:
 - `'/'` - Splash screen (initial route)
 - `'/login'` - Login screen
+- `'/register'` - Registration screen
+- `'/verify'` - Email verification screen
+- `'/forgot-password'` - Request password reset
+- `'/reset-password'` - Reset password (also reached via deep link)
 - `'/home'` - Main app with bottom navigation
+
+Unknown routes fall back to the splash screen (`onUnknownRoute`).
 
 ### Push Replacement
 The splash screen uses `pushReplacementNamed` to navigate, which:
@@ -66,15 +74,15 @@ Main.dart configures the Provider tree:
 
 ## The 5 Main Tabs
 
-After authentication, users access the main app with five tabs:
+After authentication, users access the main app with five tabs. The bar opens on the **Activity** tab by default (`_currentIndex = 2`):
 
-| Tab | Screen | Purpose |
-|-----|--------|---------|
-| 1 | Activity | Start/stop tracking sessions |
-| 2 | Progress | View session history |
+| Tab Index | Screen | Purpose |
+|-----------|--------|---------|
+| 0 | Community | Social features (placeholder) |
+| 1 | Progress | View session history |
+| 2 | Activity (default) | Start/stop tracking sessions |
 | 3 | Benefit | Rewards and analytics |
 | 4 | Profile | User information |
-| 5 | Community | Social features (placeholder) |
 
 ## File Structure
 
@@ -85,11 +93,11 @@ lib/
 │   ├── screens/
 │   │   ├── splash/              # Initial loading
 │   │   ├── auth/                # Login screens
-│   │   ├── activity/            # Tab 1
-│   │   ├── progress/            # Tab 2
+│   │   ├── community/           # Tab 0
+│   │   ├── progress/            # Tab 1
+│   │   ├── activity/            # Tab 2 (default)
 │   │   ├── benefit/             # Tab 3
-│   │   ├── profile/             # Tab 4
-│   │   └── community/           # Tab 5
+│   │   └── profile/             # Tab 4
 │   └── navigation/
 │       └── main_navigation.dart # Bottom tab bar
 ```

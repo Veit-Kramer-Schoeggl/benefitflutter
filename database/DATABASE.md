@@ -13,9 +13,9 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 ## Overview
 
 - **Database:** SQLite (benefit_app.db)
-- **Current Version:** 10 (after password hashing migration)
+- **Current Version:** 11 (after continuous tracking tables migration)
 - **Pattern:** Offline-first with sync queue
-- **Location:** Application documents directory
+- **Location:** Platform databases directory (`getDatabasesPath()`)
 
 ## Core Tables
 
@@ -26,7 +26,7 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 **Fields:**
 - `id` (TEXT, PRIMARY KEY) - Unique user identifier
 - `name` (TEXT, NOT NULL) - User's full name
-- `email` (TEXT, NOT NULL, UNIQUE) - User's email address
+- `email` (TEXT, NOT NULL) - User's email address
 - `password_hash` (TEXT, NOT NULL) - SHA-256 hashed password (v7, hashed in v10)
 - `display_name` (TEXT) - Display name for profile (v3)
 - `gender` (TEXT) - User's gender (male/female/other) (v3)
@@ -40,7 +40,7 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 
 **Indexes:**
 - Primary key on `id`
-- Unique index on `email`
+- Index on `email` (`idx_users_email`, not unique)
 
 **Security Note:** Passwords are stored as SHA-256 hashes (64 hex characters). Plain text passwords are never stored.
 
@@ -61,6 +61,20 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 - `tracking_date` (INTEGER, NULL) - Date for continuous tracking sessions
 - `created_at` (INTEGER, NOT NULL) - Record creation timestamp
 - `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Wearable data fields (added in v4, all NULL unless wearable data present):**
+- `avg_heart_rate` (INTEGER, NULL) - Average heart rate
+- `max_heart_rate` (INTEGER, NULL) - Maximum heart rate
+- `min_heart_rate` (INTEGER, NULL) - Minimum heart rate
+- `avg_heart_rate_variability` (REAL, NULL) - Average heart rate variability
+- `total_steps` (INTEGER, NULL) - Total steps
+- `avg_cadence` (REAL, NULL) - Average cadence
+- `calories_burned` (REAL, NULL) - Calories burned
+- `heart_rate_zones` (TEXT, NULL) - JSON-encoded heart rate zones
+- `has_wearable_data` (INTEGER, DEFAULT 0) - Whether wearable data is attached
+- `connected_device_ids` (TEXT, NULL) - Connected device IDs
+
+> **Note:** The v4 wearable columns above are populated via the wearable integration tables and are not read/written by `SessionDao` (which maps only the base columns).
 
 **Indexes:**
 - Primary key on `id`
@@ -155,7 +169,7 @@ Stores height, weight, and other biometric measurements. Multiple entries allowe
 - `title` (TEXT, NOT NULL) - Benefit title
 - `description` (TEXT, NOT NULL) - Benefit description
 - `discount_amount` (REAL, NOT NULL) - Discount percentage or amount
-- `required_distance` (REAL, NULL) - Required distance in meters (if applicable)
+- `required_distance` (INTEGER, NULL) - Required distance in meters (if applicable)
 - `required_sessions` (INTEGER, NULL) - Required number of sessions (if applicable)
 - `created_at` (INTEGER, NOT NULL) - Record creation timestamp
 - `updated_at` (INTEGER, NOT NULL) - Last update timestamp
@@ -171,40 +185,247 @@ Stores height, weight, and other biometric measurements. Multiple entries allowe
 - `id` (TEXT, PRIMARY KEY) - Unique record identifier
 - `user_id` (TEXT, NOT NULL, FK) - Foreign key to users table
 - `benefit_id` (TEXT, NOT NULL, FK) - Foreign key to benefits table
-- `session_id` (TEXT, NULL, FK) - Session that triggered earning the benefit
+- `session_id` (TEXT, NOT NULL, FK) - Session that triggered earning the benefit
 - `earned_at` (INTEGER, NOT NULL) - Timestamp when benefit was earned
+- `status` (TEXT, DEFAULT 'earned') - Redemption state: 'earned' or 'redeemed' (v8)
+- `redeemed_at` (INTEGER, NULL) - Timestamp when benefit was redeemed (v8)
+- `redemption_code` (TEXT, NULL) - Code generated on redemption (v9)
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
 
 **Indexes:**
 - Primary key on `id`
 - Index on `user_id` for user benefit queries
 - Index on `benefit_id` for benefit usage queries
+- Index on `earned_at` for chronological ordering
 
 **Constraints:**
 - Foreign key: `user_id` references `users(id)` ON DELETE CASCADE
 - Foreign key: `benefit_id` references `benefits(id)` ON DELETE CASCADE
-- Foreign key: `session_id` references `sessions(id)` ON DELETE SET NULL
+- Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
 
 ### sync_queue
 
 **Purpose:** Offline-first sync tracking
 
 **Fields:**
-- `id` (TEXT, PRIMARY KEY) - Unique queue entry identifier
+- `id` (INTEGER, PRIMARY KEY, AUTOINCREMENT) - Auto-incrementing queue entry identifier
 - `entity_type` (TEXT, NOT NULL) - Type of entity ("session", "user_benefit", etc.)
 - `entity_id` (TEXT, NOT NULL) - ID of the entity to sync
 - `operation` (TEXT, NOT NULL) - Operation type ("create", "update", "delete")
-- `data` (TEXT, NULL) - JSON-encoded entity data
+- `data` (TEXT, NOT NULL) - JSON-encoded entity data
 - `created_at` (INTEGER, NOT NULL) - Queue entry creation timestamp
-- `retry_count` (INTEGER, NOT NULL, DEFAULT 0) - Number of sync attempts
+- `retry_count` (INTEGER, DEFAULT 0) - Number of sync attempts
 - `last_error` (TEXT, NULL) - Last sync error message
 
 **Indexes:**
 - Primary key on `id`
-- Index on `entity_type` for filtering by entity
 - Index on `created_at` for FIFO processing
+- Composite index on `(entity_type, entity_id)` for entity lookups
+
+> **Note:** `sync_queue` is the only table with an INTEGER AUTOINCREMENT primary key. There is no dedicated DAO; it is referenced only by `clearAllTables()`.
 
 **Notes:**
 Sync queue entries are deleted after successful sync. Failed syncs are retried with exponential backoff.
+
+## Wearable Integration Tables (v4)
+
+DAOs live in `lib/features/wearable_integration/data/daos/`.
+
+### wearable_devices
+
+**Purpose:** Registry of connected wearable devices
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique device identifier
+- `user_id` (TEXT, NOT NULL, FK) - Foreign key to users table
+- `name` (TEXT, NOT NULL) - Device display name
+- `device_type` (TEXT, NOT NULL) - Device type
+- `integration_source` (TEXT, NOT NULL) - Integration source
+- `connection_status` (TEXT, NOT NULL) - Connection status
+- `capabilities` (TEXT, NOT NULL) - JSON-encoded capabilities
+- `last_sync_time` (INTEGER, NULL) - Last sync timestamp
+- `metadata` (TEXT, NULL) - Optional metadata
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Index on `user_id` (`idx_devices_user`)
+
+**Constraints:**
+- Foreign key: `user_id` references `users(id)` ON DELETE CASCADE
+
+### session_biometric_data
+
+**Purpose:** Raw biometric sensor readings (heart rate, HRV, SpO2, temperature)
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique reading identifier
+- `session_id` (TEXT, NOT NULL, FK) - Foreign key to sessions table
+- `device_id` (TEXT, NULL, FK) - Foreign key to wearable_devices table
+- `sensor_type` (TEXT, NOT NULL) - Sensor type
+- `value` (REAL, NOT NULL) - Reading value
+- `timestamp` (INTEGER, NOT NULL) - Reading capture time
+- `accuracy` (REAL, NULL) - Reading accuracy
+- `metadata` (TEXT, NULL) - Optional metadata
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Composite index on `(session_id, sensor_type)` (`idx_biometric_session_type`)
+- Index on `timestamp` (`idx_biometric_timestamp`)
+
+**Constraints:**
+- Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
+- Foreign key: `device_id` references `wearable_devices(id)` ON DELETE SET NULL
+
+### session_motion_data
+
+**Purpose:** Raw motion sensor readings (cadence, power, steps, stride). Same column shape as `session_biometric_data`.
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique reading identifier
+- `session_id` (TEXT, NOT NULL, FK) - Foreign key to sessions table
+- `device_id` (TEXT, NULL, FK) - Foreign key to wearable_devices table
+- `sensor_type` (TEXT, NOT NULL) - Sensor type
+- `value` (REAL, NOT NULL) - Reading value
+- `timestamp` (INTEGER, NOT NULL) - Reading capture time
+- `accuracy` (REAL, NULL) - Reading accuracy
+- `metadata` (TEXT, NULL) - Optional metadata
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Composite index on `(session_id, sensor_type)` (`idx_motion_session_type`)
+- Index on `timestamp` (`idx_motion_timestamp`)
+
+**Constraints:**
+- Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
+- Foreign key: `device_id` references `wearable_devices(id)` ON DELETE SET NULL
+
+### session_sensor_summary
+
+**Purpose:** Aggregated per-session sensor metrics (kept permanently)
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique summary identifier
+- `session_id` (TEXT, NOT NULL, UNIQUE, FK) - Foreign key to sessions table
+- `avg_heart_rate` (REAL, NULL) - Average heart rate
+- `max_heart_rate` (REAL, NULL) - Maximum heart rate
+- `min_heart_rate` (REAL, NULL) - Minimum heart rate
+- `avg_heart_rate_variability` (REAL, NULL) - Average heart rate variability
+- `heart_rate_zones` (TEXT, NULL) - JSON-encoded heart rate zones
+- `total_steps` (INTEGER, NULL) - Total steps
+- `avg_cadence` (REAL, NULL) - Average cadence
+- `avg_power` (REAL, NULL) - Average power
+- `calories_burned` (REAL, NULL) - Calories burned
+- `data_sources` (TEXT, NULL) - JSON-encoded data sources
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Unique constraint on `session_id`
+
+**Constraints:**
+- Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
+
+### health_platform_data
+
+**Purpose:** Data imported from health platforms (Health Connect / HealthKit)
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique record identifier
+- `user_id` (TEXT, NOT NULL, FK) - Foreign key to users table
+- `data_type` (TEXT, NOT NULL) - Health data type
+- `value` (TEXT, NOT NULL) - JSON-encoded value
+- `start_time` (INTEGER, NOT NULL) - Data range start
+- `end_time` (INTEGER, NOT NULL) - Data range end
+- `source_app` (TEXT, NULL) - Originating app
+- `metadata` (TEXT, NULL) - Optional metadata
+- `synced_at` (INTEGER, NOT NULL) - Sync timestamp
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Composite index on `(user_id, data_type)` (`idx_health_data_user_type`)
+- Composite index on `(start_time, end_time)` (`idx_health_data_time`)
+
+**Constraints:**
+- Foreign key: `user_id` references `users(id)` ON DELETE CASCADE
+
+## Continuous Tracking Tables (v11)
+
+### continuous_tracking_config
+
+**Purpose:** Per-user continuous tracking configuration (one-to-one with User)
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique config identifier
+- `user_id` (TEXT, NOT NULL, UNIQUE, FK) - Foreign key to users table
+- `is_enabled` (INTEGER, NOT NULL, DEFAULT 0) - Whether continuous tracking is enabled
+- `reset_points` (TEXT, NOT NULL, DEFAULT '["03:00"]') - JSON-encoded daily reset times
+- `activity_detection` (TEXT, NOT NULL, DEFAULT 'hybrid') - Activity detection mode
+- `gps_interval_seconds` (INTEGER, NOT NULL, DEFAULT 300) - GPS sampling interval
+- `min_displacement_meters` (INTEGER, NOT NULL, DEFAULT 100) - Minimum displacement to record
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Unique index on `user_id` (`idx_continuous_config_user`)
+
+**Constraints:**
+- Foreign key: `user_id` references `users(id)` ON DELETE CASCADE
+
+### continuous_tracking_state
+
+**Purpose:** Runtime state of continuous tracking (one-to-one with User)
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique state identifier
+- `user_id` (TEXT, NOT NULL, UNIQUE, FK) - Foreign key to users table
+- `is_active` (INTEGER, NOT NULL, DEFAULT 0) - Whether tracking is currently active
+- `is_paused_for_manual` (INTEGER, NOT NULL, DEFAULT 0) - Paused due to manual session
+- `current_session_id` (TEXT, NULL, FK) - Active continuous session
+- `started_at` (INTEGER, NULL) - When tracking started
+- `last_data_received` (INTEGER, NULL) - Last data timestamp
+- `current_detected_activity` (TEXT, NULL) - Currently detected activity
+- `detection_confidence` (REAL, NULL) - Detection confidence
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Unique index on `user_id` (`idx_continuous_state_user`)
+
+**Constraints:**
+- Foreign key: `user_id` references `users(id)` ON DELETE CASCADE
+- Foreign key: `current_session_id` references `sessions(id)` ON DELETE SET NULL
+
+### activity_segments
+
+**Purpose:** Detected activity segments within a session
+
+**Fields:**
+- `id` (TEXT, PRIMARY KEY) - Unique segment identifier
+- `session_id` (TEXT, NOT NULL, FK) - Foreign key to sessions table
+- `activity_type` (TEXT, NOT NULL) - Activity type for the segment
+- `start_time` (INTEGER, NOT NULL) - Segment start time
+- `end_time` (INTEGER, NULL) - Segment end time (NULL while ongoing)
+- `distance_meters` (REAL, NULL) - Segment distance
+- `detection_source` (TEXT, NOT NULL) - How the segment was detected
+- `confidence` (REAL, NULL) - Detection confidence
+- `created_at` (INTEGER, NOT NULL) - Record creation timestamp
+- `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+**Indexes:**
+- Primary key on `id`
+- Index on `session_id` (`idx_activity_segments_session`)
+- Composite index on `(start_time, end_time)` (`idx_activity_segments_time`)
+
+**Constraints:**
+- Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
 
 ## Database Migrations
 
@@ -241,9 +462,12 @@ Sync queue entries are deleted after successful sync. Failed syncs are retried w
 
 ### v4 (Wearable Integration)
 - Created `wearable_devices` table for device registry
-- Created `sensor_data_points` table for sensor readings
-- Created `session_sensor_summaries` table for aggregated metrics
-- Created `health_data_points` table for health platform data
+- Created `session_biometric_data` table for biometric sensor readings
+- Created `session_motion_data` table for motion sensor readings
+- Created `session_sensor_summary` table for aggregated metrics (kept permanently)
+- Created `health_platform_data` table for health platform data
+- Created indexes for all of the above
+- Added wearable data columns to `sessions` table: `avg_heart_rate`, `max_heart_rate`, `min_heart_rate`, `avg_heart_rate_variability`, `total_steps`, `avg_cadence`, `calories_burned`, `heart_rate_zones`, `has_wearable_data` (DEFAULT 0), `connected_device_ids`
 
 ### v5 (Profile Image)
 - Added `profile_image_path` TEXT to `users` table
@@ -266,6 +490,11 @@ Sync queue entries are deleted after successful sync. Failed syncs are retried w
 - Migrates existing plain text passwords to SHA-256 hashes
 - Detects unhashed passwords (not 64 hex chars) and hashes them
 - All new passwords are stored as hashes via PasswordUtils
+
+### v11 (Continuous Tracking)
+- Created `continuous_tracking_config` table (+ unique index on `user_id`)
+- Created `continuous_tracking_state` table (+ unique index on `user_id`)
+- Created `activity_segments` table (+ indexes on `session_id` and `(start_time, end_time)`)
 
 ## GPS Tracking Configuration
 
@@ -308,13 +537,21 @@ The following tables are planned for future implementation:
 
 **Note:** `user_biometrics_reported` (v3) handles self-reported data (height/weight). This table will handle measured/calculated data.
 
-### continuous_tracking_state
-**Purpose:** Background tracking configuration
+### continuous_tracking_data
+**Purpose:** Background data points generated during continuous tracking
 
 **Fields:**
-- Continuous tracking enabled/disabled
-- Tracking schedule
-- Activity type preferences
+- `user_id` (FK) - Owning user
+- `timestamp` - Data point capture time
+- `latitude` / `longitude` - Background GPS location
+- `detected_activity` - Detected activity type
+- `detection_confidence` - Detection confidence
+- `step_count` - Background step count
+- `background_heart_rate` - Background heart rate
+- `privacy_level` - Privacy level for the data point
+- `created_at` - Record creation timestamp
+
+> **Status update:** Continuous tracking configuration and state were planned here but are now implemented in v11. See the **Continuous Tracking Tables (v11)** section above (`continuous_tracking_config`, `continuous_tracking_state`, `activity_segments`).
 
 ## Data Flow
 

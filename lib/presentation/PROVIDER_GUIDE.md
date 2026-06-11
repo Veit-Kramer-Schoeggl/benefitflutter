@@ -40,6 +40,10 @@ We've fully implemented the Benefit tab as a reference. Here's how it works:
 **Key Parts**:
 ```dart
 class BenefitProvider extends ChangeNotifier {
+  final BenefitRepository _repository;
+
+  BenefitProvider(this._repository);
+
   // State variables (private)
   bool _isLoading = false;
   List<Benefit> _benefits = [];
@@ -53,7 +57,7 @@ class BenefitProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners(); // ← MAGIC! Tells UI to rebuild
 
-    _benefits = await repository.getBenefits();
+    _benefits = await _repository.getAllBenefits();
     _isLoading = false;
     notifyListeners(); // ← UI rebuilds again with new data
   }
@@ -132,6 +136,18 @@ class BenefitViewModel {
 ---
 
 ## Step-by-Step: Create Your Own Provider
+
+> **Status note (kept for onboarding):** The `ProgressProvider`, `ActivityProvider`,
+> and `BenefitProvider` below have since been implemented and now live in
+> `lib/providers/`. Profile state is served by `UserProvider`
+> (`lib/providers/user_provider.dart`); there is no dedicated `ProfileProvider`.
+> The snippets in this section are intentionally simplified teaching
+> examples and differ from the shipped code. In particular, the providers that depend
+> on the logged-in user (Progress, Activity, Benefit) are wired with
+> `ChangeNotifierProxyProvider<UserProvider, …>` in `lib/main.dart` (not a plain
+> `ChangeNotifierProvider`) and receive the current user via an `updateUserId(...)`
+> callback rather than taking a `userId` argument per method. Study the real classes
+> in `lib/providers/` alongside these examples.
 
 ### **Checklist for Progress Tab** (Developer 2)
 
@@ -352,6 +368,16 @@ return SuccessWidget();
 ---
 
 ## Team Assignments
+
+> **Status note (kept for onboarding):** These assignments are complete. The Progress
+> and Activity tabs ship with `ProgressProvider` / `ActivityProvider` in
+> `lib/providers/`. The Profile tab does **not** use a dedicated `ProfileProvider`;
+> profile state is handled by `UserProvider` (`lib/providers/user_provider.dart`),
+> which also owns authentication. The exact "Files to Create" paths below were the
+> original plan and do not all match the shipped layout (e.g. there is no
+> `profile/widgets/` or `activity/widgets/` directory; Progress widgets live in
+> `lib/presentation/screens/progress/widgets/` as `activities_tab.dart`,
+> `statistics_tab.dart`, `activity_list_item.dart`, etc.).
 
 ### **Developer 1: Profile Tab** (Easiest)
 **Task**: Create ProfileProvider + ProfileScreen

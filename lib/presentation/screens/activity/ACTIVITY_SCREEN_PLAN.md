@@ -259,6 +259,12 @@ enum TrackingState { idle, tracking, paused }
 ```
 → Clearer state management than multiple booleans
 
+> **Status update:** `TrackingState` now lives in its own file
+> `lib/core/enums/tracking_state.dart` (with a `displayName` getter:
+> Ready/Tracking/Paused), not declared inside `activity_provider.dart` as shown
+> in the sketch above. It is intentionally separate from the DB-persisted
+> `SessionStatus` enum (`lib/core/enums/session_status.dart`).
+
 **3. Create Session During Tracking**
 ```dart
 // Start: Create session
@@ -499,9 +505,19 @@ FloatingActionButton(heroTag: 'stop', ...)
 
 ---
 
-## GPS Tracking (TODO - Phase 2)
+## GPS Tracking (✅ IMPLEMENTED)
 
-### Create Location Service
+> **Status update:** GPS tracking is now implemented. The actual implementation does
+> **not** use a standalone `LocationService`; instead `ActivityProvider` drives a
+> `SensorManager` (`lib/features/shared/sensors/sensor_manager.dart`) wrapping a
+> `GpsSensor` (`lib/features/shared/sensors/gps_sensor.dart`), persists points via
+> `GpsPointDao`, and computes distance with `DistanceCalculator`
+> (`lib/features/session/utils/distance_calculator.dart`). The `LocationService`
+> sketch below is kept for historical/design context only — the file
+> `lib/services/location/location_service.dart` does not exist (`lib/services/`
+> does not exist at all).
+
+### Create Location Service (original design sketch — superseded)
 
 **Dependencies:**
 ```yaml
@@ -610,6 +626,24 @@ MultiProvider(
 )
 ```
 
+> **Status update:** In the current `lib/main.dart`, `ActivityProvider` is
+> registered as a `ChangeNotifierProxyProvider<UserProvider, ActivityProvider>`
+> (so it receives the user id via `updateUserId(...)`), and is constructed with a
+> `SensorManager` for GPS:
+> ```dart
+> ChangeNotifierProxyProvider<UserProvider, ActivityProvider>(
+>   create: (_) => ActivityProvider(
+>     RepositoryConfig.getSessionRepository(),
+>     sensorManager: sensorManager,
+>   ),
+>   update: (_, userProvider, activityProvider) =>
+>       activityProvider!..updateUserId(userProvider.userId),
+> )
+> ```
+> The other providers shown above (Benefit/Progress) are likewise
+> `ChangeNotifierProxyProvider<UserProvider, ...>` today, not plain
+> `ChangeNotifierProvider`.
+
 ---
 
 ## Summary: Activity vs Other Screens
@@ -628,26 +662,28 @@ MultiProvider(
 
 ## Checklist
 
+> **Status update:** All three phases below are implemented in the current code.
+
 ### Phase 1: Timer Functionality
-- [ ] Create `lib/providers/activity_provider.dart`
-- [ ] Implement timer (start/pause/resume/stop)
-- [ ] Register provider in `main.dart`
-- [ ] `activity_screen.dart` with Consumer
-- [ ] UI: Timer display + Start/Stop buttons
-- [ ] Test: Timer runs, pauses, stops
+- [x] Create `lib/providers/activity_provider.dart`
+- [x] Implement timer (start/pause/resume/stop)
+- [x] Register provider in `main.dart`
+- [x] `activity_screen.dart` with Consumer
+- [x] UI: Timer display + Start/Stop buttons
+- [x] Test: Timer runs, pauses, stops
 
 ### Phase 2: Session Storage
-- [ ] Create session on start
-- [ ] Update session on stop
-- [ ] Display session in Progress screen
-- [ ] Test: Session appears after stop
+- [x] Create session on start
+- [x] Update session on stop
+- [x] Display session in Progress screen
+- [x] Test: Session appears after stop
 
 ### Phase 3: GPS Tracking (Optional)
-- [ ] Create `LocationService`
-- [ ] Handle permissions
-- [ ] Integrate GPS stream in provider
-- [ ] Distance calculation
-- [ ] Test: Distance is tracked
+- [x] GPS via `SensorManager` / `GpsSensor` (no standalone `LocationService`)
+- [x] Handle permissions
+- [x] Integrate GPS stream in provider
+- [x] Distance calculation (`DistanceCalculator`)
+- [x] Test: Distance is tracked
 
 ---
 

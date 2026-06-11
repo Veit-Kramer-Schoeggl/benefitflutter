@@ -391,7 +391,7 @@ Form(
 
 - Centered, large font with letter spacing for easy reading
 - Digits-only input filtering
-- Built-in validation (empty check, 6-digit length)
+- Built-in validation (empty check, 6-digit length) on `VerificationCodeFormField`
 - Optional mock code hint box for development
 - Consistent styling across all verification flows
 

@@ -16,9 +16,9 @@ The BeneFit app uses SQLite for local data storage with an offline-first archite
 
 - **Database Type:** SQLite
 - **File Name:** benefit_app.db
-- **Current Version:** 10
+- **Current Version:** 11
 - **Pattern:** Offline-first with sync queue
-- **Location:** Application documents directory
+- **Location:** Platform databases directory (`getDatabasesPath()`)
 
 ## Core Tables
 
@@ -61,6 +61,14 @@ Manages offline operations:
 - Retry count and error tracking
 - Ensures data consistency across devices
 
+## Additional Tables
+
+Beyond the core tables, the schema includes feature-specific table groups:
+
+- **Profile (v3):** `user_biometrics_reported`, `user_preferences`
+- **Wearable integration (v4):** `wearable_devices`, `session_biometric_data`, `session_motion_data`, `session_sensor_summary`, `health_platform_data`
+- **Continuous tracking (v11):** `continuous_tracking_config`, `continuous_tracking_state`, `activity_segments`
+
 ## Data Relationships
 
 ```
@@ -89,9 +97,13 @@ Manages offline operations:
 
 The database uses incremental migrations to evolve the schema:
 - **v1-v2:** Core tables (users, sessions, GPS points)
-- **v3-v5:** Profile enhancements (biometrics, images)
-- **v6-v8:** Authentication (verification, password hashing)
-- **v9-v10:** GPS configuration and optimization
+- **v3:** Profile enhancements (reported biometrics, user preferences, demographics)
+- **v4:** Wearable integration (devices, biometric/motion/sensor data, health platform)
+- **v5:** Profile image support
+- **v6-v7:** Authentication (verification status, password hashing)
+- **v8-v9:** Benefit redemption (status, redeemed timestamp, redemption codes)
+- **v10:** Password security (rehash plaintext passwords to SHA-256)
+- **v11:** Continuous tracking (config, state, activity segments)
 
 ## Related Documentation
 

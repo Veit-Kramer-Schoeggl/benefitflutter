@@ -19,11 +19,12 @@ The BeneFit app automatically seeds the SQLite database with test data on first 
 1. **App Launch** - When you run the app in debug mode
 2. **Check Debug Mode** - Only runs if `kDebugMode` is true (production safe)
 3. **Check Seed Flag** - Looks in SharedPreferences: "has been seeded?"
-4. **Seed Database** - If not seeded, inserts test data via repositories:
-   - **Users** → 1 test developer account
+4. **Seed Database** - If not seeded, inserts test data via repositories and DAOs:
+   - **Users** → 2 test accounts (Test Developer + Sarah Runner)
    - **Benefits** → 4 reward templates (€5, €10, €20, €50)
-   - **Sessions** → 6 activity sessions (5 completed + 1 active)
-   - **UserBenefits** → 1 earned benefit (€5 reward unlocked)
+   - **Sessions** → 10 activity sessions (9 completed + 1 active)
+   - **UserBenefits** → 2 earned benefits (€5 and €10 rewards unlocked)
+   - Plus GPS points, biometrics, preferences, wearable devices, sensor data, summaries, and health platform data (see Test Data Included)
 5. **Mark as Seeded** - Sets flag in SharedPreferences
 6. **Continue Startup** - App launches normally with test data
 
@@ -32,19 +33,30 @@ The BeneFit app automatically seeds the SQLite database with test data on first 
 - **Debug-Only**: Never runs in production builds
 - **One-Time**: Seeds once, then skips on subsequent launches
 - **Non-Blocking**: App starts even if seeding fails
-- **Uses Repositories**: Data goes through full validation and sync logic
+- **Uses Repositories & DAOs**: Users, sessions and awarded benefits go through repositories; other entities are inserted via their DAOs
 - **Detailed Logging**: Console output shows seeding progress
 
 ## Test Data Included
 
-### 1 Test User (v3 - Extended)
+### 2 Test Users (v3 - Extended)
+
+**User 1 (test-user-123):**
 - **Name**: Test Developer
-- **Email**: dev@benefit.com
-- **ID**: test-user-123
+- **Email**: test@gmail.com
 - **Display Name**: Dev Tester (v3)
 - **Gender**: male (v3)
 - **Date of Birth**: 1990-05-15 (35 years old) (v3)
 - **Timezone**: Europe/Vienna (v3)
+
+**User 2 (test-user-321):**
+- **Name**: Sarah Runner
+- **Email**: test2@gmail.com
+- **Display Name**: Sarah (v3)
+- **Gender**: female (v3)
+- **Date of Birth**: 1995-08-22 (30 years old) (v3)
+- **Timezone**: Europe/Berlin (v3)
+
+Both users share the default password `1234` (stored hashed via `PasswordUtils.hashPassword`).
 
 ### 4 Benefits (Reward Templates)
 - €5 Discount - Complete 5 sessions
@@ -52,9 +64,10 @@ The BeneFit app automatically seeds the SQLite database with test data on first 
 - €20 Discount - Complete 20 sessions
 - €50 Discount - Run 100km total
 
-### 6 Sessions (Activity History)
-- 5 completed sessions with various activities (running, walking, cycling)
-- Dates: Last 7 days with realistic distances and durations
+### 10 Sessions (Activity History)
+- User 1: 5 completed sessions (running, walking, cycling) + 1 active session
+- User 2: 4 completed sessions (yoga, running, walking, cycling)
+- Dates: Last 7 days with realistic distances and durations, relative to `DateTime.now()`
 - 1 active session (for testing Activity screen)
 
 ### 8 GPS Points (Tracking Data)
@@ -63,22 +76,37 @@ The BeneFit app automatically seeds the SQLite database with test data on first 
 - Includes altitude, accuracy, and speed data
 - Points spaced throughout 30-minute run
 
-### 1 User Benefit (Earned Reward)
-- €5 reward unlocked after completing 5 sessions
+### 2 User Benefits (Earned Rewards)
+- User 1: €5 reward unlocked (on session-5)
+- User 2: €10 reward unlocked (on session-u2-4)
 
-### 3 User Biometrics Records (v3)
-- **Entry 1** (30 days ago): 175cm, 72.5kg
-- **Entry 2** (15 days ago): 175cm, 71.8kg (weight loss progress)
-- **Entry 3** (2 days ago): 175cm, 71.2kg (continued progress)
+### 5 User Biometrics Records (v3)
+- **User 1, Entry 1** (30 days ago): 175cm, 72.5kg
+- **User 1, Entry 2** (15 days ago): 175cm, 71.8kg (weight loss progress)
+- **User 1, Entry 3** (2 days ago): 175cm, 71.2kg (continued progress)
+- **User 2, Entry 1** (20 days ago): 165cm, 58.5kg
+- **User 2, Entry 2** (3 days ago): 165cm, 58.0kg
 
-### 1 User Preferences Record (v3)
-- **Location**: Vienna, Austria
-- **Distance Unit**: metric
-- **Temperature Unit**: celsius
-- **Weight Unit**: kg
-- **Theme**: system
-- **Language**: en
-- **Timezone**: Europe/Vienna
+### 2 User Preferences Records (v3)
+- **User 1**: Vienna, metric, celsius, kg, system theme, en, Europe/Vienna
+- **User 2**: Berlin, metric, celsius, kg, dark theme, de, Europe/Berlin
+
+### 4 Wearable Devices (v4)
+- **User 1**: Polar H10 (BLE heart rate monitor), Health Connect (virtual), Garmin Forerunner 245 (smartwatch, disconnected)
+- **User 2**: Apple Watch Series 8 (HealthKit smartwatch)
+
+### Biometric Sensor Data (v4)
+- 16 data points for session-1 (9 heart-rate readings + 7 HRV readings), all from device-polar-h10
+
+### Motion Sensor Data (v4)
+- 8 data points for session-1 (7 cadence readings + 1 total-steps reading)
+
+### 2 Sensor Summaries (v4)
+- Aggregated per-session sensor data for session-1 and session-4
+
+### Health Platform Data (v4)
+- User 1: 16 points (7 daily steps + 7 resting heart rate + 1 weight + 1 VO2 max)
+- User 2: 12 points (5 daily steps + 5 resting heart rate + 1 weight + 1 VO2 max)
 
 ## Developer Workflow
 
@@ -102,7 +130,7 @@ The BeneFit app automatically seeds the SQLite database with test data on first 
 **Option 1: Change Seed Version**
 ```dart
 // In seed_config.dart
-static const String seedFlagKey = 'database_seeded_v2'; // Changed from v1
+static const String seedFlagKey = 'database_seeded_v5'; // Changed from v4
 ```
 Restart app → Re-seeds with updated data
 
@@ -130,7 +158,7 @@ The UI button is intelligently hidden in production builds through debug mode de
 
 #### Where to Find It
 
-The reseed button is located at the bottom of the Benefits screen under a "Developer Tools" section. This section only appears when running the app in debug mode. The button is clearly labeled with an orange warning theme to indicate it's a developer tool.
+The reseed button is located at the bottom of the Benefits screen under a "Developer Tools" section. This section only appears when running the app in debug mode. The button is clearly labeled with an orange warning theme to indicate it's a developer tool. A second debug-only "Reset Test Data" button is also available on the Login screen (below the Create Account button), useful for reseeding before signing in.
 
 #### Using the Reseed Feature
 
@@ -210,7 +238,7 @@ To change the baseline test data for all developers:
 2. Modify the test data in the getter methods
 3. Increment seed version in `seed_config.dart`:
    ```dart
-   static const String seedFlagKey = 'database_seeded_v2';
+   static const String seedFlagKey = 'database_seeded_v5';
    ```
 4. Commit and push changes
 5. Team members will auto-reseed on next launch
@@ -224,14 +252,21 @@ To change the baseline test data for all developers:
 static bool get isEnabled => kDebugMode;
 
 // Version control for re-seeding
-static const String seedFlagKey = 'database_seeded_v1';
+static const String seedFlagKey = 'database_seeded_v4';
 
 // Feature toggles
 static const bool seedUsers = true;
 static const bool seedBenefits = true;
 static const bool seedSessions = true;
-static const bool seedGpsPoints = true;
 static const bool seedUserBenefits = true;
+static const bool seedGpsPoints = true;
+static const bool seedUserBiometrics = true; // v3
+static const bool seedUserPreferences = true; // v3
+static const bool seedWearableDevices = true; // v4
+static const bool seedBiometricSensorData = true; // v4
+static const bool seedMotionSensorData = true; // v4
+static const bool seedSensorSummaries = true; // v4
+static const bool seedHealthPlatformData = true; // v4
 
 // Logging
 static const bool verboseLogging = true;
@@ -245,13 +280,17 @@ static const bool forceReseed = false;
 ```
 [SeedService] 🌱 Starting database seeding...
 [SeedService] 👤 Seeding users...
-[SeedService]   ✓ Created user: Test Developer (dev@benefit.com)
+[SeedService]   ✓ Created user: Test Developer (test@gmail.com)
+[SeedService]   ✓ Created user: Sarah Runner (test2@gmail.com)
 [SeedService] ⚙️ Seeding user preferences...
 [SeedService]   ✓ Created preferences: Vienna, metric
+[SeedService]   ✓ Created preferences: Berlin, metric
 [SeedService] 📊 Seeding user biometrics...
 [SeedService]   ✓ Created biometric: 175cm, 72.5kg
 [SeedService]   ✓ Created biometric: 175cm, 71.8kg
 [SeedService]   ✓ Created biometric: 175cm, 71.2kg
+[SeedService]   ✓ Created biometric: 165cm, 58.5kg
+[SeedService]   ✓ Created biometric: 165cm, 58.0kg
 [SeedService] 🎁 Seeding benefits...
 [SeedService]   ✓ Created benefit: 5 Euro Discount (€5.0)
 [SeedService]   ✓ Created benefit: 10 Euro Discount (€10.0)
@@ -264,28 +303,44 @@ static const bool forceReseed = false;
 [SeedService]   ✓ Created session: running - 7.5km (completed)
 [SeedService]   ✓ Created session: walking - 3.0km (completed)
 [SeedService]   ✓ Created session: running - N/A (active)
+[SeedService]   ✓ Created session: yoga - N/A (completed)
+[SeedService]   ✓ Created session: running - 6.0km (completed)
+[SeedService]   ✓ Created session: walking - 2.5km (completed)
+[SeedService]   ✓ Created session: cycling - 35.0km (completed)
 [SeedService] 📍 Seeding GPS points...
 [SeedService]   ✓ Created GPS point: 52.5200, 13.4050
-[SeedService]   ✓ Created GPS point: 52.5240, 13.4081
-[SeedService]   ✓ Created GPS point: 52.5279, 13.4115
-[SeedService]   ✓ Created GPS point: 52.5312, 13.4149
-[SeedService]   ✓ Created GPS point: 52.5347, 13.4182
-[SeedService]   ✓ Created GPS point: 52.5379, 13.4216
-[SeedService]   ✓ Created GPS point: 52.5405, 13.4248
-[SeedService]   ✓ Created GPS point: 52.5428, 13.4279
+[SeedService]   ... (8 points total)
+[SeedService] ⌚ Seeding wearable devices...
+[SeedService]   ✓ Created device: Polar H10 (...)
+[SeedService]   ... (4 devices total)
+[SeedService] 💓 Seeding biometric sensor data...
+[SeedService]   ✓ Created 16 biometric data points
+[SeedService] 🏃 Seeding motion sensor data...
+[SeedService]   ✓ Created 8 motion data points
+[SeedService] 📊 Seeding sensor summaries...
+[SeedService]   ✓ Created summary: Avg HR: 155.5 BPM, Steps: 5200
+[SeedService]   ✓ Created summary: Avg HR: 148.0 BPM, Steps: 7800
+[SeedService] 🏥 Seeding health platform data...
+[SeedService]   ✓ Created 28 health platform data points
 [SeedService] 🏆 Seeding user benefits...
 [SeedService]   ✓ Awarded benefit: benefit-5-euro
+[SeedService]   ✓ Awarded benefit: benefit-10-euro
 [SeedService] ✅ Seeding completed in 245ms
 [SeedService] 📊 Seed Summary:
-[SeedService]    Users: 1
-[SeedService]    User Biometrics: 3
-[SeedService]    User Preferences: 1
+[SeedService]    Users: 2
+[SeedService]    User Biometrics: 5
+[SeedService]    User Preferences: 2
 [SeedService]    Benefits: 4
-[SeedService]    Sessions: 6
+[SeedService]    Sessions: 10
 [SeedService]    GPS Points: 8
-[SeedService]    User Benefits: 1
-[SeedService]    Total Distance: 34.5km
-[SeedService]    Total Duration: 195 minutes
+[SeedService]    Wearable Devices: 4
+[SeedService]    Biometric Sensor Data: 16
+[SeedService]    Motion Sensor Data: 8
+[SeedService]    Sensor Summaries: 2
+[SeedService]    Health Platform Data: 28
+[SeedService]    User Benefits: 2
+[SeedService]    Total Distance: 78.0km
+[SeedService]    Total Duration: 475 minutes
 ```
 
 ## Troubleshooting
@@ -308,9 +363,9 @@ static const bool forceReseed = false;
 
 The seed service has multiple safeguards:
 
-1. **kDebugMode Check** - Only runs in debug builds
+1. **kDebugMode Check** - Only runs in debug builds (`clearAndReseed()` even throws if called outside debug mode)
 2. **SharedPreferences Flag** - One-time execution
 3. **Non-Blocking** - App launches even if seeding fails
-4. **No Debug Menu** - No UI to accidentally trigger in production
+4. **Debug-Gated UI** - The reseed Developer Tools UI is wrapped in `kDebugMode` checks, so it never appears in production builds
 
 Production builds automatically exclude debug code, making it impossible for seeding to run in release mode.

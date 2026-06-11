@@ -14,6 +14,22 @@ This document describes the technical implementation of the BeneFit feature modu
 
 The app uses a **feature-based modular architecture** where each domain entity (User, Session, Benefit) is self-contained in its own module with complete data layer, sync logic, and business rules.
 
+### Feature Modules
+
+`lib/features/` currently contains the following modules:
+
+| Module | Responsibility | Notes |
+|---|---|---|
+| `user` | User profile, biometrics, preferences | Full repository + DAO + sync-strategy pattern (`user_dao`, `user_biometrics_dao`, `user_preferences_dao`) |
+| `session` | Activity sessions, GPS, continuous tracking, segments | Repository + DAO + sync-strategy; also `gps_point_dao`, `continuous_tracking_*`, `activity_segment_dao` |
+| `benefit` | Benefits catalog & earned rewards | Repository + DAO + sync-strategy; `benefit_dao` manages both `benefits` and `user_benefits` |
+| `auth` | Authentication, tokens, password validation | `auth_service`, `token_storage`, domain result types, widgets (no DAO/sync-strategy) |
+| `security` | Biometric app lock, rate limiting, session timeout | Services + preferences storage (no DAO) |
+| `wearable_integration` | Health Connect / HealthKit / BLE, sensor data | DAOs under `data/daos/`, sources, `health_sync_service` |
+| `shared` | Cross-cutting infrastructure | `database/database_helper.dart`, `sync/base_sync_strategy.dart`, `sensors/`, `utils/` (connectivity, type converters) |
+
+The full repository + DAO + sync-strategy pattern below applies to the three synced entities (`user`, `session`, `benefit`). The `auth`, `security`, `wearable_integration`, and `shared` modules use service/source classes and (for wearable) DAOs without a `*_sync_strategy.dart`.
+
 ### Key Principles
 
 1. **Local-First**: All data saved to SQLite first, synced to server when online
@@ -37,6 +53,14 @@ CREATE TABLE users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
+  password_hash TEXT NOT NULL,                    -- SHA-256 hashed password
+  display_name TEXT,
+  gender TEXT,
+  date_of_birth INTEGER,
+  timezone TEXT,
+  profile_image_path TEXT,
+  is_verified INTEGER DEFAULT 0,
+  verification_status TEXT DEFAULT 'unverified',  -- 'unverified' | 'pending' | 'verified'
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 )
@@ -83,6 +107,9 @@ CREATE TABLE user_benefits (
   benefit_id TEXT NOT NULL,
   session_id TEXT NOT NULL,         -- Session that earned the benefit
   earned_at INTEGER NOT NULL,
+  status TEXT DEFAULT 'earned',     -- 'earned' | 'redeemed'
+  redeemed_at INTEGER,              -- Timestamp when redeemed
+  redemption_code TEXT,             -- Code generated on redemption
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -104,6 +131,8 @@ CREATE TABLE sync_queue (
   last_error TEXT
 )
 ```
+
+> **Note:** The five tables above are the core entities. The full schema (version **11**) also includes profile tables (`user_biometrics_reported`, `user_preferences`), GPS tracking (`gps_points`), wearable integration (`wearable_devices`, `session_biometric_data`, `session_motion_data`, `session_sensor_summary`, `health_platform_data`), and continuous-tracking tables (`continuous_tracking_config`, `continuous_tracking_state`, `activity_segments`). See [DATABASE.md](../../database/DATABASE.md) for the complete schema, all columns, and migration history.
 
 #### Indexes for Performance
 
@@ -204,16 +233,21 @@ Each entity has custom sync behavior defined in its `*_sync_strategy.dart` file.
 ```dart
 class UserSyncStrategy extends BaseSyncStrategy<User> {
   @override
-  int get maxRetries => 3;
+  bool get requiresSync => true;
 
   @override
-  int get retryDelaySeconds => 5;
+  Future<bool> shouldSync(User entity) async {
+    // Users always sync when changed
+    return true;
+  }
 
   @override
   Future<User> resolveConflict(User local, User remote) async {
     // Remote always wins for user profile
     return remote;
   }
+
+  // maxRetries (3) and retryDelaySeconds (5) inherited from BaseSyncStrategy
 }
 ```
 
@@ -225,6 +259,9 @@ class UserSyncStrategy extends BaseSyncStrategy<User> {
 
 ```dart
 class SessionSyncStrategy extends BaseSyncStrategy<Session> {
+  @override
+  bool get requiresSync => true;
+
   @override
   int get maxRetries => 5;
 
@@ -240,7 +277,8 @@ class SessionSyncStrategy extends BaseSyncStrategy<Session> {
   @override
   Future<Session> resolveConflict(Session local, Session remote) async {
     // Case 1: Local is active/paused → ALWAYS keep local
-    if (local.status.isOngoing) {
+    if (local.status == SessionStatus.active ||
+        local.status == SessionStatus.paused) {
       return local;
     }
 
@@ -273,6 +311,9 @@ class SessionSyncStrategy extends BaseSyncStrategy<Session> {
 ```dart
 class BenefitSyncStrategy extends BaseSyncStrategy<UserBenefit> {
   @override
+  bool get requiresSync => true;
+
+  @override
   int get maxRetries => 3;
 
   @override
@@ -296,11 +337,24 @@ Defines the public API for data operations.
 
 ```dart
 abstract class SessionRepository {
-  Future<Session> createSession(Session session);
-  Future<Session> updateSession(Session session);
-  Future<Session?> getSessionById(String id);
   Future<List<Session>> getAllSessions({required String userId});
-  Future<Session?> getActiveSession({required String userId});
+  Future<List<Session>> getSessionsByStatus({
+    required String userId,
+    required SessionStatus status,
+  });
+  Future<List<Session>> getSessionsByActivityType({
+    required String userId,
+    required ActivityType activityType,
+  });
+  Future<Session> getSessionById(String sessionId);
+  Future<Session> createSession(Session session);
+  Future<void> updateSession(Session session);
+  Future<void> deleteSession(String sessionId);
+  Future<List<Session>> getSessionsInDateRange({
+    required String userId,
+    required DateTime startDate,
+    required DateTime endDate,
+  });
 }
 ```
 
@@ -314,32 +368,62 @@ class SessionRepositoryImpl implements SessionRepository {
   final SessionSyncStrategy _syncStrategy;
   final ConnectivityService _connectivity;
 
+  SessionRepositoryImpl({
+    required SessionDao dao,
+    required SessionSyncStrategy syncStrategy,
+    required ConnectivityService connectivity,
+  })  : _dao = dao,
+        _syncStrategy = syncStrategy,
+        _connectivity = connectivity;
+
+  /// Factory constructor with default dependencies
+  factory SessionRepositoryImpl.create() {
+    return SessionRepositoryImpl(
+      dao: SessionDao(),
+      syncStrategy: SessionSyncStrategy(),
+      connectivity: ConnectivityService(),
+    );
+  }
+
   @override
   Future<Session> createSession(Session session) async {
     // 1. Save locally first (offline-first)
     await _dao.insert(session);
 
-    // 2. Queue for sync if online
-    if (await _connectivity.isOnline()) {
-      await _queueForSync(session, SyncOperation.create);
+    // 2. Active/paused sessions stay local; only completed sessions sync
+    if (session.status == SessionStatus.completed) {
+      await _syncCompletedSession(session);
     }
 
     return session;
   }
 
   @override
-  Future<Session> updateSession(Session session) async {
-    // 1. Update locally
+  Future<void> updateSession(Session session) async {
+    // 1. Update locally first
     await _dao.update(session);
 
-    // 2. Check if should sync (only completed sessions)
-    if (await _syncStrategy.shouldSync(session)) {
-      if (await _connectivity.isOnline()) {
-        await _queueForSync(session, SyncOperation.update);
-      }
+    // 2. Completed sessions sync immediately (high priority);
+    //    active/paused sessions wait until they transition to completed
+    if (session.status == SessionStatus.completed) {
+      await _syncCompletedSession(session);
     }
+  }
 
-    return session;
+  /// Upload completed session, queueing for later when offline or on failure
+  Future<void> _syncCompletedSession(Session session) async {
+    if (await _connectivity.isOnline()) {
+      try {
+        final success = await _syncStrategy.uploadToRemote(session);
+        if (!success) {
+          await _syncStrategy.queueForSync(session, 'update');
+        }
+      } catch (e) {
+        await _syncStrategy.queueForSync(session, 'update');
+      }
+    } else {
+      await _syncStrategy.queueForSync(session, 'update');
+    }
   }
 }
 ```
@@ -349,6 +433,8 @@ class SessionRepositoryImpl implements SessionRepository {
 ## Data Flow
 
 ### Create Operation
+
+> **Note:** The diagram below depicts the **target PostgREST / Phase 2** flow. In the current Phase 1 (SQLite only), `createSession` writes to SQLite and stops there for active/paused sessions; only **completed** sessions are routed to sync (`uploadToRemote` is currently stubbed to return success, and `downloadFromRemote` throws `UnimplementedError`).
 
 ```
 User Action (e.g., "Start Session")
@@ -555,12 +641,12 @@ class SqliteTypeConverters {
     return DateTime.fromMillisecondsSinceEpoch(milliseconds);
   }
 
-  // Enum ↔ String
-  static String enumToSqlite<T extends Enum>(T value) {
-    return value.name;
+  // Enum ↔ String (enums expose toJson()/fromJson())
+  static String enumToSqlite<T>(T enumValue) {
+    return (enumValue as dynamic).toJson() as String;
   }
 
-  static T enumFromSqlite<T extends Enum>(
+  static T enumFromSqlite<T>(
     String value,
     T Function(String) fromJson,
   ) {

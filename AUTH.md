@@ -12,7 +12,7 @@
 
 ### Completed
 - [x] **UserProvider** - Centralized auth state management with ChangeNotifier
-- [x] **Session persistence** - SharedPreferences stores user ID across app restarts
+- [x] **Session persistence** - JWT tokens stored securely via `TokenStorage` (flutter_secure_storage) and restored across app restarts
 - [x] **Login screen** - Email/password form with validation and error display
 - [x] **Splash screen** - Initializes auth, routes to login or home
 - [x] **Named routes** - `/`, `/login`, `/home`
@@ -251,21 +251,24 @@ dependencies:
 
 ---
 
-## Sprint 5: Profile & Account Management
+## Sprint 5: Profile & Account Management 🟡 PARTIAL
 **Effort:** 4-6 hours | **Priority:** Low
 
-Enhance profile with account management features.
+Enhance profile with account management features. Change Password and Delete
+Account are implemented (as dialogs inside `profile_screen.dart`, not as the
+separate screens originally planned below); profile editing and session
+management remain future work.
 
 ### Tasks
-1. **Change Password**
+1. ✅ **Change Password** (implemented in `profile_screen.dart`)
    - Add "Change Password" option in profile settings
    - Require current password for verification
    - New password with confirmation
 
-2. **Delete Account**
+2. ✅ **Delete Account** (implemented in `profile_screen.dart`; uses a 6-digit confirmation code, not a password)
    - Add "Delete Account" option
    - Confirmation dialog with warnings
-   - Require password to confirm
+   - Require a 6-digit confirmation code to confirm
    - Backend deletes all user data
 
 3. **Update Profile Information**
@@ -281,9 +284,9 @@ Enhance profile with account management features.
 ### Files to Modify
 - `lib/presentation/screens/profile/profile_screen.dart`
 
-### New Files
-- `lib/presentation/screens/profile/change_password_screen.dart`
-- `lib/presentation/screens/profile/delete_account_screen.dart`
+### New Files (originally planned)
+- ~~`lib/presentation/screens/profile/change_password_screen.dart`~~ → implemented as a dialog in `profile_screen.dart` instead
+- ~~`lib/presentation/screens/profile/delete_account_screen.dart`~~ → implemented as a dialog in `profile_screen.dart` instead
 
 ### Success Criteria
 - Users can change password with current password verification
@@ -292,28 +295,30 @@ Enhance profile with account management features.
 
 ---
 
-## Sprint 6: Security Hardening
+## Sprint 6: Security Hardening 🟡 MOSTLY DONE
 **Effort:** 4-6 hours | **Priority:** Medium
 
-Implement security best practices.
+Implement security best practices. Biometric auth, client-side rate limiting,
+and certificate pinning are implemented; session timeout is intentionally
+deferred (stubbed).
 
 ### Tasks
-1. **Biometric Authentication**
+1. ✅ **Biometric Authentication** (`lib/features/security/services/biometric_service.dart`, `lib/providers/app_lock_provider.dart`, `lib/presentation/screens/security/app_lock_screen.dart`)
    - Optional fingerprint/Face ID for app unlock
    - Use `local_auth` package
    - Store preference in settings
 
-2. **Rate Limiting (Client-side)**
+2. ✅ **Rate Limiting (Client-side)** (`lib/features/security/services/rate_limiter_service.dart`, wired into `UserProvider.login`)
    - Limit login attempts (5 attempts, then 15-min lockout)
    - Show remaining attempts
    - Countdown timer for lockout
 
-3. **Session Timeout**
+3. ⏳ **Session Timeout** (stubbed — `SessionTimeoutService.isEnabled` returns `false`; deferred for the fitness-tracking use case)
    - Auto-logout after X minutes of inactivity
    - Configurable timeout in settings
    - Warning before timeout
 
-4. **Certificate Pinning**
+4. ✅ **Certificate Pinning** (`lib/core/network/certificate_pinning.dart`; release-only via `SecurityConfig.enableCertificatePinning`, fingerprints still placeholders)
    - Pin SSL certificates for API calls
    - Prevent MITM attacks
 
@@ -331,7 +336,7 @@ dependencies:
 ### Success Criteria
 - Biometric unlock available on supported devices
 - Rate limiting prevents brute force attacks
-- Sessions expire after inactivity
+- Sessions expire after inactivity (planned — `SessionTimeoutService` is stubbed/not yet implemented)
 - API communication secured with certificate pinning
 
 ---
@@ -345,8 +350,8 @@ dependencies:
 | **Sprint 2** | User registration | 4-6 hours | High | ✅ Done |
 | **Sprint 3** | Password recovery | 3-4 hours | Medium | ✅ Done |
 | **Sprint 4** | OAuth (Google/Apple) | 6-8 hours | Medium | Skipped (MVP) |
-| **Sprint 5** | Account management | 4-6 hours | Low | In Progress |
-| **Sprint 6** | Security hardening | 4-6 hours | Medium | Pending |
+| **Sprint 5** | Account management | 4-6 hours | Low | Partial (change password + delete account done) |
+| **Sprint 6** | Security hardening | 4-6 hours | Medium | Mostly done (session timeout stubbed) |
 
 **Total Estimated Effort:** 30-44 hours
 

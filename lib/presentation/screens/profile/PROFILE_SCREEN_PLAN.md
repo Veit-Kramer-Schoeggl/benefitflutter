@@ -8,6 +8,21 @@
 
 # Profile Screen Implementation Plan
 
+> **⚠️ Implementation status (current code):** This is the original forward-looking
+> plan. The Profile Screen was ultimately built **differently** from the design below:
+> - There is **no** `ProfileProvider` and **no** `lib/providers/profile_provider.dart`.
+>   The screen uses the existing **`UserProvider`** plus local widget state instead.
+> - There is **no** edit-mode toggle (`_isEditing` / Edit / Cancel). Editing happens
+>   via selection cards, a settings dialog, and a persistent **Save Changes** button.
+> - The screen's **Save Changes** button persists `displayName`/`gender` (plus
+>   biometrics — height/weight — and preferences — country), and handles avatar,
+>   verification, biometric unlock, change-password, and account deletion.
+>
+> For an accurate description of what currently ships, see
+> [`profile_screen.dart`](./profile_screen.dart) and the up-to-date
+> [Profile Screen Overview](../../../../documentation/screens/PROFILE_SCREEN_OVERVIEW.md).
+> The sections below are retained as the original plan/design record.
+
 ## Overview: Profile Screen with Interactivity
 
 The Profile Screen differs from the Progress Screen through **user interaction**:
@@ -64,16 +79,35 @@ class User {
   final String id;
   final String name;
   final String email;
+  final String passwordHash;
 
-  User copyWith({String? name, String? email}) {
+  // Profile fields (v3)
+  final String? displayName;
+  final String? gender;
+  final DateTime? dateOfBirth;
+  final String? timezone;
+
+  final String? profileImagePath;
+  final bool isVerified;
+  final String verificationStatus;
+
+  // copyWith() accepts ALL fields (id, name, email, passwordHash,
+  // displayName, gender, dateOfBirth, timezone, profileImagePath,
+  // isVerified, verificationStatus) — each defaulting to the current value.
+  User copyWith({String? name, String? email, /* ...all other fields... */ }) {
     return User(
-      id: id,
+      id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
+      // ...remaining fields...
     );
   }
 }
 ```
+
+> **Note (current state):** The simplified snippet above is illustrative. The real
+> `User` model carries `passwordHash` plus the v3 profile fields shown, and `copyWith`
+> exposes every field. See `lib/features/user/domain/user.dart` for the full definition.
 
 **Why `copyWith()` is important:**
 → We can create a new User instance with modified fields without changing the original (immutability).
@@ -81,17 +115,21 @@ class User {
 **Example:**
 ```dart
 // Old
-User user = User(id: '1', name: 'Max', email: 'max@test.com');
+User user = User(id: '1', name: 'Max', email: 'max@test.com', passwordHash: '...');
 
-// New (only change name)
-User updatedUser = user.copyWith(name: 'John');
-// updatedUser = User(id: '1', name: 'John', email: 'max@test.com')
+// New (only change displayName)
+User updatedUser = user.copyWith(displayName: 'John');
+// id, name, email, passwordHash, etc. are preserved
 ```
 
 ---
 
-### 2️⃣ **ProfileProvider** (NEW)
+### 2️⃣ **ProfileProvider** (PLANNED — not implemented)
 **File**: `lib/providers/profile_provider.dart`
+
+> **Status:** This provider was never created. The shipped screen relies on the
+> existing `lib/providers/user_provider.dart` (`UserProvider`) and local widget
+> state instead. The design below is kept as the original plan.
 
 **What it does:**
 - Load user data
@@ -252,6 +290,12 @@ class ProfileProvider extends ChangeNotifier {
 
 ### 3️⃣ **ProfileScreen** (Interactive)
 **File**: `lib/presentation/screens/profile/profile_screen.dart`
+
+> **Status:** The file exists, but the actual implementation differs from the code
+> below. It is a `StatefulWidget` that reads `currentUser` from `UserProvider`,
+> loads biometrics and preferences in `_loadProfileData()`, and saves via
+> `_saveProfileData()` (Save Changes button) rather than an edit-mode toggle.
+> The sketch below is the original plan.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -755,6 +799,13 @@ Consumer<ProfileProvider>(
 ---
 
 ## Checklist
+
+> **Status:** The Profile Screen is implemented, but **not** via this checklist's
+> approach. Phase 1 (separate `ProfileProvider`) and Phase 2 (register it in
+> `main.dart`) were **not** done — the screen uses `UserProvider` instead. Phase 3+
+> (the screen, save feedback, profile-picture upload, change password) shipped in a
+> different form. Items remain unchecked because they describe the original plan, not
+> the delivered implementation.
 
 ### Phase 1: Create Provider
 - [ ] Create `lib/providers/profile_provider.dart`

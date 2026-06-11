@@ -8,14 +8,29 @@
 
 # Authentication Provider Implementation Plan
 
+> **Status (implemented):** This plan has been carried out and significantly extended.
+> The centralized provider exists as **`UserProvider`** in `lib/providers/user_provider.dart`
+> (there is no `AuthProvider` class — `UserProvider` fulfills that role). It is registered
+> **first** in the `MultiProvider` in `lib/main.dart` and is consumed by
+> `ProgressProvider`, `ActivityProvider`, and `BenefitProvider` via
+> `ChangeNotifierProxyProvider`/`updateUserId(...)`. Real authentication (login, register,
+> email verification, token storage, password reset, account deletion, rate limiting) is
+> now implemented on top of `AuthService`/`TokenStorage`, going well beyond the original
+> test-user scope below. The code examples in this document are the original PLAN drafts and
+> may not match the final API exactly — see "Implementation notes" annotations.
+
 ## Problem Statement
-Currently, the app uses hardcoded user IDs scattered across multiple files:
+The original problem this plan addressed: the app used hardcoded user IDs scattered across
+multiple files:
 - `ActivityProvider`: `'test-user-123'`
 - `BenefitScreen`: `'test-user-123'`
-- `ProgressProvider`: `'test-user-123'` (just fixed)
+- `ProgressProvider`: `'test-user-123'`
 - No centralized user state management
 - Not reactive to user changes
 - Violates MVVM/Provider pattern principles
+
+These hardcoded IDs have since been removed from the providers; `'test-user-123'` now only
+appears in seed/test data (`lib/core/seed/seed_data.dart`, `MockAuthService` test credentials).
 
 ## Solution Architecture
 
@@ -57,6 +72,14 @@ class UserProvider extends ChangeNotifier {
 }
 ```
 
+> **Implementation note:** In the shipped `UserProvider`, `isAuthenticated` is a computed
+> getter (`_currentUser != null && _currentTokens != null`), not a stored `_isAuthenticated`
+> field, and `_isLoading` defaults to `false`. The constructor takes injected dependencies —
+> `UserProvider({required UserRepository repository, required AuthService authService,
+> required TokenStorage tokenStorage, RateLimiterService? rateLimiter})` — and the implemented
+> `login`/`logout`/`refreshSession` return `Future<bool>`/`Future<void>` rather than the
+> signatures sketched above.
+
 ### 1.2 Add to Provider hierarchy
 **Location:** `lib/main.dart`
 
@@ -83,6 +106,13 @@ MultiProvider(
   ],
 )
 ```
+
+> **Implementation note:** The shipped `MultiProvider` (`lib/main.dart`, lines ~64-124)
+> registers `UserProvider` first with injected dependencies (no `..initialize()` chained in
+> `create`), followed by `BenefitProvider`, `ProgressProvider`, `ActivityProvider` (all via
+> `ChangeNotifierProxyProvider<UserProvider, …>` calling `updateUserId(userProvider.userId)`),
+> plus plain `ChangeNotifierProvider`s for `ConnectivityProvider`, `HealthPlatformProvider`,
+> and `AppLockProvider`.
 
 ---
 
@@ -329,21 +359,32 @@ if (userId == null) return LoadingOrLoginWidget();
 
 ## Phase 5: Future Enhancements
 
-### 5.1 Real Authentication
-- Integrate with UserRepository
-- Add login/register methods
-- Add token management
-- Add auto-login from stored credentials
+### 5.1 Real Authentication — IMPLEMENTED
+- Integrate with UserRepository ✅ (`UserProvider` wraps `UserRepository`)
+- Add login/register methods ✅ (`login`, `register`, `verifyEmail`, plus password reset /
+  account deletion / change password)
+- Add token management ✅ (`AuthTokens` + `TokenStorage`/`SecureTokenStorage`,
+  `refreshSession`, `AuthInterceptor` for 401 refresh)
+- Add auto-login from stored credentials ✅ (`initialize()` restores the session from
+  `TokenStorage` and refreshes expired tokens)
+- Note: the live app uses `MockAuthService`; PostgREST/remote sync is still TODO.
 
-### 5.2 Auth Guards
-- Protect screens that require authentication
-- Redirect to login if not authenticated
-- Handle token expiration
+### 5.2 Auth Guards — PARTIALLY IMPLEMENTED
+- Protect screens that require authentication (routing via named routes in `main.dart`)
+- Redirect to login if not authenticated ✅ (the `SplashScreen`
+  (`lib/presentation/screens/splash/splash_screen.dart` ~44-45) navigates to `/login` after
+  `userProvider.initialize()` when not authenticated). Note: the only `navigatorKey` → `/login`
+  navigation in the live app is the app-lock flow `_handlePasswordRequired()` in `main.dart`,
+  not an auth-failure flow; `UserProvider.handleAuthFailure()` exists but is **not** currently
+  called anywhere.
+- Handle token expiration ⚠️ (`AuthInterceptor` implements refresh-on-401 with a `needsRefresh`
+  5-min window, but it is **not** wired into the live app — it is never instantiated/registered,
+  so this is currently dead code)
 
 ### 5.3 Multi-user Support
-- Switch between users
+- Switch between users (providers reset state via `updateUserId` on user change)
 - Maintain separate data per user
-- Clear cache on logout
+- Clear cache on logout (each ProxyProvider clears its state when `userId` becomes null)
 
 ---
 

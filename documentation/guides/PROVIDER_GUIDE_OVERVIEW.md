@@ -47,7 +47,7 @@ Think of Provider like a newsletter subscription:
 ### 1. Repository
 - **What:** Data source (API, database)
 - **Purpose:** Fetch and store data
-- **Benefit:** Swappable (mock vs real)
+- **Benefit:** Swappable via abstract interface + implementation (SQLite is the production implementation)
 
 ### 2. Provider
 - **What:** State management + business logic

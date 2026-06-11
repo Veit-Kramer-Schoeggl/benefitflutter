@@ -35,11 +35,14 @@ flutter test
 ## App Structure
 
 ### 5 Main Tabs
-1. **Activity**: Start/stop tracking sessions
-2. **Progress**: List of sessions and collected benefits
-3. **Benefit**: Savings, rewards, and analytics over time
-4. **Profile**: User information and verification status
-5. **Community**: Social features (placeholder for future)
+
+Bottom navigation order (the app opens on the **Activity** tab by default):
+
+1. **Community**: Social features (Coming Soon placeholder)
+2. **Progress**: List of sessions and activity statistics
+3. **Activity**: Start/stop tracking sessions (default tab)
+4. **Benefit**: Total savings and earned benefits & rewards
+5. **Profile**: User information and verification status
 
 ## Architecture Highlights
 
@@ -78,11 +81,10 @@ flutter test
 ```
 lib/
 ├── main.dart                    # App entry point with auth flow
-├── core/                        # Core functionality (enums, config, seed)
-├── features/                    # Feature-based modules (user, session, benefit)
-├── providers/                   # State management (Provider)
-├── presentation/                # UI layer (screens, widgets, navigation)
-└── services/                    # Platform services (location, notification)
+├── core/                        # Core utilities (config, constants, enums, network, seed, utils, deep_link)
+├── features/                    # Feature-based modules (auth, benefit, security, session, shared, user, wearable_integration)
+├── presentation/                # UI layer (navigation, screens, shared widgets)
+└── providers/                   # State management (Provider / ChangeNotifier)
 
 database/
 └── DATABASE.md                  # Schema documentation
@@ -93,6 +95,7 @@ documentation/
 ├── data/                        # Database & seeding overviews
 ├── guides/                      # Developer guides
 ├── screens/                     # Screen overviews
+├── sessions/                    # Session & tracking overviews
 ├── wearables/                   # Wearable integration
 └── widgets/                     # Widget overviews
 ```

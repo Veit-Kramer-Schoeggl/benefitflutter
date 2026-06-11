@@ -73,22 +73,25 @@ HTTP request handling:
 | **Password Hashing** | SHA-256 hashing, never stored as plain text |
 | **Token-Based Auth** | JWT tokens with configurable expiry |
 | **Secure Storage** | Platform-specific secure credential storage |
-| **Auto-Logout** | Session expires after inactivity period |
+| **Rate Limiting** | Login lockout after 5 failed attempts within a 15-minute window |
+| **Biometric App-Lock** | Biometric unlock after backgrounding (Face ID / Fingerprint / Iris) |
 
 ## Implementation Status
 
 ### Completed
 - User registration and login
+- Email verification (verification code, auto-login on success)
+- Password reset flow (request code + reset, deep-link support)
 - Password hashing and validation
 - Session persistence
 - Token storage infrastructure
 - Logout with confirmation
+- Rate limiting (login lockout) and biometric app-lock
+- Account deletion (request + confirm with code)
 
 ### Planned
-- Email verification
-- Password reset flow
 - OAuth integration (Google, Apple)
-- Biometric authentication
+- Session inactivity timeout (`SessionTimeoutService` is currently a stub / not implemented)
 
 ## Related Documentation
 

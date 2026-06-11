@@ -240,16 +240,16 @@ Understanding how data moves through the system is key to understanding the arch
 **Trigger**: User connects Health Connect or periodic background sync
 
 **Path**:
-1. User taps "Connect" → `HealthPlatformProvider.connect()`
-2. Provider checks if Health Connect installed → `HealthSyncService.isHealthConnectInstalled()`
+1. User taps "Connect" → `DeviceConnectionScreen._handleHealthPlatformConnect()`
+2. Screen checks if Health Connect installed → `HealthPlatformProvider.isHealthConnectInstalled()` (→ `HealthSyncService.isHealthConnectInstalled()`)
 3. If not installed → Show dialog with Play Store link
-4. If installed → Request permissions via `HealthConnectSource.requestPermissions()`
+4. If installed → `HealthPlatformProvider.connect()` requests permissions via `HealthSyncService.requestPermissions()` (delegates to the active source's `requestPermissions()`)
 5. Platform shows native permission dialog
-6. On approval → `HealthSyncService.syncAll()` triggered
-7. Service requests data from `HealthConnectSource.getHistoricalData()` for each type (steps, heart rate, distance, etc.)
-8. Source calls native Health Connect APIs, fetches last 7 days
+6. On approval → `HealthPlatformProvider.connect()` triggers `syncAll()` → `HealthSyncService.syncAll()`
+7. Service requests data from the source's `getHistoricalData()` for each type (steps, heart rate, distance, etc.)
+8. Source calls native Health Connect APIs, fetches last 7 days (`daysBack` default 7)
 9. Data mapped from platform format to `HealthDataPoint` domain models
-10. Batch inserted to local database via `HealthPlatformDataDao`
+10. Batch inserted to local database via `HealthPlatformDataDao.insertBatch()`
 11. Provider updates state → UI shows "Connected" + last sync time
 
 **Key Characteristics**:
@@ -264,62 +264,63 @@ Understanding how data moves through the system is key to understanding the arch
 
 **Path**:
 1. User starts session → `ActivityProvider.startSession(heartRateDeviceId: 'device-123')`
-2. Provider calls `SensorManager.startHeartRateSensor(deviceId)`
-3. Sensor manager retrieves device from `WearableDeviceDao`
-4. Creates `HeartRateSensor` instance for the device
+2. Provider calls its private `_startHeartRateTracking()` helper
+3. Helper calls `BleDataSource.startStreaming(deviceId, SensorType.heartRate)`
+4. `BleDataSource` drives the previously paired `HeartRateSensor` for the device
 5. Sensor connects to BLE device via standard Heart Rate Service (UUID: 0x180D)
 6. Subscribes to Heart Rate Measurement characteristic (UUID: 0x2A37)
 7. BLE device starts sending data ~1 per second
 8. Sensor parses binary BLE format → clean BPM integer
-9. Emits values on stream → `SensorManager` receives
-10. Manager creates `SensorDataPoint` and stores via `SessionBiometricDataDao`
-11. Manager broadcasts to UI → heart rate display updates live
-12. Session ends → sensor disconnected, streaming stops
+9. Provider subscribes via `BleDataSource.getSensorStream(deviceId, SensorType.heartRate)` → emits `SensorDataPoint`
+10. `ActivityProvider._onHeartRatePoint()` stores the reading via `SessionBiometricDataDao.insert()`
+11. Provider updates `_currentHeartRate` and calls `notifyListeners()` → heart rate display updates live
+12. Session ends → `_stopHeartRateTracking()` cancels the subscription and calls `BleDataSource.stopStreaming()`
 13. Final statistics computed → saved to `SessionSensorSummaryDao`
-14. Detailed readings marked for cleanup after successful sync
+14. Detailed readings remain locally until session cleanup (see Flow 4)
 
 **Key Characteristics**:
 - Sub-second latency from device to UI
 - Streams only during active sessions (battery conscious)
 - All readings stored for potential sync later
-- Connection resilient - auto-reconnect on brief disconnects
+- Disconnects update the sensor status; automatic reconnection is not yet implemented (planned)
 - Graceful degradation - session continues if device disconnects
 
 ### Flow 3: Session Enrichment
 
 **Trigger**: User completes a session
 
-**Path**:
+**Path** (current implementation — BLE summary):
 1. Session ends → `ActivityProvider.stopSession()`
-2. Provider checks if Health Platform connected
-3. If connected → calls `HealthPlatformProvider.enrichSession(session)`
-4. Provider calls `HealthSyncService.enrichSession()`
-5. Service queries `HealthPlatformDataDao` for data during session timeframe
-6. Retrieves average heart rate, step count, distance, calories from health platform data
-7. Returns enriched session with additional metrics
-8. Provider merges BLE data (if any) with health platform data
-9. Computes statistics (avg HR, max HR, heart rate zones, total steps)
-10. Saves summary to `SessionSensorSummaryDao`
-11. Updates session record with wearable fields populated
-12. Displays complete session summary to user
+2. Heart rate tracking stopped (`_stopHeartRateTracking()`)
+3. `_calculateHeartRateStats()` computes avg / max / min HR from the collected BLE readings
+4. Completed `Session` is built with `avgHeartRate`, `maxHeartRate`, `minHeartRate`, `hasWearableData`, `connectedDeviceIds` and saved via `_sessionRepository.updateSession()`
+5. If BLE heart-rate data exists → `_createSessionSummary()` builds a `SessionSensorSummary` (avg/max/min HR + `dataSources: ['ble:<deviceId>']`) and persists it via `SessionSensorSummaryDao.upsert()`
+6. Displays complete session summary to user
+
+> **Note**: Heart-rate-zone time-in-zone is **not** currently computed or persisted in the summary (`heart_rate_zones` stays null); `HeartRateZone` is only used for live UI display.
+
+**Health-platform enrichment** (capability available, not yet wired into session completion):
+- `HealthPlatformProvider.enrichSession(session)` → `HealthSyncService.enrichSession(session)`
+- Queries `HealthPlatformDataDao` for the session timeframe (avg heart rate, daily steps, total distance, total calories)
+- Returns an enriched `Session` via `copyWith(...)` (it does **not** save a summary or merge BLE data)
 
 **Key Characteristics**:
 - Best-effort enrichment - session still valid without wearable data
-- Prefers BLE data for accuracy (direct measurement)
-- Falls back to health platform data if BLE unavailable
-- Combines both sources when available
+- Current summaries are built from BLE data; health-platform enrichment is an available-but-unwired capability
 - Non-blocking - quick operation that doesn't delay session completion
 
 ### Flow 4: Data Cleanup After Sync
 
 **Trigger**: Session data successfully synced to backend
 
+> **Status**: The DAO cleanup primitives below exist, but `SessionSyncStrategy.uploadToRemote()` is currently a stub and does not yet invoke them. The flow describes the intended cleanup pattern once backend sync is wired up.
+
 **Path**:
 1. `SessionSyncStrategy` uploads session + GPS + sensor data
 2. Backend confirms successful receipt
 3. Sync strategy calls cleanup methods on each DAO
-4. `SessionBiometricDataDao.deleteBySyncedSession(sessionId)` - removes detailed heart rate readings
-5. `SessionMotionDataDao.deleteBySyncedSession(sessionId)` - removes detailed cadence/power readings
+4. `SessionBiometricDataDao.deleteBySession(sessionId)` - removes detailed heart rate readings
+5. `SessionMotionDataDao.deleteBySession(sessionId)` - removes detailed cadence/power readings
 6. GPS points also cleaned up (existing pattern)
 7. Summary data in `SessionSensorSummaryDao` remains (permanent record)
 8. Session record remains with aggregated stats
@@ -399,7 +400,7 @@ Understanding how data moves through the system is key to understanding the arch
 - More permissive with data type requests (iOS handles unsupported gracefully)
 - Better real-time capabilities than Health Connect
 
-**Current Status**: Interface defined, implementation pending iOS testing environment
+**Current Status**: `HealthKitSource` is fully implemented against the `WearableRepository` interface; end-to-end validation on physical iOS hardware is still pending.
 
 ### Bluetooth Low Energy (BLE)
 
@@ -413,11 +414,11 @@ Understanding how data moves through the system is key to understanding the arch
 - Standard protocols mean broad compatibility
 
 **What We Get**:
-- Live heart rate during sessions
-- Cadence from cycling computers
-- Power from smart trainers
-- Speed from foot pods
-- Any BLE sensor following standard GATT services
+- Live heart rate during sessions (the only BLE sensor type implemented today)
+- Cadence from cycling computers (planned)
+- Power from smart trainers (planned)
+- Speed from foot pods (planned)
+- Any BLE sensor following standard GATT services (planned)
 
 **Limitations**:
 - Requires explicit pairing
@@ -427,10 +428,10 @@ Understanding how data moves through the system is key to understanding the arch
 - One connection per device (can't share with other apps)
 
 **Implementation Strategy**:
-- Standard BLE services only (Heart Rate Service, Cycling Speed and Cadence, etc.)
+- Standard BLE services only (currently the Heart Rate Service; Cycling Speed and Cadence, etc. are planned)
 - No proprietary protocols (avoids per-vendor implementations)
 - Active only during sessions (minimize battery impact)
-- Auto-reconnect on brief disconnects
+- Auto-reconnect on brief disconnects (planned, not yet implemented)
 - Clear connection status indicators
 - Graceful degradation if device disconnects
 
@@ -621,15 +622,15 @@ When multiple sources provide the same data type (e.g., both BLE and Health Conn
 2. **Session-linked data > Background synced data** (explicit association)
 3. **Newer data > Older data** (when timestamps conflict)
 
-**Implementation**: During session enrichment, BLE data is preferred if available. Health platform data fills gaps.
+**Implementation** (planned, not yet wired): The intended merge prefers BLE data when available and lets health platform data fill gaps. Currently this merge is not in effect — session summaries are built from BLE data only and `enrichSession()` is not invoked during session completion (see Flow 3).
 
 ### Data Deduplication
 
 Health platforms may return duplicate data points (same timestamp, same value).
 
 **Strategy**:
-- Database unique constraint on (user_id, data_type, start_time)
-- INSERT OR REPLACE pattern
+- `health_platform_data.id` (UUID) is the primary key
+- Inserts use `ConflictAlgorithm.replace` (INSERT OR REPLACE), so re-inserting the same id overwrites the prior row
 - Latest sync timestamp preserved
 
 **Benefit**: Multiple syncs are safe (idempotent).
@@ -696,8 +697,8 @@ Borrowed from GPS point cleanup pattern (proven reliable):
 3. Shows heart rate display widget at top of activity screen
 4. Live BPM updates every second
 5. Pulse animation syncs with readings
-6. Shows connection status (connected, reconnecting, disconnected)
-7. If disconnected → Shows "Reconnecting..." but session continues
+6. Shows connection status (connected, disconnected)
+7. If disconnected → Shows "Disconnected" but session continues
 8. Session ends → Statistics include heart rate zones
 
 **Without Wearable**:
@@ -776,18 +777,17 @@ When errors occur, guide users to resolution:
 
 **Connection Lost During Session**:
 - Non-intrusive notification: "Heart rate monitor disconnected"
-- Small reconnecting indicator
 - Session continues normally
-- Automatic reconnection attempts in background
+- Automatic reconnection attempts in background (planned, not yet implemented)
 - No data loss (partial data still saved)
 
 ### Error Recovery
 
 **Automatic Recovery**:
-- BLE disconnects → Auto-reconnect attempts (3 tries with exponential backoff)
+- BLE disconnects → sensor status updated; automatic reconnect with backoff is planned, not yet implemented
 - Sync failures → Retry on next sync trigger
-- Permission errors → Re-check permissions on next app start
-- API errors → Exponential backoff with max retry limit
+- Permission errors → Re-check permissions on next app start (`HealthPlatformProvider.initialize()`)
+- API errors → exponential backoff with max retry limit is planned, not yet implemented
 
 **User-Initiated Recovery**:
 - Manual sync button (forces immediate sync attempt)

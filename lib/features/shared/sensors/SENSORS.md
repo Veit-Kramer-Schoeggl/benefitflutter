@@ -71,13 +71,10 @@ When the GPS sensor initializes, it checks whether location services are enabled
 The GPS sensor manages the complete permission flow, from initial requests to handling permanent denials. If location services are disabled, it provides appropriate error information. The permission checking logic distinguishes between temporary denials (can retry) and permanent denials (requires settings).
 
 **Streaming Configuration:**
-When streaming starts, the GPS sensor configures the underlying location service with accuracy requirements, distance filters, and time limits. These settings balance battery life with data quality.
+When streaming starts, the GPS sensor configures the underlying location service with high accuracy and a distance filter. These settings balance battery life with data quality. A time limit is intentionally not applied to the position stream (see code comments), as it caused errors during normal use; this remains a possible future enhancement.
 
 **Distance Filtering:**
 The sensor applies a minimum distance threshold between location updates to reduce redundant data points when stationary. This conserves battery and storage while maintaining tracking quality during movement.
-
-**Time Limiting:**
-Even when stationary, the sensor periodically updates to detect when movement resumes. This ensures responsive tracking without excessive battery drain.
 
 **Quality Filtering:**
 Each GPS point is evaluated for quality before being emitted on the data stream. Low-accuracy points or points with suspicious characteristics are silently discarded, ensuring downstream consumers receive only reliable location data.

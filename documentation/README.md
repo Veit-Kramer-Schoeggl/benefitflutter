@@ -17,6 +17,7 @@ Each topic has two documentation types:
 | Feature Modules | [FEATURES.md](../lib/features/FEATURES.md) | [FEATURES_OVERVIEW.md](architecture/FEATURES_OVERVIEW.md) | Module architecture, sync strategies |
 | Authentication | [AUTH.md](../AUTH.md) | [AUTH_OVERVIEW.md](architecture/AUTH_OVERVIEW.md) | Auth system, JWT, session management |
 | Main Routing | [MAIN_AUTH.md](../lib/MAIN_AUTH.md) | [MAIN_AUTH_OVERVIEW.md](architecture/MAIN_AUTH_OVERVIEW.md) | App entry, routing, navigation |
+| Security | [SECURITY.md](../lib/features/security/SECURITY.md) | _N/A_ | Rate limiting, app lock, hardening |
 
 ## Data Layer
 
@@ -32,6 +33,12 @@ Each topic has two documentation types:
 | Activity Screen | [ACTIVITY_SCREEN_PLAN.md](../lib/presentation/screens/activity/ACTIVITY_SCREEN_PLAN.md) | [ACTIVITY_SCREEN_OVERVIEW.md](screens/ACTIVITY_SCREEN_OVERVIEW.md) | Timer, GPS tracking |
 | Profile Screen | [PROFILE_SCREEN_PLAN.md](../lib/presentation/screens/profile/PROFILE_SCREEN_PLAN.md) | [PROFILE_SCREEN_OVERVIEW.md](screens/PROFILE_SCREEN_OVERVIEW.md) | User profile, edit mode |
 | Progress Screen | [PROGRESS_SCREEN_PLAN.md](../lib/presentation/screens/progress/PROGRESS_SCREEN_PLAN.md) | [PROGRESS_SCREEN_OVERVIEW.md](screens/PROGRESS_SCREEN_OVERVIEW.md) | Session history |
+
+## Sessions & Tracking
+
+| Topic | Design | Plan | Description |
+|-------|--------|------|-------------|
+| Session System | [SESSION_DESIGN.md](sessions/SESSION_DESIGN.md) | [SESSION_PLAN.md](sessions/SESSION_PLAN.md) | Tracking modes, sprint breakdown |
 
 ## Integration
 
@@ -52,7 +59,9 @@ Each topic has two documentation types:
 
 | Document | Type | Description |
 |----------|------|-------------|
-| [FUTURE.md](FUTURE.md) | Overview | Future architecture plans |
+| [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) | Review | Honest design evaluation for large-scale rollout + phased evolution plan |
+| [ROADMAP.md](ROADMAP.md) | Plan | Actionable checklist derived from the architecture review |
+| [FUTURE.md](FUTURE.md) | Overview | Future architecture plans (proposed target directory layout) |
 
 ---
 
@@ -95,6 +104,9 @@ documentation/
 │   ├── ACTIVITY_SCREEN_OVERVIEW.md
 │   ├── PROFILE_SCREEN_OVERVIEW.md
 │   └── PROGRESS_SCREEN_OVERVIEW.md
+├── sessions/                    # Session & tracking design/plan
+│   ├── SESSION_DESIGN.md
+│   └── SESSION_PLAN.md
 ├── wearables/                   # Wearable integration
 │   └── WEARABLE_INTEGRATION_OVERVIEW.md
 ├── widgets/                     # Widget overviews

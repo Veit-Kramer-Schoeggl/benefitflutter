@@ -1,3 +1,25 @@
+# FUTURE.md — Roadmap: Target (Clean-Architecture) Directory Structure
+
+> NOTE: For the prioritized engineering evolution plan (launch blockers, data integrity,
+> backend/sync, scale & rollout readiness) see [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)
+> and the checklist in [ROADMAP.md](ROADMAP.md). This file only covers the proposed target
+> directory layout.
+>
+> STATUS: This is a forward-looking PROPOSED layout, NOT the current code.
+> The codebase today uses a feature-based architecture, not the layered
+> `data/` / `domain/` / `usecases/` / `services/` split shown below.
+>
+> Actual current top-level structure under `lib/` is:
+> `main.dart`, `core/` (config, constants, deep_link, enums, network, seed,
+> utils), `features/` (auth, benefit, security, session, shared, user,
+> wearable_integration), `presentation/` (navigation, screens, shared), and
+> `providers/`. There is no `lib/app.dart`, `lib/data/`, `lib/domain/`, or
+> `lib/services/`; the root widget lives in `main.dart`, and named routes are
+> defined in `main.dart` (there is no `core/config/routes.dart`).
+>
+> The tree below is the aspirational target and is intentionally left as-is.
+
+```
 lib/
 ├── main.dart                          # App entry point with Provider setup
 ├── app.dart                           # Root app widget with theme & navigation
@@ -136,5 +158,6 @@ lib/
     │   └── permission_service.dart    # Handle permissions
     └── storage/
         └── local_storage_service.dart # Local data management
+```
 
 

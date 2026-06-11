@@ -19,54 +19,67 @@ A specialized text field for password entry with:
 - Toggle visibility (show/hide password)
 - Obscured input by default
 - Consistent styling
-- Validation integration
+- Validation integration via `PasswordValidator`
+
+A `PasswordFormField` variant is also provided for use inside a `Form`.
 
 ### 2. PasswordStrengthIndicator
-Visual feedback for password strength:
-- Color-coded strength levels
-- Progress bar visualization
-- Real-time updates as user types
-- Clear strength labels
+Visual feedback for password strength, with three styles (`PasswordStrengthStyle`):
+- `barOnly` - color-coded strength bar with label (Weak/Fair/Good/Strong)
+- `checksOnly` (default) - per-requirement checkmark list, updated in real time
+- `barWithChecks` - both the bar and the checkmark list
 
 ### 3. PasswordRequirementsText
-Lists password requirements with checkmarks:
-- Minimum length indicator
-- Character type requirements
-- Real-time validation feedback
-- Green checkmarks for met requirements
+A static text widget that lists the password requirements (no live validation):
+- Pulls requirements from `PasswordValidator` for consistency
+- Three formats (`PasswordRequirementsFormat`): `compact` (default, single line), `bulleted`, `numbered`
+- Optional prefix text and custom text style
 
 ### 4. VerificationCodeField
-Input field for email/SMS verification codes:
-- Fixed number of digits
-- Auto-advance between fields
-- Paste support
-- Clear visual feedback
+A single centered input field for 6-digit verification codes:
+- Fixed 6-digit length (`maxLength: 6`)
+- Digits-only input (`FilteringTextInputFormatter.digitsOnly`)
+- Optional mock-code hint box for development
+- Used for email verification, password reset, and account deletion flows
+
+A `VerificationCodeFormField` variant is also provided for use inside a `Form`.
 
 ## Password Strength Levels
 
-| Level | Color | Requirements |
-|-------|-------|--------------|
-| **Weak** | Red | Less than 6 characters |
-| **Fair** | Orange | 6+ characters |
-| **Good** | Yellow | 8+ chars, mixed case |
-| **Strong** | Green | 10+ chars, numbers, symbols |
+Strength is scored over 6 points: one point each for min length, uppercase,
+lowercase, and number (4 checks), plus bonus points for length >= 12 and
+length >= 16. The score is normalized to 0.0-1.0, and the level/color is
+derived from that value.
+
+| Level | Color | Normalized strength |
+|-------|-------|---------------------|
+| **Weak** | Red | < 0.25 |
+| **Fair** | Orange | < 0.5 |
+| **Good** | Amber | < 0.75 |
+| **Strong** | Green | >= 0.75 |
 
 ## Password Requirements
 
-The password must meet these criteria:
+The password must meet these criteria (enforced by `PasswordValidator`):
 - Minimum 8 characters
 - At least one uppercase letter
 - At least one lowercase letter
 - At least one number
-- At least one special character
+
+> Note: special characters are not required by `PasswordValidator`.
 
 ## Usage Context
 
-These widgets are used in:
-- **Login Screen** - Password entry
-- **Registration Screen** - Password creation with strength
-- **Password Reset** - New password entry
-- **Email Verification** - Code input
+These widgets are intended for the authentication screens. Current usage:
+- **Registration Screen** - `PasswordStrengthIndicator` (checks-only) for password creation
+- **Password Reset Screen** - `VerificationCodeField` (reset code) and `PasswordStrengthIndicator` for the new password
+- **Email Verification Screen** - `VerificationCodeField` for code input
+- **Profile Screen** - `VerificationCodeField` (account-deletion flow, `_showDeletionVerificationDialog`)
+
+> Note: the Login Screen currently uses a plain `TextFormField` (with its own
+> visibility toggle) rather than `PasswordTextField`. `PasswordTextField`,
+> `PasswordFormField`, and `PasswordRequirementsText` are available but not yet
+> wired into any auth screen.
 
 ## Widget Architecture
 
@@ -85,15 +98,15 @@ These widgets are used in:
 │                                                  │
 │  ┌───────────────────────────────────────────┐  │
 │  │    PasswordStrengthIndicator              │  │
-│  │    [████████░░░░░░░░░░] Good              │  │
+│  │    [████████░░░░░░░░░░] Fair              │  │
 │  └───────────────────────────────────────────┘  │
 │                                                  │
 │  ┌───────────────────────────────────────────┐  │
-│  │    PasswordRequirementsText               │  │
-│  │    ✓ 8+ characters                        │  │
-│  │    ✓ Uppercase letter                     │  │
-│  │    ○ Number                               │  │
-│  │    ○ Special character                    │  │
+│  │    PasswordStrengthIndicator (checks)     │  │
+│  │    ✓ At least 8 characters                │  │
+│  │    ✓ One uppercase letter                 │  │
+│  │    ✓ One lowercase letter                 │  │
+│  │    ○ One number                           │  │
 │  └───────────────────────────────────────────┘  │
 │                                                  │
 └─────────────────────────────────────────────────┘

@@ -26,10 +26,13 @@ App Start (Debug Mode)
  Create test users
        │
        ▼
+ Create test benefits
+       │
+       ▼
  Create test sessions
        │
        ▼
- Create test benefits
+ (+ profiles, GPS, wearables, sensors, health data)
        │
        ▼
  Mark as seeded
@@ -54,8 +57,8 @@ Pre-configured user accounts for testing:
 
 ### Test Sessions
 Sample workout sessions:
-- Mix of walking, running, cycling
-- Various durations and distances
+- Mix of walking, running, cycling, and yoga
+- Various durations and distances (including one active session)
 - Different time periods
 
 ### Test Benefits
@@ -67,13 +70,13 @@ Sample rewards and achievements:
 ## Configuration
 
 Seeding behavior is controlled through configuration:
-- **Enabled/Disabled:** Toggle seeding on/off
-- **Data Volume:** Control amount of test data
-- **Reset Option:** Clear and reseed database
+- **Enabled/Disabled:** Toggle seeding on/off (debug mode only)
+- **Per-Entity Flags:** Enable/disable seeding for each entity type individually
+- **Reset Option:** Force re-seed or clear and reseed the database
 
 ## When Seeding Runs
 
-- **First Launch:** Seeds if database is empty
+- **First Launch:** Seeds when the seed flag has not yet been set
 - **Debug Mode Only:** Never seeds in production
 - **Configurable:** Can be disabled for specific testing
 

@@ -10,23 +10,37 @@
 
 Based on the investigation of the BeneFit Flutter app codebase and research into the 2025 wearable ecosystem.
 
+> **Note:** This document began as a pre-implementation research/recommendation
+> paper on the 2025 wearable ecosystem. The wearable integration described below
+> has since been **implemented**. Sections 1, 6 and 7 have been updated to reflect
+> the current code; the remaining sections retain their original ecosystem research
+> and design rationale.
+
 ## 1. Current State of Your App
 
-Your BeneFit Flutter app has a **solid foundation** for wearable integration:
+Your BeneFit Flutter app has a **full wearable integration** under
+`lib/features/wearable_integration/`:
 
-**Already Implemented:**
+**Implemented:**
 - Extensible sensor framework (`BaseSensor<T>` pattern)
 - GPS tracking with real-time streaming
 - Session management (manual & continuous modes)
 - User biometrics storage (height, weight)
-- Database schema ready for heart rate, VO2 max, step count
 - Offline-first sync architecture
+- Bluetooth/BLE integration (`BleDataSource` + `HeartRateSensor`)
+- Real-time heart rate monitoring (BLE Heart Rate Service `0x180D`)
+- 3rd party health API integration: Health Connect (Android) and Apple
+  HealthKit (iOS) via the `health` package, orchestrated by `HealthSyncService`
+  and `HealthPlatformProvider`
+- Five dedicated database tables (`wearable_devices`, `health_platform_data`,
+  `session_biometric_data`, `session_motion_data`, `session_sensor_summary`)
+  with matching DAOs
 
-**Not Yet Implemented:**
-- Bluetooth/BLE integration
-- Heart rate monitoring
-- Step counter
-- Any 3rd party health API integration (Google Fit, Apple Health, etc.)
+**Not Implemented:**
+- Standalone step-counter / power-meter BLE sensors (only `HeartRateSensor`
+  exists as a BLE sensor; steps/power arrive via the Health platform APIs)
+- ANT+ protocol support
+- Google Fit (intentionally skipped in favour of Health Connect)
 
 ---
 
@@ -157,37 +171,56 @@ Your BeneFit Flutter app has a **solid foundation** for wearable integration:
 
 ---
 
-## 6. Recommended Modular Architecture
+## 6. Modular Architecture (As Implemented)
 
-Based on your existing codebase structure, here's the recommendation:
+The original recommendation has been realised with some adjustments. The actual
+layout is:
 
 ```
 lib/features/wearable_integration/
 ├── domain/
-│   ├── wearable_device.dart          # Device model
-│   ├── sensor_data_point.dart        # Generic sensor reading
-│   └── integration_source.dart       # Enum: ble, healthConnect, healthKit
+│   ├── enums.dart                     # IntegrationSource, WearableDeviceType,
+│   │                                  #   SensorType, ConnectionStatus
+│   ├── health_data_type.dart          # HealthDataType enum + HealthDataPoint model
+│   ├── sensor_data_point.dart         # SensorDataPoint + SessionSensorSummary
+│   ├── wearable_device.dart           # WearableDevice model
+│   └── repositories/
+│       └── wearable_repository.dart   # Unified abstract interface
 ├── data/
 │   ├── sources/
-│   │   ├── ble_data_source.dart      # Direct BLE connections
+│   │   ├── ble_data_source.dart       # Direct BLE connections
 │   │   ├── health_connect_source.dart # Android Health Connect
-│   │   └── healthkit_source.dart     # iOS HealthKit
+│   │   └── healthkit_source.dart      # iOS HealthKit
 │   ├── sensors/
-│   │   ├── heart_rate_sensor.dart    # Extends BaseSensor<HeartRateData>
-│   │   ├── step_counter_sensor.dart  # Extends BaseSensor<StepData>
-│   │   └── power_meter_sensor.dart   # Extends BaseSensor<PowerData>
-│   ├── parsers/
-│   │   ├── ble_heart_rate_parser.dart # Parse BLE HRM data
-│   │   └── health_data_mapper.dart    # Map Health Connect → app models
-│   └── repositories/
-│       └── wearable_repository.dart   # Unified interface
-└── presentation/
-    ├── device_pairing_screen.dart
-    ├── health_platform_connect_screen.dart
-    └── widgets/
-        ├── device_connection_status.dart
-        └── heart_rate_display.dart
+│   │   └── heart_rate_sensor.dart     # Extends BaseSensor<int>
+│   ├── services/
+│   │   └── health_sync_service.dart   # Health platform sync orchestration
+│   └── daos/
+│       ├── wearable_device_dao.dart
+│       ├── health_platform_data_dao.dart
+│       ├── session_biometric_data_dao.dart
+│       ├── session_motion_data_dao.dart
+│       └── session_sensor_summary_dao.dart
+
+lib/providers/
+└── health_platform_provider.dart      # HealthPlatformProvider (ChangeNotifier)
+
+lib/presentation/screens/wearable/
+├── device_connection_screen.dart
+├── device_pairing_screen.dart
+└── widgets/
+    └── heart_rate_display.dart        # HeartRateDisplay + Compact + HeartRateZone
 ```
+
+> **Diverges from the original recommendation:** the `IntegrationSource` enum
+> lives in `enums.dart` (alongside three other enums) rather than a separate
+> `integration_source.dart`; there is no separate `parsers/` directory (BLE HRM
+> bytes are parsed inline in `HeartRateSensor`, health mapping inline in the
+> source classes); the only BLE sensor is `HeartRateSensor` (no
+> `step_counter_sensor.dart` / `power_meter_sensor.dart` — steps/power come from
+> the Health platform APIs); UI screens live under
+> `lib/presentation/screens/wearable/` and the provider under `lib/providers/`,
+> not inside the feature folder.
 
 **Key Design Principles:**
 1. **Source Abstraction:** Each data source (BLE, Health Connect, HealthKit) implements the same repository interface
@@ -198,21 +231,31 @@ lib/features/wearable_integration/
 
 ---
 
-## 7. Flutter Package Recommendations
+## 7. Flutter Packages (In Use)
 
 **For BLE Direct Connection:**
-- `flutter_blue_plus: ^1.33.0` - Most active BLE package
-- `permission_handler` (already have it) - For Bluetooth permissions
+- `flutter_blue_plus` (resolved `2.1.1`) - BLE package used by `BleDataSource`
+  and `HeartRateSensor`
+- `permission_handler` - For Bluetooth permissions (and `openAppSettings`)
 
 **For Health Platform APIs:**
-- `health: ^11.0.0` - Supports Health Connect + HealthKit + Google Fit
+- `health` (resolved `13.3.1`) - Supports Health Connect + HealthKit
 - Note: Handles iOS/Android differences automatically
 
-**For ANT+ (Optional):**
-- `ant_plus: ^2.0.0` - If you need Garmin/cycling sensors
+**Other dependencies used:**
+- `url_launcher` - opening the Play Store / external apps from the connection UI
+- `uuid` - id generation for devices and data points
+- `sqflite` - local persistence for the wearable DAOs
+- `provider` - `HealthPlatformProvider` (`ChangeNotifier` / `Consumer`)
+
+**For ANT+ (Not adopted):**
+- `ant_plus` was considered for Garmin/cycling sensors but is **not** a
+  dependency; ANT+ is not supported.
 
 **Testing:**
-- `mockito` or `mocktail` - Mock BLE devices
+- `flutter_test` - the only test dependency; tests rely on hand-written mocks
+  that extend `BaseSensor` (e.g. `test/mocks/mock_gps_sensor.dart`) rather than
+  a mocking package (`mockito`/`mocktail` are **not** dependencies)
 - Physical devices recommended for BLE testing
 
 ---

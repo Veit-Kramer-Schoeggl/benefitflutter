@@ -61,6 +61,12 @@ class ContinuousTrackingConfig {
 }
 ```
 
+> **Implementation note:** The shipped
+> `lib/features/session/domain/continuous_tracking_config.dart` stores
+> `resetPoints` as a `List<String>` (e.g. `['03:00']`, not `List<TimeOfDay>`)
+> and has no `minimumSessionDuration` field; it instead carries `isEnabled`,
+> `activityDetection`, `gpsIntervalSeconds` and `minDisplacementMeters`.
+
 **Why 03:00?**
 - Most users asleep = minimal data loss at boundary
 - Low server load time for sync
@@ -467,6 +473,8 @@ class HrDeviceProfiles {
 }
 ```
 
+> **Implementation note:** The shipped `identifyDevice()` also matches `wristWatchPatterns` and `wristBandPatterns` (after the chest-strap check), so it can return `wristWatch` or `wristBand` in addition to `chestStrap` and `unknown`.
+
 **Why not user selection?**
 - Users might not know the difference
 - Could be gamed (claim chest strap when using wrist)
@@ -555,6 +563,19 @@ class TrackingConfig {
   // Future: stairs, swimming, etc.
 }
 ```
+
+> **Implementation note:** `tracking_config.dart` now exists. The trust
+> multipliers, anti-gaming speed filters and activity multipliers above match
+> the implemented constants (the implemented file also adds
+> `dailyMovementMultiplier = 1.0`). However, the GPS-related constants shown
+> above (`maxGpsAccuracyMeters`, `continuousGpsInterval`,
+> `continuousMinDistanceMeters`, `manualGpsInterval`, `manualMinDistanceMeters`)
+> are **not** in `TrackingConfig`; they live in
+> `lib/core/config/gps_tracking_config.dart` as `minAccuracyMeters = 50.0`,
+> `continuousModeMaxSecondsBetweenPoints = 300`,
+> `continuousModeMinMetersBetweenPoints = 100.0`, `maxSecondsBetweenPoints = 5`
+> and `minMetersBetweenPoints = 10.0`. `TrackingConfig` also exposes helper
+> methods `calculateScore`, `isValidSpeed` and `getActivityMultiplier`.
 
 **Device Profile Config:** `lib/core/config/device_profiles.dart`
 
@@ -807,7 +828,8 @@ Result: ❌ Definite gaming attempt
 
 ### Configuration
 
-Add to `lib/core/config/tracking_config.dart`:
+Implemented in `lib/core/config/step_validation_config.dart` (its own file, not
+`tracking_config.dart`):
 
 ```dart
 class StepValidationConfig {
@@ -835,6 +857,17 @@ class StepValidationConfig {
   static const double rejectedPenalty = 0.80;     // Reduce 80% if rejected
 }
 ```
+
+> **Implementation note:** The implemented file uses three named z-score
+> thresholds (`acceptThresholdZScore = 1.0`, `noteThresholdZScore = 2.0`,
+> `flagThresholdZScore = 3.0`) rather than the `acceptThresholdZScore = 2.0` /
+> `rejectThresholdZScore = 3.0` pair shown above, and adds
+> `joggingReferenceSpeedKmh = 8.0`, `maxRunningMultiplier = 1.0` and
+> `maxAgeDeclineYears = 40`. It also exposes a `StepValidationResult` enum
+> (`valid`, `acceptedWithNote`, `suspicious`, `rejected`) and methods
+> `calculateStepLength`, `expectedSteps`, `calculateZScore`,
+> `zScoreToConfidence`, `validateSteps`, `getTrustAdjustment` and
+> `validateAndAdjust`.
 
 ### Ethnicity Considerations
 
@@ -981,6 +1014,22 @@ From `users` table:
 
 ## Database Schema (Refined)
 
+> **Implementation status:** All three tables below are now implemented (DB
+> schema version 11, created in `_createContinuousTrackingTables` /
+> `_migrateToV11` in `lib/features/shared/database/database_helper.dart`). The
+> *actual* shipped columns differ from the refined design sketched here — see
+> [DATABASE.md](../../database/DATABASE.md) for the authoritative schema. Key
+> differences: `continuous_tracking_config` also has `activity_detection TEXT`,
+> `gps_interval_seconds INTEGER` and `min_displacement_meters INTEGER`;
+> `continuous_tracking_state` actually uses `is_active`, `started_at`,
+> `last_data_received`, `current_detected_activity` and `detection_confidence`
+> (there are no `last_reset_at`, `next_reset_at` or `paused_at` columns); and
+> `activity_segments` uses `activity_type`, `distance_meters`,
+> `detection_source` (enum `DetectionSource`: manual/auto/corrected) plus
+> `created_at`/`updated_at` — there are no `detected_activity`,
+> `user_corrected` or `corrected_activity` columns. The tables below are kept as
+> the original design record.
+
 ### continuous_tracking_config (NEW)
 
 | Column | Type | Description |
@@ -1010,7 +1059,7 @@ From `users` table:
 ```
 tracking_mode:
   - 'manual'           -- User-initiated session
-  - 'continuous'       -- Background continuous session
+  - 'continuousDaily'  -- Background continuous (daily) session
 ```
 
 ### activity_segments (NEW - for future auto-detection)
@@ -1098,15 +1147,15 @@ abstract class ContinuousTrackingService {
 - [x] User-declared activity type
 
 ### Phase 2: Configuration & Scoring Foundation
-- [ ] Create `lib/core/config/tracking_config.dart`
-- [ ] Create `lib/core/config/device_profiles.dart`
+- [x] Create `lib/core/config/tracking_config.dart`
+- [x] Create `lib/core/config/device_profiles.dart` (also added `hr_device_profiles.dart` and `step_validation_config.dart`)
 - [ ] Implement sensor capability detection
-- [ ] Implement trust multiplier calculation
+- [x] Implement trust multiplier calculation (`TrackingConfig.calculateScore`)
 - [ ] Add pedometer integration (OS-level)
 
 ### Phase 3: Continuous Foundation
-- [ ] `continuous_tracking_config` table
-- [ ] `continuous_tracking_state` table
+- [x] `continuous_tracking_config` table (DB v11; DAO + `ContinuousTrackingRepository`)
+- [x] `continuous_tracking_state` table (DB v11; DAO + `ContinuousTrackingRepository`)
 - [ ] Settings UI to enable/disable (default: OFF)
 - [ ] Configurable reset points (start with single 03:00)
 - [ ] Reset point scheduler/alarm
@@ -1132,7 +1181,7 @@ abstract class ContinuousTrackingService {
 ### Phase 7: Auto Activity Detection (Future)
 - [ ] Speed-based activity classification
 - [ ] User confirmation UI
-- [ ] activity_segments table
+- [x] activity_segments table (DB v11; `ActivitySegment` model + `ActivitySegmentDao`)
 - [ ] ML-based pattern recognition
 
 ---

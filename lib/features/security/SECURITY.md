@@ -2,7 +2,7 @@
 
 > **Documentation Type:** TECHNICAL (Implementation Details)
 >
-> **Related:** [AUTH.md](../../../AUTH.md) | [SecurityConfig](../../../core/config/security_config.dart)
+> **Related:** [AUTH.md](../../../AUTH.md) | [SecurityConfig](../../core/config/security_config.dart)
 
 ## Sprint 6: Security Hardening
 

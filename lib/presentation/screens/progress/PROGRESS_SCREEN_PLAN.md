@@ -8,6 +8,32 @@
 
 # Progress Screen Implementation Plan
 
+> **Implementation status (current code differs from this plan).** The Progress
+> screen has shipped, but the final implementation evolved beyond the simple
+> single-list design sketched in the phases below. Key differences in the
+> shipped code (`progress_screen.dart` + `widgets/` + `progress_provider.dart`):
+> - The provider stores its data as `List<ActivityEntry>` (a lightweight
+>   `SharedPreferences`-backed model), **not** `List<Session>`. Completed DB
+>   `Session`s are converted to `ActivityEntry` and merged with manually entered
+>   activities.
+> - The provider exposes `loadActivities()` / `updateUserId()` (no
+>   `fetchSessions` / `refresh` / `isRefreshing`); user id is injected via
+>   `ChangeNotifierProxyProvider` rather than a hard-coded `test-user-123`.
+> - The provider adds manual-entry CRUD (`addActivity` / `updateActivity` /
+>   `removeActivity`) and statistics aggregations
+>   (`getDistancePerWeekday`, `getDurationPerWeekdayMinutes`,
+>   `getDistancePerMonth`, `getDurationPerMonth`, `getDistancePerYear`,
+>   `getTotalStats`).
+> - The screen is a two-tab UI (`STATISTICS` / `ACTIVITIES`) built from
+>   `StatisticsTab`, `ActivitiesTab`, `ActivityListItem`, `CustomBarChart` /
+>   `CustomLineChart` (`custom_charts.dart`) and `ProgressSummary`, plus a
+>   manual-entry dialog and an "EARNED SO FAR" bottom bar (no `RefreshIndicator`).
+> - Tapping an activity opens `SessionDetailScreen`; manual entries open an
+>   edit/delete dialog.
+>
+> The phase-by-phase walkthrough below is retained as the original learning-oriented
+> plan and as a Provider-pattern reference.
+
 ## Overview: Provider Pattern in BeneFit
 
 ### What is the Provider Pattern?
@@ -50,13 +76,13 @@
 
 ## The 5 Components Explained (Using Benefit Example)
 
-### 1️⃣ **Repository** (`lib/data/repositories/`)
+### 1️⃣ **Repository** (`lib/features/<feature>/data/`)
 **What**: Data source (later API, now mock data)
-**Example**: `MockBenefitRepository`
+**Example**: `BenefitRepositoryImpl`
 **Task**: Provide data
 
 ```dart
-class MockBenefitRepository implements BenefitRepository {
+class BenefitRepositoryImpl implements BenefitRepository {
   Future<List<Benefit>> getAllBenefits() async {
     return _benefits; // Return mock data
   }
@@ -85,11 +111,11 @@ class BenefitProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   List<BenefitViewModel> get earnedBenefits => /* join data */;
 
-  Future<void> fetchBenefits(String userId) async {
+  Future<void> fetchBenefits() async {
     _isLoading = true;
     notifyListeners(); // 🔔 UI shows Loading
 
-    _userBenefits = await _repository.getUserBenefits(userId: userId);
+    _userBenefits = await _repository.getUserBenefits(userId: _currentUserId!);
 
     _isLoading = false;
     notifyListeners(); // 🔔 UI shows Data
@@ -102,7 +128,7 @@ class BenefitProvider extends ChangeNotifier {
 
 ---
 
-### 3️⃣ **ViewModel** (`lib/data/view_models/`)
+### 3️⃣ **ViewModel** (`lib/features/<feature>/domain/`)
 **What**: Connects and transforms data for the UI
 **Example**: `BenefitViewModel`
 **Task**: Merge multiple data sources + formatting
@@ -148,7 +174,7 @@ class BenefitScreen extends StatefulWidget {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BenefitProvider>().fetchBenefits(_userId);
+      context.read<BenefitProvider>().fetchBenefits();
     });
   }
 
@@ -277,14 +303,24 @@ class ProgressProvider extends ChangeNotifier {
 
 **File**: `lib/main.dart`
 
+> **Status (implemented):** `ProgressProvider` is registered as a
+> `ChangeNotifierProxyProvider<UserProvider, ProgressProvider>` so it receives
+> the current `userId` from `UserProvider` and reloads activities when the user
+> changes. (The simpler `ChangeNotifierProvider` originally planned below was
+> superseded by the proxy approach.)
+
 ```dart
 MultiProvider(
   providers: [
-    ChangeNotifierProvider(
-      create: (_) => BenefitProvider(RepositoryConfig.getBenefitRepository()),
-    ),
-    ChangeNotifierProvider( // NEW
-      create: (_) => ProgressProvider(RepositoryConfig.getSessionRepository()),
+    // ... UserProvider must be registered first ...
+    ChangeNotifierProxyProvider<UserProvider, ProgressProvider>(
+      create: (_) => ProgressProvider(
+        RepositoryConfig.getSessionRepository(),
+      ),
+      update: (_, userProvider, progressProvider) {
+        progressProvider?.updateUserId(userProvider.userId);
+        return progressProvider!;
+      },
     ),
   ],
   child: const BeneFitApp(),
@@ -584,9 +620,7 @@ class SessionCard extends StatelessWidget {
         return Icons.directions_run;
       case ActivityType.cycling:
         return Icons.directions_bike;
-      case ActivityType.mixed:
-        return Icons.shuffle;
-      case ActivityType.unknown:
+      default:
         return Icons.help_outline;
     }
   }
@@ -599,9 +633,7 @@ class SessionCard extends StatelessWidget {
         return Colors.orange;
       case ActivityType.cycling:
         return Colors.blue;
-      case ActivityType.mixed:
-        return Colors.purple;
-      case ActivityType.unknown:
+      default:
         return Colors.grey;
     }
   }
@@ -614,9 +646,7 @@ class SessionCard extends StatelessWidget {
         return 'Running';
       case ActivityType.cycling:
         return 'Cycling';
-      case ActivityType.mixed:
-        return 'Mixed';
-      case ActivityType.unknown:
+      default:
         return 'Unknown';
     }
   }
