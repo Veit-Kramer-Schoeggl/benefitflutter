@@ -49,9 +49,13 @@ class UserDao {
   /// Update existing user
   Future<void> update(User user) async {
     final db = await _dbHelper.database;
+    // Never overwrite created_at on update: _toMap() always stamps it with
+    // DateTime.now() (correct for insert), but the User domain has no createdAt
+    // field to preserve, so drop the column here and keep the stored value.
+    final map = _toMap(user)..remove('created_at');
     await db.update(
       'users',
-      _toMap(user),
+      map,
       where: 'id = ?',
       whereArgs: [user.id],
     );
