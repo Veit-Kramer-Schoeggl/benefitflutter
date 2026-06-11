@@ -10,6 +10,24 @@
 
 This document explains how the main.dart routing setup works and how authentication is integrated.
 
+> **⚠️ Routing migrated to go_router (Phase 1 / Round 3).** The Navigator-1.0 description
+> below (static `routes` map, global `navigatorKey`, `pushReplacementNamed`, `onUnknownRoute`,
+> `IndexedStack` tabs) is **historical**. The app now uses **go_router**:
+> - Route tree + central auth redirect live in **`lib/core/router/app_router.dart`**
+>   (`createAppRouter(AuthProvider)`). `main.dart` uses `MaterialApp.router`.
+> - The auth gate is a **`redirect`** keyed on `AuthProvider.isInitialized`/`isAuthenticated`
+>   with `refreshListenable: authProvider`; the splash screen is now a pure loader that only
+>   calls `AuthProvider.initialize()`.
+> - The 5 tabs are a **`StatefulShellRoute.indexedStack`** (`/home/{community,progress,activity,
+>   benefit,profile}`, default Activity). Full-screen pushes (`/session/:id`, `/device-connection`,
+>   `/device-pairing`, `/benefit-qr`) run on the root navigator.
+> - The app-lock overlay stays in `MaterialApp.router`'s `builder`; deep links navigate via the
+>   router (`DeepLinkHandler` buffers cold-start links until init; reset token via `extra`).
+> - Screens navigate with `context.go`/`context.push` (no named routes / `navigatorKey`).
+>
+> Read the sections below for the auth/session *concepts* (still accurate), but treat the routing
+> mechanics as superseded by `app_router.dart`.
+
 > **Provider note (Phase 1 / Round 2):** Authentication state lives in **`AuthProvider`**
 > (`lib/providers/auth_provider.dart`), which replaced the former monolithic `UserProvider`.
 > A sibling **`ProfileProvider`** (`lib/providers/profile_provider.dart`) owns editable
