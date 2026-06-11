@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// App-wide logging facade over the `logger` package.
 ///
@@ -15,6 +16,10 @@ class AppLogger {
   AppLogger._();
 
   static Logger? _logger;
+  static bool _sentryEnabled = false;
+
+  /// Mark Sentry as initialized so [e] forwards errors to it.
+  static void enableSentry() => _sentryEnabled = true;
 
   /// Configure the logger. Call once early in `main()` (inside the guarded zone).
   static void init() {
@@ -36,9 +41,12 @@ class AppLogger {
   static void w(String message, [Object? error, StackTrace? stackTrace]) =>
       _l.w(redact(message), error: error, stackTrace: stackTrace);
 
-  /// Error-level log. Bridged to crash reporting (Sentry) in a later step.
+  /// Error-level log; forwarded to Sentry when enabled (see [enableSentry]).
   static void e(String message, [Object? error, StackTrace? stackTrace]) {
     _l.e(redact(message), error: error, stackTrace: stackTrace);
+    if (_sentryEnabled) {
+      Sentry.captureException(error ?? message, stackTrace: stackTrace);
+    }
   }
 
   // ---- Redaction (defense-in-depth) ----

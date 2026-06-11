@@ -26,6 +26,7 @@ import 'package:benefitflutter/features/shared/utils/connectivity_service.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
 import 'package:benefitflutter/features/auth/data/auth_service.dart';
 import 'package:benefitflutter/features/auth/data/token_storage.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:benefitflutter/core/deep_link/deep_link_handler.dart';
 import 'package:benefitflutter/core/logging/app_logger.dart';
 
@@ -68,8 +69,40 @@ void main() {
       return ErrorWidget(details.exception);
     };
 
-    await _bootstrap();
+    // Crash reporting is opt-in via --dart-define=SENTRY_DSN=...; without a
+    // DSN nothing is sent (no network, GDPR-safe for local/dev/CI builds).
+    const dsn = String.fromEnvironment('SENTRY_DSN');
+    if (dsn.isEmpty) {
+      await _bootstrap();
+    } else {
+      AppLogger.enableSentry();
+      await SentryFlutter.init((options) {
+        options.dsn = dsn;
+        options.environment = const String.fromEnvironment(
+          'SENTRY_ENV',
+          defaultValue: 'dev',
+        );
+        options.sendDefaultPii = false;
+        options.tracesSampleRate = 0.0;
+        options.beforeSend = _scrubSentryEvent;
+      }, appRunner: _bootstrap);
+    }
   }, (error, stack) => AppLogger.e('Uncaught zone error', error, stack));
+}
+
+/// Redact PII from breadcrumb messages before any event leaves the device.
+/// (sendDefaultPii=false already prevents user/IP/request collection.)
+SentryEvent? _scrubSentryEvent(SentryEvent event, Hint hint) {
+  final crumbs = event.breadcrumbs;
+  if (crumbs == null) return event;
+  return event.copyWith(
+    breadcrumbs: [
+      for (final b in crumbs)
+        b.message == null
+            ? b
+            : b.copyWith(message: AppLogger.redact(b.message!)),
+    ],
+  );
 }
 
 /// App initialization + runApp. Shared by the no-Sentry path and (later) Sentry's appRunner.

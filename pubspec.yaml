@@ -97,6 +97,7 @@ dependencies:
   # Deep link handling for password reset URLs
   app_links: ^7.0.0
   logger: ^2.7.0
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:
