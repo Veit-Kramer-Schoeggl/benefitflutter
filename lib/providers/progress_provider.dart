@@ -29,22 +29,14 @@ class ProgressProvider extends ChangeNotifier {
 
   // ===================== CONSTRUCTOR =====================
 
-  ProgressProvider(this._sessionRepository) {
-    // ⚠️ FIX 1: loadManualEntriesFromPrefs() removed from here.
-    // It's now called asynchronously within loadActivities() and awaited.
-    loadActivities();
+  /// No async work in the constructor (keeps it unit-testable). The initial
+  /// load happens via [updateUserId] (ProxyProvider sets the userId at startup)
+  /// and on Progress-tab entry (MainNavigationScreen). Call [initialize] for an
+  /// explicit eager load if needed.
+  ProgressProvider(this._sessionRepository);
 
-    // 🗑️ OPTIONAL DEBUGGING (For one-time deletion of old data)
-    // If you suspect old, faulty data is in storage,
-    // TEMPORARILY ADD THIS BLOCK HERE, restart the app,
-    // and then REMOVE it again.
-    /*
-    SharedPreferences.getInstance().then((prefs) {
-        prefs.remove(_prefKeyManualEntries);
-        AppLogger.d('--- Old manual entries deleted! Restart to fix the problem. ---');
-    });
-    */
-  }
+  /// Explicit initial load (optional; normally triggered by updateUserId/tab open).
+  Future<void> initialize() => loadActivities();
 
   // ===================== USER ID MANAGEMENT =====================
 
