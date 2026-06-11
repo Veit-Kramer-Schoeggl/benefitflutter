@@ -7,6 +7,10 @@
 >
 > Kurzfassung & Maßnahmen-Checkliste: [ROADMAP.md](ROADMAP.md).
 > Vorausschauende Architektur-Skizzen (Bestand): [FUTURE.md](FUTURE.md).
+>
+> **Fortschritt:** Die Phase-0 **Sofort-Blocker (§2)** sind umgesetzt und auf einem Xiaomi Mi 11
+> (Android 14) getestet; die Toolchain wurde auf **Flutter 3.44.1 / Dart 3.12** angehoben. Stand je
+> Maßnahme siehe [ROADMAP.md](ROADMAP.md). Das Phase-0-**Fundament** (Observability/CI/Logger) ist der nächste Schritt.
 
 ---
 

@@ -3,22 +3,27 @@
 > **Stand:** 2026-06-11 · Kurzfassung von [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md).
 > Aufwand: **S** < 1 Tag · **M** 1–3 Tage · **L** ~1 Woche · **XL** > 1 Woche.
 
-## 🔴 Phase 0 — Sofort-Blocker & Fundament *(zuerst)*
+## 🔴 Phase 0 — Sofort-Blocker & Fundament
 
-Tag-1-Blocker (alle am Code verifiziert):
+> **Status (2026-06-11):** Sofort-Blocker ✅ umgesetzt (Branch `chore/phase-0-sofort-blocker`),
+> getestet auf Xiaomi Mi 11 / Android 14 (Seeding mit aktiver FK ohne Fehler; Release-Build mit
+> echtem Upload-Key signiert). Toolchain auf **Flutter 3.44.1 / Dart 3.12** angehoben. **Fundament = offen** (nächster Schritt).
 
-- [ ] **(S)** Test-Login-Backdoor gaten/entfernen — `login_screen.dart:514-524` (hinter `kDebugMode`)
-- [ ] **(S)** Echte Release-Signing-Config — `android/app/build.gradle.kts:37` (kein Debug-Key)
-- [ ] **(S)** Runner-PNGs (73 MB) → ~1080px WebP + `cacheWidth/cacheHeight` bei `Image.asset`
-- [ ] **(S)** `PRAGMA foreign_keys = ON` via `onConfigure` (+ einmaliger Orphan-Cleanup)
-- [ ] **(S)** `created_at`-Überschreiben bei `update()` fixen (User/Session/Benefit-DAO)
-- [ ] **(S)** PII/Secrets aus Logs entfernen (Reset-Token, E-Mail, Reset-Code, Hash)
-- [ ] **(S)** Alle Deps auf Caret-Ranges pinnen (aus `pubspec.lock`), Lock committed lassen
-- [ ] **(S)** `RepositoryConfig`-Getter typisieren (statt `dynamic`)
-- [ ] **(S)** Live-GPS-Writes via `insertBatch()` bündeln; Per-Emission-`debugPrint` entfernen
-- [ ] **(S)** Profilbild-Picker auf `maxWidth/maxHeight 512`, `imageQuality 80` begrenzen
+Tag-1-Blocker (am Code & auf Gerät verifiziert):
 
-Fundament:
+- [x] **(S)** Test-Login-Backdoor hinter `kDebugMode` gegatet
+- [x] **(S)** Echte Release-Signing-Config (Debug-Fallback + Warnung); Upload-Keystore aktiv
+- [x] **(S)** Runner-PNGs (73 MB) → **JPG ~0,95 MB** (kein cwebp → JPG statt WebP) + `cacheWidth`/`ResizeImage`
+- [x] **(S)** `PRAGMA foreign_keys = ON` via `onConfigure` + `foreign_key_check`-Logging *(Orphan-Cleanup → Phase 1)*
+- [x] **(S)** `created_at`-Überschreiben in `UserDao.update()` gefixt *(Session/Benefit-DAO bereits korrekt)*
+- [x] **(S)** PII/Secrets aus Debug-Logs entfernt (Reset-Token, E-Mail, Codes)
+- [x] **(S)** Alle direkten Deps gepinnt (Caret + exakte Security-Trias dio/secure_storage/local_auth)
+- [x] **(S)** `RepositoryConfig`-Getter typisiert (statt `dynamic`)
+- [x] **(S)** Profilbild-Picker auf `maxWidth/maxHeight 512`, `imageQuality 80` begrenzt
+- [x] **(—)** Flutter-Toolchain auf 3.44.1 Stable + Dart-Floor `^3.10.0` + Lock aktualisiert
+- [ ] **(S)** Live-GPS-Writes via `insertBatch()` bündeln *(verschoben → Phase 1, Tracking-Hot-Path)*
+
+Fundament (nächster Schritt — wird geplant):
 
 - [ ] **(S)** Globaler Error-Handler (`FlutterError.onError` + `PlatformDispatcher.onError` + `runZonedGuarded`)
 - [ ] **(M)** Crash-Reporting (`sentry_flutter`) mit `beforeSend`-PII-Scrubbing

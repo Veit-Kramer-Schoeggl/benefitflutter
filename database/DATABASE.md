@@ -16,6 +16,7 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 - **Current Version:** 11 (after continuous tracking tables migration)
 - **Pattern:** Offline-first with sync queue
 - **Location:** Platform databases directory (`getDatabasesPath()`)
+- **Foreign keys:** Enforced at runtime via `PRAGMA foreign_keys = ON` (set in `DatabaseHelper.onConfigure`), so the `ON DELETE CASCADE` / `SET NULL` rules below are active. A one-time `PRAGMA foreign_key_check` logs any pre-existing orphan rows (cleanup migration is a Phase 1 task).
 
 ## Core Tables
 

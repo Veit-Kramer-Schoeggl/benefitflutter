@@ -12,7 +12,7 @@ BeneFit tracks user movement data and rewards them with benefits (e.g., discount
 ## Quick Start
 
 ### Prerequisites
-- Flutter SDK 3.9.2+
+- Flutter SDK 3.38.4+ (Dart 3.10+) — required by current dependencies
 - Git for version control
 - IDE: VS Code or Android Studio
 
