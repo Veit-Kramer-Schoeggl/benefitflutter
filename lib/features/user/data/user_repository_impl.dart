@@ -123,12 +123,12 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<void> deleteCurrentUser() async {
-    final user = await getCurrentUser();
-
-    await _biometricsDao.deleteByUserId(user.id);
-    await _preferencesDao.deleteByUserId(user.id);
-    await _dao.delete(user.id);
+  Future<void> deleteUser(String userId) async {
+    // Delete the authenticated user explicitly by id (NOT findFirst, which would
+    // delete an arbitrary row when more than one user exists).
+    await _biometricsDao.deleteByUserId(userId);
+    await _preferencesDao.deleteByUserId(userId);
+    await _dao.delete(userId);
   }
 
   /// Background sync (fire and forget)

@@ -591,9 +591,9 @@ class MockAuthService implements AuthService {
     }
 
     // Remove user from the in-memory store. In DB-backed mode the durable row
-    // is deleted by AuthProvider.confirmAccountDeletion (deleteCurrentUser), and
-    // login no longer consults these maps, so we leave them untouched (avoids
-    // mutating the shared static seed map).
+    // is deleted by AuthProvider.confirmAccountDeletion (deleteUser), and login
+    // no longer consults these maps, so we leave them untouched (avoids mutating
+    // the shared static seed map).
     if (_userRepository == null) {
       _testCredentials.remove(normalizedEmail);
       _registeredUsers.remove(normalizedEmail);

@@ -660,7 +660,7 @@ class AuthProvider extends ChangeNotifier {
       }
 
       // Delete from local database
-      await _repository.deleteCurrentUser();
+      await _repository.deleteUser(_currentUser!.id);
 
       // Clear auth tokens
       await _tokenStorage.clearTokens();

@@ -22,8 +22,8 @@ abstract class UserRepository {
   /// Create a new user
   Future<User> createUser(User user);
 
-  /// Delete current user and all related data
-  Future<void> deleteCurrentUser();
+  /// Delete the user with [userId] and all related data (biometrics, prefs).
+  Future<void> deleteUser(String userId);
 
   // ========================================
   // BIOMETRICS (v3)

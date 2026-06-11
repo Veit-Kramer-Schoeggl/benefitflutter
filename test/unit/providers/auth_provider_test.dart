@@ -329,6 +329,10 @@ void main() {
 
       expect(ok, isTrue);
       expect(repo.deleteCalled, isTrue);
+      expect(
+        repo.deletedUserId,
+        'user-1',
+      ); // deletes the authenticated user by id
       expect(provider.isAuthenticated, isFalse);
       expect(provider.currentUser, isNull);
     });

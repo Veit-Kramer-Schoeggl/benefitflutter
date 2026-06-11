@@ -84,6 +84,7 @@ class FakeUserRepository implements UserRepository {
   User? updatedUser;
   User? createdUser;
   bool deleteCalled = false;
+  String? deletedUserId;
 
   UserBiometricsReported? latestBiometrics;
   UserPreferences? preferences;
@@ -125,7 +126,11 @@ class FakeUserRepository implements UserRepository {
   }
 
   @override
-  Future<void> deleteCurrentUser() async => deleteCalled = true;
+  Future<void> deleteUser(String userId) async {
+    deleteCalled = true;
+    deletedUserId = userId;
+    users.remove(userId);
+  }
 
   @override
   Future<UserBiometricsReported?> getLatestBiometrics(String userId) async =>
