@@ -25,21 +25,37 @@ class DatabaseHelper {
     return _database!;
   }
 
+  /// Current schema version.
+  static const int dbVersion = 11;
+
   /// Initialize the database
   Future<Database> _initDatabase() async {
     final databasesPath = await getDatabasesPath();
     final path = join(databasesPath, 'benefit_app.db');
 
-    final db = await openDatabase(
-      path,
-      version: 11,
-      onConfigure: _onConfigure,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-    );
-
+    final db = await openAppDatabase(databaseFactory, path);
     await _logForeignKeyViolations(db);
     return db;
+  }
+
+  /// Open the app database with the given [factory]/[path], wiring the real
+  /// onConfigure/onCreate/onUpgrade. Exposed for migration tests; production
+  /// uses the default sqflite [databaseFactory].
+  @visibleForTesting
+  Future<Database> openAppDatabase(
+    DatabaseFactory factory,
+    String path, {
+    int version = dbVersion,
+  }) {
+    return factory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: version,
+        onConfigure: _onConfigure,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      ),
+    );
   }
 
   /// Enable foreign-key enforcement. PRAGMA foreign_keys is per-connection and
