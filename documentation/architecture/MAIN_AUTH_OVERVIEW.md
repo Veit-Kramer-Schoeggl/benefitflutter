@@ -68,8 +68,9 @@ The splash screen uses `pushReplacementNamed` to navigate, which:
 
 ### Provider Setup
 Main.dart configures the Provider tree:
-- `UserProvider` for authentication state
-- `ProxyProvider` pattern for dependent providers
+- `AuthProvider` for authentication/identity state (registered first)
+- `ProfileProvider` for editable profile data (wired as a `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`)
+- `ProxyProvider` pattern for dependent providers (they receive `userId` from `AuthProvider`)
 - All providers accessible throughout the app
 
 ## The 5 Main Tabs

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 
 /// Splash screen - shows loading animation and checks authentication
 class SplashScreen extends StatefulWidget {
@@ -26,9 +26,9 @@ class _SplashScreenState extends State<SplashScreen> {
       setState(() => _status = 'Loading...');
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Step 2: Initialize UserProvider (checks for stored session)
+      // Step 2: Initialize AuthProvider (checks for stored session)
       setState(() => _status = 'Checking session...');
-      final userProvider = context.read<UserProvider>();
+      final userProvider = context.read<AuthProvider>();
       await userProvider.initialize();
 
       // Step 3: Navigate based on auth status

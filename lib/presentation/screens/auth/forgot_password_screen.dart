@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 
 /// Forgot password screen - enter email to request reset code
 class ForgotPasswordScreen extends StatefulWidget {
@@ -28,7 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     // Clear any previous errors
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     userProvider.clearError();
 
     // Attempt password reset request
@@ -99,7 +99,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Consumer<UserProvider>(
+        child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),

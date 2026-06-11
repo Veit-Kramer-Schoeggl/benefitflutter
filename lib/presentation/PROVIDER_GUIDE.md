@@ -139,14 +139,17 @@ class BenefitViewModel {
 
 > **Status note (kept for onboarding):** The `ProgressProvider`, `ActivityProvider`,
 > and `BenefitProvider` below have since been implemented and now live in
-> `lib/providers/`. Profile state is served by `UserProvider`
-> (`lib/providers/user_provider.dart`); there is no dedicated `ProfileProvider`.
-> The snippets in this section are intentionally simplified teaching
-> examples and differ from the shipped code. In particular, the providers that depend
-> on the logged-in user (Progress, Activity, Benefit) are wired with
-> `ChangeNotifierProxyProvider<UserProvider, …>` in `lib/main.dart` (not a plain
+> `lib/providers/`. Identity/auth state is served by **`AuthProvider`**
+> (`lib/providers/auth_provider.dart`) and editable profile data by **`ProfileProvider`**
+> (`lib/providers/profile_provider.dart`) — these replaced the former monolithic
+> `UserProvider` in Phase 1 / Round 2. The snippets in this section are intentionally
+> simplified teaching examples and differ from the shipped code. In particular, the
+> providers that depend on the logged-in user (Progress, Activity, Benefit) are wired with
+> `ChangeNotifierProxyProvider<AuthProvider, …>` in `lib/main.dart` (not a plain
 > `ChangeNotifierProvider`) and receive the current user via an `updateUserId(...)`
-> callback rather than taking a `userId` argument per method. Study the real classes
+> callback rather than taking a `userId` argument per method. `ProfileProvider` itself is a
+> `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>` that pushes profile edits
+> back into `AuthProvider` via `setCurrentUser(...)`. Study the real classes
 > in `lib/providers/` alongside these examples.
 
 ### **Checklist for Progress Tab** (Developer 2)
@@ -371,9 +374,11 @@ return SuccessWidget();
 
 > **Status note (kept for onboarding):** These assignments are complete. The Progress
 > and Activity tabs ship with `ProgressProvider` / `ActivityProvider` in
-> `lib/providers/`. The Profile tab does **not** use a dedicated `ProfileProvider`;
-> profile state is handled by `UserProvider` (`lib/providers/user_provider.dart`),
-> which also owns authentication. The exact "Files to Create" paths below were the
+> `lib/providers/`. The Profile tab reads identity from **`AuthProvider`** and its
+> editable data (profile fields, biometrics, preferences) from **`ProfileProvider`**
+> (`lib/providers/profile_provider.dart`); authentication itself lives in `AuthProvider`
+> (`lib/providers/auth_provider.dart`). These two replaced the former monolithic
+> `UserProvider` in Phase 1 / Round 2. The exact "Files to Create" paths below were the
 > original plan and do not all match the shipped layout (e.g. there is no
 > `profile/widgets/` or `activity/widgets/` directory; Progress widgets live in
 > `lib/presentation/screens/progress/widgets/` as `activities_tab.dart`,

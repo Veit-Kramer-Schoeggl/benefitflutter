@@ -1,0 +1,10 @@
+{
+  "_comment": "Template. Copy to config/prod.json (gitignored) and fill in the real EU Sentry DSN. Build: flutter build appbundle --dart-define-from-file=config/prod.json",
+  "ENV": "prod",
+  "API_BASE_URL": "https://api.benefit.app",
+  "CERT_PINNING": true,
+  "SEED_ENABLED": false,
+  "HTTP_LOGGING": false,
+  "SENTRY_ENV": "prod",
+  "SENTRY_DSN": "https://<key>@<org>.ingest.de.sentry.io/<project>"
+}

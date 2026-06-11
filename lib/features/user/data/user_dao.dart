@@ -24,6 +24,24 @@ class UserDao {
     return _fromMap(results.first);
   }
 
+  /// Find user by email (case-insensitive).
+  ///
+  /// Used by DB-backed authentication. `COLLATE NOCASE` makes the match
+  /// case-insensitive; callers should still `.trim().toLowerCase()` the input
+  /// (SQLite does not strip whitespace) for parity with the mock auth path.
+  Future<User?> findByEmail(String email) async {
+    final db = await _dbHelper.database;
+    final results = await db.query(
+      'users',
+      where: 'email = ? COLLATE NOCASE',
+      whereArgs: [email],
+      limit: 1,
+    );
+
+    if (results.isEmpty) return null;
+    return _fromMap(results.first);
+  }
+
   /// Find first user (for getCurrentUser - single user app)
   Future<User?> findFirst() async {
     final db = await _dbHelper.database;

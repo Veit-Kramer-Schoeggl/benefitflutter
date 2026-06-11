@@ -25,6 +25,13 @@ class DatabaseHelper {
     return _database!;
   }
 
+  /// Inject the connection the singleton (and thus every DAO) uses.
+  ///
+  /// Test-only seam so DAO tests can point the real DAOs at an in-process
+  /// sqflite-ffi database opened via [openAppDatabase]. Set to null to reset.
+  @visibleForTesting
+  static set debugDatabase(Database? db) => _database = db;
+
   /// Current schema version.
   static const int dbVersion = 12;
 

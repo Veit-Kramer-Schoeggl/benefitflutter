@@ -10,7 +10,7 @@
 
 ## Purpose
 
-The Profile Screen displays and allows editing of user information, biometrics, preferences, and account/security settings. It reads the logged-in user from `UserProvider` and persists changes directly through that provider (no dedicated edit-mode toggle).
+The Profile Screen displays and allows editing of user information, biometrics, preferences, and account/security settings. It reads the logged-in user from `AuthProvider` (the source of identity truth) and persists profile edits through `ProfileProvider`, while account/security flows (change password, delete account) go through `AuthProvider` (no dedicated edit-mode toggle).
 
 ## Key Features
 
@@ -65,7 +65,7 @@ The screen is a single scrolling column with three groups of cards plus action b
 
 ## State Management
 
-The screen uses `UserProvider` (not a dedicated profile provider) and holds local widget state:
+The screen reads identity from `AuthProvider` and uses `ProfileProvider` for editable profile data (biometrics/preferences), and holds local widget state:
 - `_currentUser`, `_currentBiometrics`, `_currentPreferences` loaded in `_loadProfileData()`
 - Display values: `displayName`, `country`, `selectedGender`, `selectedHeight`, `selectedWeight`
 - Loading/saving flags: `_isLoading`, `_isSaving`
@@ -75,14 +75,14 @@ The screen uses `UserProvider` (not a dedicated profile provider) and holds loca
 
 ### Loading Profile Data
 1. `initState` calls `_loadProfileData()` and `_loadBiometricStatus()`
-2. `_loadProfileData()` reads `currentUser` from `UserProvider` (throws if no user)
-3. Loads latest biometrics and preferences via the provider
+2. `_loadProfileData()` reads `currentUser` from `AuthProvider` (throws if no user)
+3. Loads latest biometrics and preferences via `ProfileProvider` (`getLatestBiometrics` / `getPreferences`)
 4. Populates the display fields (display name, country, gender, height, weight)
 
 ### Saving Changes
 1. User edits selection cards and/or the settings dialog
 2. User taps **Save Changes**
-3. `_saveProfileData()` updates the user (`displayName`, `gender`), upserts biometrics (height/weight) and preferences (country)
+3. `_saveProfileData()` calls `ProfileProvider` to update the user (`displayName`, `gender`) and upsert biometrics (height/weight) and preferences (country); `ProfileProvider` writes to the repository and then syncs identity via `AuthProvider.setCurrentUser(...)`
 4. A confirmation snackbar is shown and data is reloaded
 
 ### Editing Account Settings
@@ -98,9 +98,9 @@ The screen uses `UserProvider` (not a dedicated profile provider) and holds loca
 
 ## Security & Account
 
-- **Change Password** — verifies the current password, validates the new one, then calls `UserProvider.changePassword(...)`
+- **Change Password** — verifies the current password, validates the new one, then calls `AuthProvider.changePassword(...)`
 - **Biometric Unlock** — toggle (shown only when biometrics are available) that enables/disables app lock; when enabled, the app locks after 2 minutes in the background
-- **Delete Account** — a warning dialog requests a deletion code via `UserProvider.requestAccountDeletion()`, then a 6-digit code dialog confirms via `UserProvider.confirmAccountDeletion(code)` and navigates to `/login`
+- **Delete Account** — a warning dialog requests a deletion code via `AuthProvider.requestAccountDeletion()`, then a 6-digit code dialog confirms via `AuthProvider.confirmAccountDeletion(code)` and navigates to `/login`
 
 ## Related Documentation
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/utils/password_validator.dart';
 import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
 
@@ -34,7 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailFocusNode.addListener(_onEmailFocusChanged);
     // Clear any stale errors from previous screens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().clearError();
+      context.read<AuthProvider>().clearError();
     });
   }
 
@@ -62,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _emailAvailabilityError = null;
     });
 
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     final isAvailable = await userProvider.checkEmailAvailability(email);
 
     if (!mounted) return;
@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   /// Handle register button press
   Future<void> _handleRegister() async {
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
 
     // First, check email availability if not already checked
     final email = _emailController.text.trim();
@@ -191,7 +191,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Consumer<UserProvider>(
+        child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),

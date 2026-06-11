@@ -123,7 +123,7 @@ Each `ActivityEntry` displayed in the list shows:
 ## Provider Pattern Example
 
 The Progress Screen demonstrates:
-1. State management with Provider (`ChangeNotifierProxyProvider<UserProvider, ProgressProvider>`)
+1. State management with Provider (`ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>`)
 2. Loading and error states via `Consumer<ProgressProvider>` (with empty and success states resolved inside each tab widget)
 3. Combining a remote/DB source with a local `SharedPreferences` source
 4. List building and chart rendering from provider-derived data

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/presentation/shared/widgets/loading_widget.dart';
 import 'package:benefitflutter/presentation/shared/widgets/error_display_widget.dart';
 import 'package:benefitflutter/presentation/screens/benefit/widgets/total_savings_card.dart';
@@ -213,7 +213,7 @@ class _BenefitScreenState extends State<BenefitScreen> {
                     },
 
                     onRedeem: (benefitVM) async {
-                      final userId = context.read<UserProvider>().userId;
+                      final userId = context.read<AuthProvider>().userId;
                       if (userId == null) return;
 
                       if (benefitVM.userBenefit.status ==

@@ -11,7 +11,7 @@
 ## Current State (as of Sprint 1)
 
 ### Completed
-- [x] **UserProvider** - Centralized auth state management with ChangeNotifier
+- [x] **AuthProvider** - Centralized auth/identity state management with ChangeNotifier (split out of the former `UserProvider`; editable profile data now lives in `ProfileProvider`)
 - [x] **Session persistence** - JWT tokens stored securely via `TokenStorage` (flutter_secure_storage) and restored across app restarts
 - [x] **Login screen** - Email/password form with validation and error display
 - [x] **Splash screen** - Initializes auth, routes to login or home
@@ -81,7 +81,7 @@ Replaced MVP hardcoded credentials with proper JWT authentication architecture.
    - `lib/features/auth/domain/auth_tokens.dart` - Token model with expiry logic
    - Auto-refresh support via `needsRefresh` getter
 
-3. ✅ **Updated UserProvider**
+3. ✅ **Updated AuthProvider**
    - Now uses AuthService + TokenStorage (no hardcoded credentials)
    - `refreshSession()` method for token refresh
    - `handleAuthFailure()` for interceptor callbacks
@@ -308,7 +308,7 @@ deferred (stubbed).
    - Use `local_auth` package
    - Store preference in settings
 
-2. ✅ **Rate Limiting (Client-side)** (`lib/features/security/services/rate_limiter_service.dart`, wired into `UserProvider.login`)
+2. ✅ **Rate Limiting (Client-side)** (`lib/features/security/services/rate_limiter_service.dart`, wired into `AuthProvider.login`)
    - Limit login attempts (5 attempts, then 15-min lockout)
    - Show remaining attempts
    - Countdown timer for lockout

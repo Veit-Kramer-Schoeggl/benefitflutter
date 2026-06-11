@@ -627,11 +627,11 @@ MultiProvider(
 ```
 
 > **Status update:** In the current `lib/main.dart`, `ActivityProvider` is
-> registered as a `ChangeNotifierProxyProvider<UserProvider, ActivityProvider>`
+> registered as a `ChangeNotifierProxyProvider<AuthProvider, ActivityProvider>`
 > (so it receives the user id via `updateUserId(...)`), and is constructed with a
 > `SensorManager` for GPS:
 > ```dart
-> ChangeNotifierProxyProvider<UserProvider, ActivityProvider>(
+> ChangeNotifierProxyProvider<AuthProvider, ActivityProvider>(
 >   create: (_) => ActivityProvider(
 >     RepositoryConfig.getSessionRepository(),
 >     sensorManager: sensorManager,
@@ -641,7 +641,7 @@ MultiProvider(
 > )
 > ```
 > The other providers shown above (Benefit/Progress) are likewise
-> `ChangeNotifierProxyProvider<UserProvider, ...>` today, not plain
+> `ChangeNotifierProxyProvider<AuthProvider, ...>` today, not plain
 > `ChangeNotifierProvider`.
 
 ---

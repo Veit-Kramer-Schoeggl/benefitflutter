@@ -1,6 +1,9 @@
 # Miscellaneous
 *.class
 *.log
+
+# Prod env config (may contain real Sentry DSN) — see config/prod.example.json
+/config/prod.json
 *.pyc
 *.swp
 .DS_Store

@@ -59,7 +59,7 @@ class ActivityProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // User ID (set by UserProvider via ProxyProvider)
+  // User ID (set by AuthProvider via ProxyProvider)
   String? _userId;
 
   ActivityProvider(
@@ -117,7 +117,7 @@ class ActivityProvider extends ChangeNotifier {
 
   // ===== USER ID MANAGEMENT =====
 
-  /// Update user ID from UserProvider
+  /// Update user ID from AuthProvider
   ///
   /// Called automatically via ProxyProvider when user changes.
   /// Completes any active session and resets state when user switches.

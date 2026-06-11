@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:benefitflutter/providers/user_provider.dart';
+import 'package:benefitflutter/providers/auth_provider.dart';
 import 'package:benefitflutter/features/auth/utils/password_validator.dart';
 import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
 
@@ -61,7 +61,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   /// Handle reset password button press
   Future<void> _handleReset() async {
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
 
     // Clear previous errors
     setState(() {
@@ -160,7 +160,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   /// Handle back button - clear pending reset
   void _handleBack() {
-    final userProvider = context.read<UserProvider>();
+    final userProvider = context.read<AuthProvider>();
     userProvider.clearPendingReset();
     userProvider.clearError();
     Navigator.of(context).pop();
@@ -179,7 +179,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ),
       ),
       body: SafeArea(
-        child: Consumer<UserProvider>(
+        child: Consumer<AuthProvider>(
           builder: (context, userProvider, child) {
             // Redirect if no pending reset (and not just reset successfully)
             if (userProvider.pendingResetEmail == null &&
