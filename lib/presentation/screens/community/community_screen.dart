@@ -126,7 +126,8 @@ class _HeaderBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: primaryGreen,
         image: DecorationImage(
-          image: AssetImage(image),
+          // Cap decode size to avoid huge full-res image-cache allocations.
+          image: ResizeImage(AssetImage(image), width: 1080),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
             Colors.black.withValues(alpha: 0.45),
@@ -229,7 +230,7 @@ class _ChallengeCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(image, fit: BoxFit.cover),
+            Image.asset(image, fit: BoxFit.cover, cacheWidth: 1080),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -344,7 +345,7 @@ class _EventCard extends StatelessWidget {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: Image.asset(image, fit: BoxFit.cover),
+                      child: Image.asset(image, fit: BoxFit.cover, cacheWidth: 1080),
                     ),
                     Container(
                       color: Colors.black38,

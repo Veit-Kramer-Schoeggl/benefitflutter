@@ -545,8 +545,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Pick profile image from gallery
   // ----------------------------------------------------------
   Future<void> _pickImageFromGallery() async {
-    final XFile? image =
-    await _picker.pickImage(source: ImageSource.gallery);
+    // Constrain the picked image so we don't load/store a full ~12MP photo
+    // for a small avatar (memory + future upload bandwidth).
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
 
     if (image == null || _currentUser == null) return;
 
