@@ -350,7 +350,7 @@ class DatabaseHelper {
   /// Migration v5 → v6: Add identity verification flow
   Future<void> _migrateToV6(Database db) async {
     final columns = await db.rawQuery("PRAGMA table_info(users)");
-    final columnNames = columns.map((c) => c['name'] as String).toSet();
+    final columnNames = columns.map((c) => c['name']! as String).toSet();
 
     if (!columnNames.contains('is_verified')) {
       await db.execute(
@@ -368,7 +368,7 @@ class DatabaseHelper {
   /// Migration v6 → v7: Add password change
   Future<void> _migrateToV7(Database db) async {
     final columns = await db.rawQuery("PRAGMA table_info(users)");
-    final columnNames = columns.map((c) => c['name'] as String).toSet();
+    final columnNames = columns.map((c) => c['name']! as String).toSet();
 
     if (!columnNames.contains('password_hash')) {
       await db.execute(
@@ -380,7 +380,7 @@ class DatabaseHelper {
   /// Migration v7 → v8: Add benefit redemption support
   Future<void> _migrateToV8(Database db) async {
     final columns = await db.rawQuery("PRAGMA table_info(user_benefits)");
-    final columnNames = columns.map((c) => c['name'] as String).toSet();
+    final columnNames = columns.map((c) => c['name']! as String).toSet();
 
     if (!columnNames.contains('status')) {
       await db.execute(
@@ -402,7 +402,7 @@ class DatabaseHelper {
   /// Migration v8 → v9: Add redemption code
   Future<void> _migrateToV9(Database db) async {
     final columns = await db.rawQuery("PRAGMA table_info(user_benefits)");
-    final columnNames = columns.map((c) => c['name'] as String).toSet();
+    final columnNames = columns.map((c) => c['name']! as String).toSet();
 
     if (!columnNames.contains('redemption_code')) {
       await db.execute(
@@ -424,7 +424,7 @@ class DatabaseHelper {
     final hashPattern = RegExp(r'^[a-f0-9]{64}$');
 
     for (final user in users) {
-      final userId = user['id'] as String;
+      final userId = user['id']! as String;
       final passwordHash = user['password_hash'] as String? ?? '';
 
       // Skip if already hashed or empty

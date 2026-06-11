@@ -171,7 +171,7 @@ class ProgressProvider extends ChangeNotifier {
     );
 
     // 2. Convert database entities (Session) to ActivityEntry models
-    List<ActivityEntry> dbEntries = completedSessions.map((session) {
+    final List<ActivityEntry> dbEntries = completedSessions.map((session) {
       final duration = session.durationSeconds != null
           ? Duration(seconds: session.durationSeconds!)
           : null;

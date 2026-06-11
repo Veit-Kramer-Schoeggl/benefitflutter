@@ -93,7 +93,7 @@ class HealthPlatformDataDao {
 
     if (results.isEmpty) return null;
     return DateTime.fromMillisecondsSinceEpoch(
-      results.first['synced_at'] as int,
+      results.first['synced_at']! as int,
     );
   }
 
@@ -295,7 +295,7 @@ class HealthPlatformDataDao {
     );
 
     return results
-        .map((row) => HealthDataType.fromJson(row['data_type'] as String))
+        .map((row) => HealthDataType.fromJson(row['data_type']! as String))
         .toList();
   }
 

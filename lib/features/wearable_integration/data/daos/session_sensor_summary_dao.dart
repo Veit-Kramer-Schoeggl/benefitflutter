@@ -129,7 +129,7 @@ class SessionSensorSummaryDao {
     );
 
     if (result.isEmpty || result.first['overall_avg'] == null) return null;
-    return (result.first['overall_avg'] as num).toDouble();
+    return (result.first['overall_avg']! as num).toDouble();
   }
 
   /// Get total steps across all sessions
@@ -141,7 +141,7 @@ class SessionSensorSummaryDao {
     );
 
     if (result.isEmpty || result.first['total'] == null) return 0;
-    return (result.first['total'] as num).toInt();
+    return (result.first['total']! as num).toInt();
   }
 
   /// Get total calories burned across all sessions
@@ -153,7 +153,7 @@ class SessionSensorSummaryDao {
     );
 
     if (result.isEmpty || result.first['total'] == null) return 0;
-    return (result.first['total'] as num).toDouble();
+    return (result.first['total']! as num).toDouble();
   }
 
   /// Update specific fields of a summary (partial update)

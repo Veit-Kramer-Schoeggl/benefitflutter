@@ -618,10 +618,8 @@ class SeedData {
           sessionId: 'session-1',
           deviceId: 'device-polar-h10',
           sensorType: SensorType.heartRate,
-          value: (point['hr'] as int).toDouble(),
-          timestamp: sessionStartTime.add(
-            Duration(minutes: point['min'] as int),
-          ),
+          value: (point['hr']!).toDouble(),
+          timestamp: sessionStartTime.add(Duration(minutes: point['min']!)),
           accuracy: 0.98,
         ),
       );
@@ -671,10 +669,8 @@ class SeedData {
           sessionId: 'session-1',
           deviceId: 'device-polar-h10',
           sensorType: SensorType.cadence,
-          value: (point['cadence'] as int).toDouble(),
-          timestamp: sessionStartTime.add(
-            Duration(minutes: point['min'] as int),
-          ),
+          value: (point['cadence']!).toDouble(),
+          timestamp: sessionStartTime.add(Duration(minutes: point['min']!)),
           accuracy: 0.92,
         ),
       );

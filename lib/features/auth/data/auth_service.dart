@@ -443,7 +443,7 @@ class MockAuthService implements AuthService {
 
     // Find credentials in test credentials or registered users
     Map<String, String>? credentials = _testCredentials[normalizedEmail];
-    bool isTestUser = credentials != null;
+    final bool isTestUser = credentials != null;
 
     credentials ??= _registeredUsers[normalizedEmail];
 

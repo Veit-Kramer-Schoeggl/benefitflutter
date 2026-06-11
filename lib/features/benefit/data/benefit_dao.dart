@@ -129,7 +129,7 @@ class BenefitDao {
     }
 
     // SQLite returns sum as num, convert to double
-    return (results.first['total'] as num).toDouble();
+    return (results.first['total']! as num).toDouble();
   }
 
   // ========== Conversion Methods ==========

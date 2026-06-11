@@ -21,8 +21,15 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # Curated Phase-0 hardening. (strict-casts / strict-raw-types / fatal-infos
+    # and import-boundary lints are deferred to Phase 1, after test repair, so the
+    # whole package can be gated.)
+    avoid_print: true
+    avoid_dynamic_calls: true
+    cast_nullable_to_non_nullable: true
+    unawaited_futures: true
+    prefer_final_locals: true
+    require_trailing_commas: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

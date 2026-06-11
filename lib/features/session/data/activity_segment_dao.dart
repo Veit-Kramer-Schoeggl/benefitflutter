@@ -149,7 +149,7 @@ class ActivitySegmentDao {
     if (result.isEmpty || result.first['total'] == null) {
       return 0.0;
     }
-    return (result.first['total'] as num).toDouble();
+    return (result.first['total']! as num).toDouble();
   }
 
   /// Get count of segments for a session
@@ -165,7 +165,7 @@ class ActivitySegmentDao {
     );
 
     if (result.isEmpty) return 0;
-    return result.first['count'] as int;
+    return result.first['count']! as int;
   }
 
   /// Convert database map to ActivitySegment model

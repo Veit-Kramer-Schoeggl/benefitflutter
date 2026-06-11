@@ -162,7 +162,7 @@ class SessionMotionDataDao {
     );
 
     if (result.isEmpty || result.first['avg_value'] == null) return null;
-    return (result.first['avg_value'] as num).toDouble();
+    return (result.first['avg_value']! as num).toDouble();
   }
 
   /// Get total sum for a sensor type in a session (useful for steps)
@@ -179,7 +179,7 @@ class SessionMotionDataDao {
     );
 
     if (result.isEmpty || result.first['total'] == null) return null;
-    return (result.first['total'] as num).toDouble();
+    return (result.first['total']! as num).toDouble();
   }
 
   /// Get min/max values for a sensor type in a session
@@ -205,10 +205,10 @@ class SessionMotionDataDao {
 
     return {
       'min': result.first['min_value'] != null
-          ? (result.first['min_value'] as num).toDouble()
+          ? (result.first['min_value']! as num).toDouble()
           : null,
       'max': result.first['max_value'] != null
-          ? (result.first['max_value'] as num).toDouble()
+          ? (result.first['max_value']! as num).toDouble()
           : null,
     };
   }

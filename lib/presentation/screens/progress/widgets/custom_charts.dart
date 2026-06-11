@@ -46,7 +46,9 @@ class CustomBarChart extends StatelessWidget {
       exponent = -1;
     } else if (roughStep > 0) {
       try {
-        String expString = roughStep.toStringAsExponential().split('e')[1];
+        final String expString = roughStep.toStringAsExponential().split(
+          'e',
+        )[1];
         exponent = double.parse(expString);
       } catch (e) {
         exponent = 0;
@@ -312,7 +314,9 @@ class CustomLineChart extends StatelessWidget {
       exponent = -1;
     } else if (roughStep > 0) {
       try {
-        String expString = roughStep.toStringAsExponential().split('e')[1];
+        final String expString = roughStep.toStringAsExponential().split(
+          'e',
+        )[1];
         exponent = double.parse(expString);
       } catch (e) {
         exponent = 0;
