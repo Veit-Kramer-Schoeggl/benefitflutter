@@ -83,7 +83,7 @@ void main() {
 
     setUp(() {
       mockRepo = MockSessionRepository();
-      provider = ActivityProvider(mockRepo);
+      provider = ActivityProvider(mockRepo, userId: 'test-user-123');
     });
 
     tearDown(() {
