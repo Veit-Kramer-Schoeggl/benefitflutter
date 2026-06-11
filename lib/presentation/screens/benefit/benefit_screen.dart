@@ -221,13 +221,6 @@ class _BenefitScreenState extends State<BenefitScreen> {
                         await provider.redeemBenefit(
                           userBenefitId: benefitVM.userBenefit.id,
                         );
-
-                        if (!context.mounted) return;
-
-                        final updatedVM = context
-                            .read<BenefitProvider>()
-                            .earnedBenefits
-                            .firstWhere((b) => b.id == benefitVM.id);
                       }
                     },
                   ),

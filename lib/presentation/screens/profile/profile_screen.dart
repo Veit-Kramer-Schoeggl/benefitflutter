@@ -658,7 +658,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           trailing: Switch(
             value: _biometricEnabled,
-            activeColor: brandGreen,
+            activeThumbColor: brandGreen,
             onChanged: _handleBiometricToggle,
           ),
         ),

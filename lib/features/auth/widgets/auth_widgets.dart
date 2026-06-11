@@ -4,6 +4,7 @@
 /// ```dart
 /// import 'package:benefitflutter/features/auth/widgets/auth_widgets.dart';
 /// ```
+library;
 
 export 'password_text_field.dart';
 export 'password_strength_indicator.dart';

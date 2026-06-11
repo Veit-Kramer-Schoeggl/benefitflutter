@@ -70,10 +70,11 @@ class ActivityEntry {
     final fields = prefString.split('::');
 
     // Check for correct length of 7 fields
-    if (fields.length != 7)
+    if (fields.length != 7) {
       throw FormatException(
         'Invalid format for ActivityEntry (expected: 7 fields, found: ${fields.length})',
       );
+    }
 
     final parsedDistance = double.parse(fields[1]);
     final parsedDurationSeconds = int.parse(fields[2]);

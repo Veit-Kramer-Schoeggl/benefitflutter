@@ -146,7 +146,7 @@ class CustomBarChart extends StatelessWidget {
                             value.toString(),
                             style: TextStyle(
                               fontSize: 10,
-                              color: darkGrey.withOpacity(0.8),
+                              color: darkGrey.withValues(alpha: 0.8),
                             ),
                           ),
                         );
@@ -444,7 +444,7 @@ class CustomLineChart extends StatelessWidget {
                             value.toString(),
                             style: TextStyle(
                               fontSize: 10,
-                              color: darkGrey.withOpacity(0.8),
+                              color: darkGrey.withValues(alpha: 0.8),
                             ),
                           ),
                         );

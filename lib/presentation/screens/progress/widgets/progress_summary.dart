@@ -45,7 +45,7 @@ class ProgressSummary extends StatelessWidget {
                 title,
                 style: TextStyle(
                   fontSize: 12,
-                  color: darkGrey.withOpacity(0.7),
+                  color: darkGrey.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 4),

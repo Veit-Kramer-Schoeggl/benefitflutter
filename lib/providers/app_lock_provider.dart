@@ -27,7 +27,8 @@ class AppLockProvider extends ChangeNotifier {
   /// Whether biometric is permanently locked (too many failed attempts)
   bool _isPermanentlyLocked = false;
 
-  /// Whether user has been authenticated this session
+  /// Whether user has been authenticated this session.
+  // ignore: unused_field — written but never read yet; pending dead-code decision (see documentation/ARCHITECTURE_REVIEW.md).
   bool _hasAuthenticatedThisSession = false;
 
   // ===== GETTERS =====

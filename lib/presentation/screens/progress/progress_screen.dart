@@ -126,8 +126,11 @@ class _ProgressScreenState extends State<ProgressScreen>
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(color: darkGrey.withOpacity(0.7), fontSize: 14),
-        hintStyle: TextStyle(color: darkGrey.withOpacity(0.4)),
+        labelStyle: TextStyle(
+          color: darkGrey.withValues(alpha: 0.7),
+          fontSize: 14,
+        ),
+        hintStyle: TextStyle(color: darkGrey.withValues(alpha: 0.4)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
         border: UnderlineInputBorder(borderSide: BorderSide(color: darkGrey)),
         enabledBorder: UnderlineInputBorder(
@@ -365,6 +368,7 @@ class _ProgressScreenState extends State<ProgressScreen>
     );
   }
 
+  // ignore: unused_element — dead code (manual edit/delete dialog not wired to UI); pending dead-code decision (see documentation/ARCHITECTURE_REVIEW.md).
   void _handleTapOrSwipeAction(BuildContext context, ActivityEntry entry) {
     if (entry.isManual) {
       showDialog(
@@ -472,7 +476,7 @@ class _ProgressScreenState extends State<ProgressScreen>
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          color: primaryColor.withOpacity(0.1),
+          color: primaryColor.withValues(alpha: 0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
