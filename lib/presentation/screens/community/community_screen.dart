@@ -24,7 +24,7 @@ class CommunityScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: _HeaderBanner(
               primaryGreen: _primaryGreen,
-              image: 'assets/images/runners/run_1.png',
+              image: 'assets/images/runners/run_1.jpg',
             ),
           ),
 
@@ -39,7 +39,7 @@ class CommunityScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: _ChallengeCard(
-                image: 'assets/images/runners/run_2.png',
+                image: 'assets/images/runners/run_2.jpg',
               ),
             ),
           ),
@@ -59,14 +59,14 @@ class CommunityScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: const [
                   _EventCard(
-                    image: 'assets/images/runners/run_3.png',
+                    image: 'assets/images/runners/run_3.jpg',
                     title: 'Virtuelles Rennen',
                     subtitle: 'Startet in 38 Tagen',
                     dateLabel: 'JULI 10K',
                   ),
                   SizedBox(width: 12),
                   _EventCard(
-                    image: 'assets/images/runners/run_4.png',
+                    image: 'assets/images/runners/run_4.jpg',
                     title: 'Sunset Run',
                     subtitle: 'Beendet in 3 Tagen',
                     dateLabel: 'AUG 5K',
