@@ -1,3 +1,4 @@
+import 'package:benefitflutter/core/logging/app_logger.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,7 +41,7 @@ class ProgressProvider extends ChangeNotifier {
     /*
     SharedPreferences.getInstance().then((prefs) {
         prefs.remove(_prefKeyManualEntries);
-        debugPrint('--- Old manual entries deleted! Restart to fix the problem. ---');
+        AppLogger.d('--- Old manual entries deleted! Restart to fix the problem. ---');
     });
     */
   }
@@ -147,7 +148,7 @@ class ProgressProvider extends ChangeNotifier {
       // If only DB loading fails, show manual entries.
       _combinedActivities = List.from(_manualEntries);
       _combinedActivities.sort((a, b) => b.startTime.compareTo(a.startTime));
-      debugPrint('ProgressProvider Error: $e');
+      AppLogger.e('ProgressProvider Error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -156,7 +157,7 @@ class ProgressProvider extends ChangeNotifier {
 
   /// Converts DB sessions, combines with manual entries, and sorts
   void _convertDbAndCombine(List<Session> dbSessions) {
-    debugPrint(
+    AppLogger.d(
       'ProgressProvider: Loaded ${dbSessions.length} total sessions from DB',
     );
 
@@ -165,7 +166,7 @@ class ProgressProvider extends ChangeNotifier {
         .where((session) => session.status == SessionStatus.completed)
         .toList();
 
-    debugPrint(
+    AppLogger.d(
       'ProgressProvider: ${completedSessions.length} completed sessions',
     );
 
@@ -196,7 +197,7 @@ class ProgressProvider extends ChangeNotifier {
     // Sort by start time (newest first: b before a)
     _combinedActivities.sort((a, b) => b.startTime.compareTo(a.startTime));
 
-    debugPrint(
+    AppLogger.d(
       'ProgressProvider: Total activities to display: ${_combinedActivities.length} (${_manualEntries.length} manual + ${dbEntries.length} DB)',
     );
   }
@@ -242,7 +243,7 @@ class ProgressProvider extends ChangeNotifier {
         _manualEntries.add(ActivityEntry.fromPrefString(item));
       } catch (e) {
         // Important: If an error occurs here, it's due to incompatible old data.
-        debugPrint(
+        AppLogger.d(
           'Error loading ActivityEntry: $e. Probably incompatible old format.',
         );
       }

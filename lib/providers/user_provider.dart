@@ -1,3 +1,4 @@
+import 'package:benefitflutter/core/logging/app_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:benefitflutter/core/utils/password_utils.dart';
 import 'package:benefitflutter/features/user/domain/user.dart';
@@ -131,11 +132,11 @@ class UserProvider extends ChangeNotifier {
       final tokens = await _tokenStorage.getTokens();
 
       if (tokens != null) {
-        debugPrint('UserProvider: Found stored tokens');
+        AppLogger.d('UserProvider: Found stored tokens');
 
         // Check if tokens are expired
         if (tokens.isExpired) {
-          debugPrint('UserProvider: Tokens expired, attempting refresh');
+          AppLogger.d('UserProvider: Tokens expired, attempting refresh');
           try {
             final newTokens = await _authService.refreshToken(
               tokens.refreshToken,
@@ -143,7 +144,7 @@ class UserProvider extends ChangeNotifier {
             await _tokenStorage.saveTokens(newTokens);
             _currentTokens = newTokens;
           } catch (e) {
-            debugPrint('UserProvider: Token refresh failed - $e');
+            AppLogger.e('UserProvider: Token refresh failed - $e');
             await _tokenStorage.clearTokens();
             _currentUser = null;
             _currentTokens = null;
@@ -160,18 +161,18 @@ class UserProvider extends ChangeNotifier {
         final userId = _extractUserIdFromToken(tokens.accessToken);
         if (userId != null) {
           _currentUser = await _repository.getUserById(userId);
-          debugPrint(
+          AppLogger.d(
             'UserProvider: Restored session for ${_currentUser?.name}',
           );
         }
       } else {
-        debugPrint('UserProvider: No stored session found');
+        AppLogger.d('UserProvider: No stored session found');
         _currentUser = null;
       }
 
       _error = null;
     } catch (e) {
-      debugPrint('UserProvider: Error initializing - $e');
+      AppLogger.e('UserProvider: Error initializing - $e');
       _error = 'Failed to restore session: $e';
       _currentUser = null;
       _currentTokens = null;
@@ -265,7 +266,7 @@ class UserProvider extends ChangeNotifier {
         _currentUser = await _repository.getUserById(result.userId!);
       } catch (e) {
         // User exists in auth but not in local database
-        debugPrint('UserProvider: User not found in database - $e');
+        AppLogger.e('UserProvider: User not found in database - $e');
         _error = 'No account found with this email';
         await _tokenStorage.clearTokens();
         _currentTokens = null;
@@ -286,13 +287,13 @@ class UserProvider extends ChangeNotifier {
       // Reset rate limiter on successful login
       await _rateLimiter.resetOnSuccess();
 
-      debugPrint('UserProvider: Login successful for ${_currentUser!.name}');
+      AppLogger.d('UserProvider: Login successful for ${_currentUser!.name}');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('UserProvider: Login error - $e');
+      AppLogger.e('UserProvider: Login error - $e');
       // Record failed attempt for unexpected errors
       await _rateLimiter.recordFailedAttempt();
       // Show user-friendly error instead of technical details
@@ -321,7 +322,7 @@ class UserProvider extends ChangeNotifier {
       try {
         await _authService.logout(_currentTokens?.accessToken);
       } catch (e) {
-        debugPrint('UserProvider: Server logout failed (ignored) - $e');
+        AppLogger.e('UserProvider: Server logout failed (ignored) - $e');
       }
 
       // Clear secure storage
@@ -332,9 +333,9 @@ class UserProvider extends ChangeNotifier {
       _currentTokens = null;
       _error = null;
 
-      debugPrint('UserProvider: Logout successful');
+      AppLogger.d('UserProvider: Logout successful');
     } catch (e) {
-      debugPrint('UserProvider: Logout error - $e');
+      AppLogger.e('UserProvider: Logout error - $e');
       // Still clear local state even if storage fails
       _currentUser = null;
       _currentTokens = null;
@@ -361,10 +362,10 @@ class UserProvider extends ChangeNotifier {
       await _tokenStorage.saveTokens(newTokens);
       _currentTokens = newTokens;
       notifyListeners();
-      debugPrint('UserProvider: Session refreshed');
+      AppLogger.d('UserProvider: Session refreshed');
       return true;
     } on AuthException catch (e) {
-      debugPrint('UserProvider: Session refresh failed - ${e.message}');
+      AppLogger.e('UserProvider: Session refresh failed - ${e.message}');
       // Refresh failed - need to re-login
       await logout();
       return false;
@@ -389,11 +390,11 @@ class UserProvider extends ChangeNotifier {
       await _repository.updateUser(updatedUser);
       _currentUser = updatedUser;
       _error = null;
-      debugPrint('UserProvider: Updated user ${updatedUser.name}');
+      AppLogger.d('UserProvider: Updated user ${updatedUser.name}');
       return true;
     } catch (e) {
       _error = 'Failed to update profile: $e';
-      debugPrint('UserProvider: Update error - $e');
+      AppLogger.e('UserProvider: Update error - $e');
       return false;
     } finally {
       _isLoading = false;
@@ -404,7 +405,7 @@ class UserProvider extends ChangeNotifier {
   /// Clear any error state
   void clearError() {
     if (_error != null) {
-      debugPrint('UserProvider: clearError() - clearing error: $_error');
+      AppLogger.d('UserProvider: clearError() - clearing error: $_error');
     }
     _error = null;
     notifyListeners();
@@ -435,7 +436,7 @@ class UserProvider extends ChangeNotifier {
     try {
       return await _authService.checkEmailAvailability(trimmedEmail);
     } catch (e) {
-      debugPrint('UserProvider: Email availability check failed - $e');
+      AppLogger.e('UserProvider: Email availability check failed - $e');
       return true; // On error, allow to proceed (server will validate)
     }
   }
@@ -449,7 +450,7 @@ class UserProvider extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    debugPrint('UserProvider: register() called');
+    AppLogger.d('UserProvider: register() called');
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -481,7 +482,7 @@ class UserProvider extends ChangeNotifier {
       );
 
       if (!result.success) {
-        debugPrint(
+        AppLogger.d(
           'UserProvider: register() failed with error: ${result.error}',
         );
         _error = result.error ?? 'Registration failed';
@@ -497,7 +498,7 @@ class UserProvider extends ChangeNotifier {
       _pendingRegistrationPassword = password;
       _pendingVerificationCode = result.verificationCode;
 
-      debugPrint(
+      AppLogger.d(
         'UserProvider: Registration successful (verification code issued)',
       );
       _error = null;
@@ -507,7 +508,7 @@ class UserProvider extends ChangeNotifier {
       // Return verification code for UI to display
       return result.verificationCode;
     } catch (e) {
-      debugPrint('UserProvider: Registration error - $e');
+      AppLogger.e('UserProvider: Registration error - $e');
       _error = 'Registration failed: $e';
       _isLoading = false;
       notifyListeners();
@@ -556,9 +557,9 @@ class UserProvider extends ChangeNotifier {
 
       try {
         await _repository.createUser(newUser);
-        debugPrint('UserProvider: Created new user in repository');
+        AppLogger.d('UserProvider: Created new user in repository');
       } catch (e) {
-        debugPrint('UserProvider: Could not create user in repository - $e');
+        AppLogger.e('UserProvider: Could not create user in repository - $e');
         // Continue anyway - user might already exist
       }
 
@@ -577,7 +578,7 @@ class UserProvider extends ChangeNotifier {
       _pendingRegistrationPassword = null;
       _pendingVerificationCode = null;
 
-      debugPrint(
+      AppLogger.d(
         'UserProvider: Verification successful for ${_currentUser?.name}',
       );
       _error = null;
@@ -585,7 +586,7 @@ class UserProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('UserProvider: Verification error - $e');
+      AppLogger.e('UserProvider: Verification error - $e');
       _error = 'Verification failed: $e';
       _isLoading = false;
       notifyListeners();
@@ -635,7 +636,7 @@ class UserProvider extends ChangeNotifier {
       // Store email for deletion confirmation
       _pendingDeletionEmail = result.email;
 
-      debugPrint(
+      AppLogger.d(
         'UserProvider: Account deletion requested (confirmation code issued)',
       );
       _error = null;
@@ -644,7 +645,7 @@ class UserProvider extends ChangeNotifier {
 
       return result.deletionCode;
     } catch (e) {
-      debugPrint('UserProvider: Account deletion request error - $e');
+      AppLogger.e('UserProvider: Account deletion request error - $e');
       _error = 'Failed to request account deletion: $e';
       _isLoading = false;
       notifyListeners();
@@ -696,12 +697,12 @@ class UserProvider extends ChangeNotifier {
       _pendingDeletionEmail = null;
       _error = null;
 
-      debugPrint('UserProvider: Account deleted successfully');
+      AppLogger.d('UserProvider: Account deleted successfully');
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('UserProvider: Account deletion error - $e');
+      AppLogger.e('UserProvider: Account deletion error - $e');
       _error = 'Failed to delete account: $e';
       _isLoading = false;
       notifyListeners();
@@ -780,14 +781,14 @@ class UserProvider extends ChangeNotifier {
       _pendingResetEmail = result.email;
       _pendingResetCode = result.resetCode;
 
-      debugPrint('UserProvider: Password reset requested (reset code issued)');
+      AppLogger.d('UserProvider: Password reset requested (reset code issued)');
       _error = null;
       _isLoading = false;
       notifyListeners();
 
       return result.resetCode;
     } catch (e) {
-      debugPrint('UserProvider: Password reset request error - $e');
+      AppLogger.e('UserProvider: Password reset request error - $e');
       _error = 'Failed to request password reset: $e';
       _isLoading = false;
       notifyListeners();
@@ -830,13 +831,13 @@ class UserProvider extends ChangeNotifier {
       _pendingResetEmail = null;
       _pendingResetCode = null;
 
-      debugPrint('UserProvider: Password reset successful');
+      AppLogger.d('UserProvider: Password reset successful');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('UserProvider: Password reset error - $e');
+      AppLogger.e('UserProvider: Password reset error - $e');
       _error = 'Failed to reset password: $e';
       _isLoading = false;
       notifyListeners();
@@ -893,13 +894,13 @@ class UserProvider extends ChangeNotifier {
       await _repository.updateUser(updatedUser);
       _currentUser = updatedUser;
 
-      debugPrint('UserProvider: Password changed successfully');
+      AppLogger.d('UserProvider: Password changed successfully');
       _error = null;
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('UserProvider: Password change error - $e');
+      AppLogger.e('UserProvider: Password change error - $e');
       _error = 'Failed to change password: $e';
       _isLoading = false;
       notifyListeners();

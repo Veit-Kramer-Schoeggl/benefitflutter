@@ -1,3 +1,4 @@
+import 'package:benefitflutter/core/logging/app_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:benefitflutter/features/security/services/biometric_service.dart';
 import 'package:benefitflutter/core/config/security_config.dart';
@@ -56,7 +57,7 @@ class AppLockProvider extends ChangeNotifier {
   /// Records the time for lock delay calculation.
   void onAppPaused() {
     _lastPausedTime = DateTime.now();
-    debugPrint('AppLockProvider: App paused at $_lastPausedTime');
+    AppLogger.d('AppLockProvider: App paused at $_lastPausedTime');
   }
 
   /// Called when app returns to foreground
@@ -66,39 +67,39 @@ class AppLockProvider extends ChangeNotifier {
   /// - Time since last pause
   /// - Whether activity tracking is active (skip lock if tracking)
   Future<void> onAppResumed({bool isTrackingActive = false}) async {
-    debugPrint(
+    AppLogger.d(
       'AppLockProvider: App resumed, tracking active: $isTrackingActive',
     );
 
     // Skip lock if activity tracking is active
     if (isTrackingActive) {
-      debugPrint('AppLockProvider: Skipping lock - activity tracking active');
+      AppLogger.d('AppLockProvider: Skipping lock - activity tracking active');
       return;
     }
 
     // Check if biometric is enabled
     final biometricEnabled = await _biometricService.isBiometricEnabled();
     if (!biometricEnabled) {
-      debugPrint('AppLockProvider: Biometric not enabled, skipping lock');
+      AppLogger.d('AppLockProvider: Biometric not enabled, skipping lock');
       return;
     }
 
     // Check if enough time has passed
     if (_lastPausedTime == null) {
-      debugPrint('AppLockProvider: No pause time recorded, skipping lock');
+      AppLogger.d('AppLockProvider: No pause time recorded, skipping lock');
       return;
     }
 
     final timeSincePause = DateTime.now().difference(_lastPausedTime!);
     if (timeSincePause < SecurityConfig.biometricLockDelay) {
-      debugPrint(
+      AppLogger.d(
         'AppLockProvider: Only ${timeSincePause.inSeconds}s since pause, skipping lock',
       );
       return;
     }
 
     // Lock the app
-    debugPrint(
+    AppLogger.d(
       'AppLockProvider: Locking app after ${timeSincePause.inMinutes}m',
     );
     _isLocked = true;
@@ -112,14 +113,14 @@ class AppLockProvider extends ChangeNotifier {
   /// Returns true if unlock successful, false otherwise.
   Future<bool> unlockWithBiometrics() async {
     if (_isPermanentlyLocked) {
-      debugPrint('AppLockProvider: Permanently locked, cannot use biometrics');
+      AppLogger.d('AppLockProvider: Permanently locked, cannot use biometrics');
       return false;
     }
 
     final result = await _biometricService.authenticate();
 
     if (result.success) {
-      debugPrint('AppLockProvider: Biometric unlock successful');
+      AppLogger.d('AppLockProvider: Biometric unlock successful');
       _isLocked = false;
       _failedAttempts = 0;
       _hasAuthenticatedThisSession = true;
@@ -128,12 +129,12 @@ class AppLockProvider extends ChangeNotifier {
     }
 
     if (result.userCancelled) {
-      debugPrint('AppLockProvider: User cancelled biometric prompt');
+      AppLogger.d('AppLockProvider: User cancelled biometric prompt');
       return false;
     }
 
     if (result.permanentlyLocked) {
-      debugPrint('AppLockProvider: Biometric permanently locked by system');
+      AppLogger.d('AppLockProvider: Biometric permanently locked by system');
       _isPermanentlyLocked = true;
       notifyListeners();
       return false;
@@ -141,12 +142,12 @@ class AppLockProvider extends ChangeNotifier {
 
     // Failed attempt
     _failedAttempts++;
-    debugPrint(
+    AppLogger.d(
       'AppLockProvider: Biometric failed, attempt $_failedAttempts/${SecurityConfig.maxBiometricAttempts}',
     );
 
     if (_failedAttempts >= SecurityConfig.maxBiometricAttempts) {
-      debugPrint('AppLockProvider: Max attempts reached, requiring password');
+      AppLogger.d('AppLockProvider: Max attempts reached, requiring password');
       _isPermanentlyLocked = true;
     }
 
@@ -158,7 +159,7 @@ class AppLockProvider extends ChangeNotifier {
   ///
   /// Call this after verifying password is correct.
   void unlockWithPassword() {
-    debugPrint('AppLockProvider: Password unlock successful');
+    AppLogger.d('AppLockProvider: Password unlock successful');
     _isLocked = false;
     _failedAttempts = 0;
     _isPermanentlyLocked = false;
@@ -168,14 +169,14 @@ class AppLockProvider extends ChangeNotifier {
 
   /// Lock the app immediately
   void lockApp() {
-    debugPrint('AppLockProvider: Manually locking app');
+    AppLogger.d('AppLockProvider: Manually locking app');
     _isLocked = true;
     notifyListeners();
   }
 
   /// Reset lock state (on logout)
   void reset() {
-    debugPrint('AppLockProvider: Resetting lock state');
+    AppLogger.d('AppLockProvider: Resetting lock state');
     _isLocked = false;
     _lastPausedTime = null;
     _failedAttempts = 0;
@@ -192,20 +193,20 @@ class AppLockProvider extends ChangeNotifier {
   Future<void> initialize() async {
     final biometricEnabled = await _biometricService.isBiometricEnabled();
     if (!biometricEnabled) {
-      debugPrint('AppLockProvider: Biometric not enabled, starting unlocked');
+      AppLogger.d('AppLockProvider: Biometric not enabled, starting unlocked');
       return;
     }
 
     // On fresh app start, check last unlock time
     final lastUnlock = await _biometricService.getLastUnlockTime();
     if (lastUnlock == null) {
-      debugPrint('AppLockProvider: No previous unlock, starting unlocked');
+      AppLogger.d('AppLockProvider: No previous unlock, starting unlocked');
       return;
     }
 
     final timeSinceLastUnlock = DateTime.now().difference(lastUnlock);
     if (timeSinceLastUnlock > SecurityConfig.biometricLockDelay) {
-      debugPrint(
+      AppLogger.d(
         'AppLockProvider: Last unlock was ${timeSinceLastUnlock.inMinutes}m ago, locking',
       );
       _isLocked = true;

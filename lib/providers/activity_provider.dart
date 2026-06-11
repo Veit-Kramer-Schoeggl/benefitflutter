@@ -1,3 +1,4 @@
+import 'package:benefitflutter/core/logging/app_logger.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
@@ -124,7 +125,7 @@ class ActivityProvider extends ChangeNotifier {
   /// Completes any active session and resets state when user switches.
   void updateUserId(String? newUserId) {
     if (_userId != newUserId) {
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: User ID updated from $_userId to $newUserId',
       );
 
@@ -145,7 +146,7 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> _completeSessionOnUserChange() async {
     if (_currentSession == null) return;
 
-    debugPrint('ActivityProvider: Completing session on user change');
+    AppLogger.d('ActivityProvider: Completing session on user change');
 
     try {
       _stopTimer();
@@ -178,11 +179,11 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       await _sessionRepository.updateSession(completedSession);
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Session saved - Duration: $_elapsedSeconds sec',
       );
     } catch (e) {
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Error completing session on user change - $e',
       );
     }
@@ -233,13 +234,13 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> startSession({String? heartRateDeviceId}) async {
     // Guard: Only start from idle state
     if (_trackingState != TrackingState.idle) {
-      debugPrint('ActivityProvider: Cannot start session - not in idle state');
+      AppLogger.d('ActivityProvider: Cannot start session - not in idle state');
       return;
     }
 
     // Guard: Must have authenticated user
     if (_userId == null) {
-      debugPrint('ActivityProvider: Cannot start session - no user logged in');
+      AppLogger.d('ActivityProvider: Cannot start session - no user logged in');
       _error = 'Please log in to start tracking';
       notifyListeners();
       return;
@@ -294,13 +295,13 @@ class ActivityProvider extends ChangeNotifier {
       }
 
       _error = null;
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Session started - ID: ${_currentSession!.id}',
       );
     } catch (e) {
       _error = 'Failed to start session: ${e.toString()}';
       _trackingState = TrackingState.idle;
-      debugPrint('ActivityProvider: Start session error - $e');
+      AppLogger.e('ActivityProvider: Start session error - $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -313,7 +314,9 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> pauseSession() async {
     // Guard: Only pause from tracking state
     if (_trackingState != TrackingState.tracking || _currentSession == null) {
-      debugPrint('ActivityProvider: Cannot pause - not tracking or no session');
+      AppLogger.d(
+        'ActivityProvider: Cannot pause - not tracking or no session',
+      );
       return;
     }
 
@@ -344,12 +347,12 @@ class ActivityProvider extends ChangeNotifier {
 
       _trackingState = TrackingState.paused;
       _error = null;
-      debugPrint('ActivityProvider: Session paused');
+      AppLogger.d('ActivityProvider: Session paused');
     } catch (e) {
       _error = 'Failed to pause session: ${e.toString()}';
       // Resume timer on error
       _startTimer();
-      debugPrint('ActivityProvider: Pause error - $e');
+      AppLogger.e('ActivityProvider: Pause error - $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -362,7 +365,7 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> resumeSession() async {
     // Guard: Only resume from paused state
     if (_trackingState != TrackingState.paused || _currentSession == null) {
-      debugPrint('ActivityProvider: Cannot resume - not paused or no session');
+      AppLogger.d('ActivityProvider: Cannot resume - not paused or no session');
       return;
     }
 
@@ -394,11 +397,11 @@ class ActivityProvider extends ChangeNotifier {
       _startTimer();
 
       _error = null;
-      debugPrint('ActivityProvider: Session resumed');
+      AppLogger.d('ActivityProvider: Session resumed');
     } catch (e) {
       _error = 'Failed to resume session: ${e.toString()}';
       _trackingState = TrackingState.paused;
-      debugPrint('ActivityProvider: Resume error - $e');
+      AppLogger.e('ActivityProvider: Resume error - $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -414,7 +417,7 @@ class ActivityProvider extends ChangeNotifier {
   Future<void> stopSession() async {
     // Guard: Must have active session
     if (_currentSession == null || _trackingState == TrackingState.idle) {
-      debugPrint('ActivityProvider: Cannot stop - no active session');
+      AppLogger.d('ActivityProvider: Cannot stop - no active session');
       return;
     }
 
@@ -466,7 +469,7 @@ class ActivityProvider extends ChangeNotifier {
         await _createSessionSummary(completedSession);
       }
 
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Session completed - Duration: $_elapsedSeconds seconds, Distance: ${_currentDistance.toStringAsFixed(1)}m, HR Data Points: ${_sessionHeartRates.length}',
       );
 
@@ -490,7 +493,7 @@ class ActivityProvider extends ChangeNotifier {
       _error = null;
     } catch (e) {
       _error = 'Failed to stop session: ${e.toString()}';
-      debugPrint('ActivityProvider: Stop session error - $e');
+      AppLogger.e('ActivityProvider: Stop session error - $e');
       // Keep current state on error
     } finally {
       _isLoading = false;
@@ -502,7 +505,7 @@ class ActivityProvider extends ChangeNotifier {
   void selectActivityType(ActivityType type) {
     // Guard: Only allow changing type when idle
     if (_trackingState != TrackingState.idle) {
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Cannot change activity type while tracking',
       );
       return;
@@ -510,7 +513,7 @@ class ActivityProvider extends ChangeNotifier {
 
     _selectedActivityType = type;
     notifyListeners();
-    debugPrint(
+    AppLogger.d(
       'ActivityProvider: Activity type selected - ${type.displayName}',
     );
   }
@@ -537,7 +540,7 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       if (activeContinuous.isNotEmpty) {
-        debugPrint(
+        AppLogger.d(
           'ActivityProvider: Found ${activeContinuous.length} active continuous session(s)',
         );
 
@@ -559,7 +562,7 @@ class ActivityProvider extends ChangeNotifier {
           );
 
           await _sessionRepository.updateSession(completedSession);
-          debugPrint(
+          AppLogger.d(
             'ActivityProvider: Completed continuous session - ID: ${session.id}',
           );
         }
@@ -568,10 +571,10 @@ class ActivityProvider extends ChangeNotifier {
         _wasContinuousActive = true;
       } else {
         _wasContinuousActive = false;
-        debugPrint('ActivityProvider: No active continuous sessions found');
+        AppLogger.d('ActivityProvider: No active continuous sessions found');
       }
     } catch (e) {
-      debugPrint('ActivityProvider: Error ending continuous sessions - $e');
+      AppLogger.e('ActivityProvider: Error ending continuous sessions - $e');
       // Don't fail manual session start if this fails
       _wasContinuousActive = false;
     }
@@ -603,11 +606,11 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       await _sessionRepository.createSession(continuousSession);
-      debugPrint(
+      AppLogger.d(
         'ActivityProvider: Continuous session restarted - ID: ${continuousSession.id}',
       );
     } catch (e) {
-      debugPrint('ActivityProvider: Error restarting continuous session - $e');
+      AppLogger.e('ActivityProvider: Error restarting continuous session - $e');
       // Don't fail manual session completion if this fails
     }
   }
@@ -623,14 +626,14 @@ class ActivityProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    debugPrint('ActivityProvider: Timer started');
+    AppLogger.d('ActivityProvider: Timer started');
   }
 
   /// Stop the timer
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
-    debugPrint('ActivityProvider: Timer stopped');
+    AppLogger.d('ActivityProvider: Timer stopped');
   }
 
   // ===== GPS TRACKING METHODS =====
@@ -651,20 +654,20 @@ class ActivityProvider extends ChangeNotifier {
         _gpsSubscription = _sensorManager.gpsSensor.onDataStream.listen(
           _onGpsPoint,
           onError: (error) {
-            debugPrint('ActivityProvider: GPS stream error - $error');
+            AppLogger.e('ActivityProvider: GPS stream error - $error');
           },
         );
 
-        debugPrint('ActivityProvider: GPS tracking started');
+        AppLogger.d('ActivityProvider: GPS tracking started');
       } else {
-        debugPrint(
+        AppLogger.d(
           'ActivityProvider: Failed to start GPS - permission denied or unavailable',
         );
         _error = 'GPS unavailable. Distance tracking disabled.';
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('ActivityProvider: GPS tracking error - $e');
+      AppLogger.e('ActivityProvider: GPS tracking error - $e');
       _error = 'GPS error: ${e.toString()}';
       notifyListeners();
     }
@@ -675,17 +678,17 @@ class ActivityProvider extends ChangeNotifier {
     await _gpsSubscription?.cancel();
     _gpsSubscription = null;
     await _sensorManager.stopSession();
-    debugPrint('ActivityProvider: GPS tracking stopped');
+    AppLogger.d('ActivityProvider: GPS tracking stopped');
   }
 
   /// Handle incoming GPS point
   Future<void> _onGpsPoint(GpsPoint point) async {
     if (_currentSession == null) {
-      debugPrint('ActivityProvider: GPS point received but no active session');
+      AppLogger.d('ActivityProvider: GPS point received but no active session');
       return;
     }
 
-    debugPrint(
+    AppLogger.d(
       'ActivityProvider: GPS point received - Lat: ${point.latitude.toStringAsFixed(4)}, Lng: ${point.longitude.toStringAsFixed(4)}, Acc: ${point.accuracyMeters?.toStringAsFixed(1)}m',
     );
 
@@ -694,7 +697,7 @@ class ActivityProvider extends ChangeNotifier {
       final shouldStore = _shouldStoreGpsPoint(point);
 
       if (shouldStore) {
-        debugPrint('ActivityProvider: Storing GPS point (threshold met)');
+        AppLogger.d('ActivityProvider: Storing GPS point (threshold met)');
 
         // Add to in-memory cache
         _sessionGpsPoints.add(point);
@@ -703,7 +706,7 @@ class ActivityProvider extends ChangeNotifier {
 
         // Persist to database
         await _gpsPointDao.insert(point);
-        debugPrint('ActivityProvider: GPS point saved to database');
+        AppLogger.d('ActivityProvider: GPS point saved to database');
 
         // Recalculate distance
         _currentDistance = DistanceCalculator.calculateTotalDistance(
@@ -732,14 +735,14 @@ class ActivityProvider extends ChangeNotifier {
         // Notify UI
         notifyListeners();
 
-        debugPrint(
+        AppLogger.d(
           'ActivityProvider: GPS point stored - Total points: ${_sessionGpsPoints.length}, Distance: ${_currentDistance.toStringAsFixed(1)}m',
         );
       } else {
-        debugPrint('ActivityProvider: GPS point skipped (below threshold)');
+        AppLogger.d('ActivityProvider: GPS point skipped (below threshold)');
       }
     } catch (e) {
-      debugPrint('ActivityProvider: Error storing GPS point - $e');
+      AppLogger.e('ActivityProvider: Error storing GPS point - $e');
     }
   }
 
@@ -783,16 +786,16 @@ class ActivityProvider extends ChangeNotifier {
         _heartRateSubscription = stream.listen(
           _onHeartRatePoint,
           onError: (error) {
-            debugPrint('ActivityProvider: Heart rate stream error - $error');
+            AppLogger.e('ActivityProvider: Heart rate stream error - $error');
           },
         );
 
-        debugPrint('ActivityProvider: Heart rate tracking started');
+        AppLogger.d('ActivityProvider: Heart rate tracking started');
       } else {
-        debugPrint('ActivityProvider: Failed to get heart rate stream');
+        AppLogger.d('ActivityProvider: Failed to get heart rate stream');
       }
     } catch (e) {
-      debugPrint('ActivityProvider: Heart rate tracking error - $e');
+      AppLogger.e('ActivityProvider: Heart rate tracking error - $e');
       _error = 'Heart rate error: ${e.toString()}';
       notifyListeners();
     }
@@ -810,17 +813,21 @@ class ActivityProvider extends ChangeNotifier {
           SensorType.heartRate,
         );
       } catch (e) {
-        debugPrint('ActivityProvider: Error stopping heart rate tracking - $e');
+        AppLogger.e(
+          'ActivityProvider: Error stopping heart rate tracking - $e',
+        );
       }
     }
 
-    debugPrint('ActivityProvider: Heart rate tracking stopped');
+    AppLogger.d('ActivityProvider: Heart rate tracking stopped');
   }
 
   /// Handle incoming heart rate data point
   Future<void> _onHeartRatePoint(SensorDataPoint point) async {
     if (_currentSession == null) {
-      debugPrint('ActivityProvider: Heart rate received but no active session');
+      AppLogger.d(
+        'ActivityProvider: Heart rate received but no active session',
+      );
       return;
     }
 
@@ -828,7 +835,7 @@ class ActivityProvider extends ChangeNotifier {
     _currentHeartRate = bpm;
     _sessionHeartRates.add(bpm);
 
-    debugPrint('ActivityProvider: Heart rate received - $bpm BPM');
+    AppLogger.d('ActivityProvider: Heart rate received - $bpm BPM');
 
     try {
       // Store biometric data point
@@ -846,7 +853,7 @@ class ActivityProvider extends ChangeNotifier {
       // Notify UI
       notifyListeners();
     } catch (e) {
-      debugPrint('ActivityProvider: Error storing heart rate data - $e');
+      AppLogger.e('ActivityProvider: Error storing heart rate data - $e');
     }
   }
 
@@ -882,9 +889,9 @@ class ActivityProvider extends ChangeNotifier {
       );
 
       await _summaryDao.upsert(summary);
-      debugPrint('ActivityProvider: Session summary created');
+      AppLogger.d('ActivityProvider: Session summary created');
     } catch (e) {
-      debugPrint('ActivityProvider: Error creating session summary - $e');
+      AppLogger.e('ActivityProvider: Error creating session summary - $e');
     }
   }
 
@@ -896,6 +903,6 @@ class ActivityProvider extends ChangeNotifier {
     _sensorManager.dispose();
     _bleDataSource.dispose();
     super.dispose();
-    debugPrint('ActivityProvider: Disposed');
+    AppLogger.d('ActivityProvider: Disposed');
   }
 }
