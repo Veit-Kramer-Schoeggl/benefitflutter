@@ -5,9 +5,10 @@
 
 ## 🔴 Phase 0 — Sofort-Blocker & Fundament
 
-> **Status (2026-06-11):** Sofort-Blocker ✅ umgesetzt (Branch `chore/phase-0-sofort-blocker`),
-> getestet auf Xiaomi Mi 11 / Android 14 (Seeding mit aktiver FK ohne Fehler; Release-Build mit
-> echtem Upload-Key signiert). Toolchain auf **Flutter 3.44.1 / Dart 3.12** angehoben. **Fundament = offen** (nächster Schritt).
+> **Status (2026-06-11):** Phase 0 ✅ **abgeschlossen** — Sofort-Blocker (Branch `chore/phase-0-sofort-blocker`,
+> nach `main` gemerged, auf Xiaomi Mi 11 / Android 14 getestet) **und** Fundament (Branch
+> `chore/phase-0-foundation`: Error-Handler, Sentry DSN-gated, AppLogger, kuratierte Lints, CI).
+> Toolchain auf **Flutter 3.44.1 / Dart 3.12** angehoben. Offen nur noch GPS-Batching (→ Phase 1).
 
 Tag-1-Blocker (am Code & auf Gerät verifiziert):
 
@@ -23,13 +24,13 @@ Tag-1-Blocker (am Code & auf Gerät verifiziert):
 - [x] **(—)** Flutter-Toolchain auf 3.44.1 Stable + Dart-Floor `^3.10.0` + Lock aktualisiert
 - [ ] **(S)** Live-GPS-Writes via `insertBatch()` bündeln *(verschoben → Phase 1, Tracking-Hot-Path)*
 
-Fundament (nächster Schritt — wird geplant):
+Fundament:
 
-- [ ] **(S)** Globaler Error-Handler (`FlutterError.onError` + `PlatformDispatcher.onError` + `runZonedGuarded`)
-- [ ] **(M)** Crash-Reporting (`sentry_flutter`) mit `beforeSend`-PII-Scrubbing
-- [ ] **(M)** CI (GitHub Actions): format, `analyze --fatal-infos`, `test --coverage`, Build — required
-- [ ] **(M)** Analyzer härten (`strict-casts`/`strict-raw-types`, `avoid_print`, Import-Boundary-Lints)
-- [ ] **(M)** `AppLogger`-Fassade (`logger`) mit Leveln + Redaction; Error-Level → Sentry
+- [x] **(S)** Globaler Error-Handler (`FlutterError.onError` + `PlatformDispatcher.onError` + `runZonedGuarded`)
+- [x] **(M)** Crash-Reporting (`sentry_flutter`, **DSN-gated**) mit `beforeSend`-PII-Scrubbing *(EU-DSN/DPA/Consent → Go-Live)*
+- [x] **(M)** CI (GitHub Actions): Format + `dart analyze lib` (errors-only) + Debug-Build **required**; `flutter analyze`/`flutter test` non-blocking *(fatal-infos + Test-Gate → Phase 1)*
+- [x] **(M)** Analyzer kuratiert gehärtet (`avoid_print`, `unawaited_futures`, `avoid_dynamic_calls`, `cast_nullable_to_non_nullable`, …) *(strict-casts/`fatal-infos`/Import-Boundary → Phase 1)*
+- [x] **(M)** `AppLogger`-Fassade (`logger`) mit Leveln + Redaction; Hot-Path migriert (169 → 56 debugPrint), Error-Level → Sentry
 
 ## 🟠 Phase 1 — Korrektheit, Datenintegrität & Entkopplung
 

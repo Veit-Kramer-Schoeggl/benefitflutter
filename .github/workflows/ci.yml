@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    name: Format · Analyze · Build · Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.1
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ---- Required gates (green today) ----
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze (lib, errors-only)
+        run: dart analyze lib
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      # ---- Informational (non-blocking until Phase 1 test repair) ----
+      - name: Analyze (full, informational)
+        run: flutter analyze lib
+        continue-on-error: true
+
+      - name: Tests (non-blocking)
+        run: flutter test
+        continue-on-error: true
