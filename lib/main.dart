@@ -29,6 +29,7 @@ import 'package:benefitflutter/features/auth/data/token_storage.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:benefitflutter/core/deep_link/deep_link_handler.dart';
 import 'package:benefitflutter/core/logging/app_logger.dart';
+import 'package:benefitflutter/core/config/app_config.dart';
 
 /// Global navigator key for deep link navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -71,17 +72,14 @@ void main() {
 
     // Crash reporting is opt-in via --dart-define=SENTRY_DSN=...; without a
     // DSN nothing is sent (no network, GDPR-safe for local/dev/CI builds).
-    const dsn = String.fromEnvironment('SENTRY_DSN');
+    final dsn = AppConfig.sentryDsn;
     if (dsn.isEmpty) {
       await _bootstrap();
     } else {
       AppLogger.enableSentry();
       await SentryFlutter.init((options) {
         options.dsn = dsn;
-        options.environment = const String.fromEnvironment(
-          'SENTRY_ENV',
-          defaultValue: 'dev',
-        );
+        options.environment = AppConfig.sentryEnv;
         options.sendDefaultPii = false;
         options.tracesSampleRate = 0.0;
         options.beforeSend = _scrubSentryEvent;

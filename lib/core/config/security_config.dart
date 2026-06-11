@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:benefitflutter/core/config/app_config.dart';
 
 /// Security configuration for the BeneFit app
 ///
@@ -16,8 +16,7 @@ class SecurityConfig {
   ///
   /// Production builds use the live API.
   /// Debug builds use the development API.
-  static String get apiBaseUrl =>
-      kDebugMode ? 'https://dev-api.benefit.app' : 'https://api.benefit.app';
+  static String get apiBaseUrl => AppConfig.apiBaseUrl;
 
   // ===== Rate Limiting Configuration =====
 
@@ -75,7 +74,8 @@ class SecurityConfig {
   ///
   /// Disabled in debug mode for easier development/testing.
   /// Always enabled in release builds for security.
-  static bool get enableCertificatePinning => !kDebugMode;
+  static bool get enableCertificatePinning =>
+      AppConfig.enableCertificatePinning;
 
   // ===== Session Timeout Configuration (TODO) =====
 

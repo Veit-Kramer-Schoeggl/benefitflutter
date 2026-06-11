@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'package:benefitflutter/core/config/app_config.dart';
 
 /// Configuration for database seeding in development
 class SeedConfig {
-  // Master switch - only seed in debug mode
-  static bool get isEnabled => kDebugMode;
+  // Master switch - delegated to AppConfig (debug-only by default).
+  static bool get isEnabled => AppConfig.seedEnabled;
 
   // SharedPreferences key to track if DB has been seeded
   // Change the version number to force re-seeding (e.g., 'v2', 'v3')

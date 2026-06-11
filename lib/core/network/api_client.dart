@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:benefitflutter/core/config/app_config.dart';
 import 'package:benefitflutter/core/network/certificate_pinning.dart';
 import 'package:benefitflutter/core/config/security_config.dart';
 
@@ -27,8 +28,8 @@ class ApiClient {
            },
          ),
        ) {
-    // Add logging interceptor in debug mode
-    if (kDebugMode) {
+    // Add logging interceptor when enabled (debug by default)
+    if (AppConfig.enableHttpLogging) {
       _dio.interceptors.add(
         LogInterceptor(
           requestBody: true,

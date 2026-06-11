@@ -1,0 +1,8 @@
+{
+  "ENV": "staging",
+  "API_BASE_URL": "https://staging-api.benefit.app",
+  "CERT_PINNING": true,
+  "SEED_ENABLED": false,
+  "HTTP_LOGGING": false,
+  "SENTRY_ENV": "staging"
+}
