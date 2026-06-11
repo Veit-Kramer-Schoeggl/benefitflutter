@@ -1,3 +1,7 @@
+// Repository interfaces (return types)
+import 'package:benefitflutter/features/user/data/user_repository.dart';
+import 'package:benefitflutter/features/session/data/session_repository.dart';
+import 'package:benefitflutter/features/benefit/data/benefit_repository.dart';
 // Feature module implementations (SQLite)
 import 'package:benefitflutter/features/user/data/user_repository_impl.dart';
 import 'package:benefitflutter/features/session/data/session_repository_impl.dart';
@@ -10,17 +14,17 @@ class RepositoryConfig {
   // Mock repositories have been removed
 
   /// Get session repository implementation
-  static dynamic getSessionRepository() {
+  static SessionRepository getSessionRepository() {
     return SessionRepositoryImpl.create();
   }
 
   /// Get user repository implementation
-  static dynamic getUserRepository() {
+  static UserRepository getUserRepository() {
     return UserRepositoryImpl.create();
   }
 
   /// Get benefit repository implementation
-  static dynamic getBenefitRepository() {
+  static BenefitRepository getBenefitRepository() {
     return BenefitRepositoryImpl.create();
   }
 }
