@@ -61,6 +61,7 @@ Daten (Reihenfolge beachten!): Schema-Single-Source → Migrationstests → Orph
 - [ ] **(L)** Theming-Single-Source (Tokens, Dark Mode) + Accessibility-Baseline
 - [ ] **(M)** GPS-Retention (`deleteOlderThan` + VACUUM) + Polyline-Vereinfachung
 - [ ] **(L)** Feature-Konsolidierung (presentation/providers → `features/<x>/`) — opportunistisch, P2/P3
+- [ ] **(S, vor Go-Live)** **Sentry scharf schalten** — EU-Sentry-Projekt anlegen → EU-DSN per `--dart-define=SENTRY_DSN=…` (+ `SENTRY_ENV`) im Release/CD-Build setzen, Test-Event verifizieren. Plumbing steht (Phase 0, DSN-gated). **Voraussetzung:** DPA mit Sentry + Datenschutzerklärungs-Eintrag + Consent-/berechtigtes-Interesse-Entscheidung (Art. 9) — siehe „Übergreifende Lücken".
 
 ## ⚖️ Übergreifende Lücken (Owner zuweisen — Launch-relevant)
 
