@@ -44,7 +44,8 @@ class User {
       timezone: json['timezone'] as String?,
       profileImagePath: json['profile_image_path'] as String?,
       isVerified: (json['is_verified'] ?? 0) == 1,
-      verificationStatus: json['verification_status'] ?? 'unverified',
+      verificationStatus:
+          json['verification_status'] as String? ?? 'unverified',
     );
   }
 

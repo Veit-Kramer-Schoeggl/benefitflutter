@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:benefitflutter/core/logging/app_logger.dart';
 import '../domain/user.dart';
 import '../domain/user_biometrics_reported.dart';
 import '../domain/user_preferences.dart';
@@ -56,8 +59,8 @@ class UserRepositoryImpl implements UserRepository {
       throw Exception('User not found: $userId');
     }
 
-    // Background sync if online (don't await, fire and forget)
-    _syncInBackground(user);
+    // Background sync if online (fire and forget; errors are logged, not thrown)
+    unawaited(_syncInBackground(user));
 
     return user;
   }
@@ -139,7 +142,9 @@ class UserRepositoryImpl implements UserRepository {
         await _syncStrategy.uploadToRemote(user);
       }
     } catch (e) {
-      // Silent fail - background sync is best-effort
+      // Best-effort background sync: never throw, but log so failures aren't
+      // completely invisible (the future is unawaited by callers).
+      AppLogger.d('UserRepositoryImpl: background sync skipped/failed - $e');
     }
   }
 

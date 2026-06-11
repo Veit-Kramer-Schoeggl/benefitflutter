@@ -1,11 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:benefitflutter/providers/activity_provider.dart';
 import 'package:benefitflutter/features/session/data/session_repository.dart';
+import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
 import 'package:benefitflutter/features/session/domain/session.dart';
+import 'package:benefitflutter/features/session/domain/gps_point.dart';
+import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 import 'package:benefitflutter/core/enums/tracking_mode.dart';
 import 'package:benefitflutter/features/wearable_integration/domain/sensor_data_point.dart';
+
+import '../../mocks/mock_gps_sensor.dart';
 
 /// Mock SessionRepository for testing
 class MockSessionRepository implements SessionRepository {
@@ -82,6 +87,26 @@ class MockSessionRepository implements SessionRepository {
               s.startTime.isBefore(endDate),
         )
         .toList();
+  }
+}
+
+/// Records GPS DAO writes without touching the database. insert() must never be
+/// called once batching is in place — points go through insertBatch().
+class _FakeGpsPointDao extends GpsPointDao {
+  int insertCalls = 0;
+  final List<List<GpsPoint>> batches = [];
+  final List<GpsPoint> persisted = [];
+
+  @override
+  Future<void> insert(GpsPoint point) async {
+    insertCalls++;
+    persisted.add(point);
+  }
+
+  @override
+  Future<void> insertBatch(List<GpsPoint> points) async {
+    batches.add(List<GpsPoint>.of(points));
+    persisted.addAll(points);
   }
 }
 
@@ -320,5 +345,97 @@ void main() {
       await provider.resumeSession();
       expect(provider.isTracking, true); // Should remain tracking, not change
     });
+  });
+
+  group('GPS point batching', () {
+    late MockGpsSensor mockGps;
+    late _FakeGpsPointDao fakeDao;
+    late MockSessionRepository repo;
+    late ActivityProvider provider;
+
+    setUp(() async {
+      mockGps = MockGpsSensor(); // permission granted + hardware available
+      final sensorManager = SensorManager(gpsSensor: mockGps);
+      await sensorManager.initialize();
+      fakeDao = _FakeGpsPointDao();
+      repo = MockSessionRepository();
+      provider = ActivityProvider(
+        repo,
+        userId: 'u1',
+        sensorManager: sensorManager,
+        gpsPointDao: fakeDao,
+      );
+      await provider.startSession(); // subscribes to the GPS stream
+    });
+
+    // Points ~1.1km apart so each clears the distance threshold and is stored.
+    GpsPoint point(int i) => GpsPoint(
+      id: 'p$i',
+      sessionId: 'x',
+      latitude: 0.01 * i,
+      longitude: 0.0,
+      timestamp: DateTime.now(),
+    );
+
+    Future<void> emit(int count) async {
+      for (var i = 0; i < count; i++) {
+        mockGps.emitMockPoint(point(i));
+        await pumpEventQueue(); // let _onGpsPoint fully run before the next
+      }
+    }
+
+    test('buffers below batch size — no DB write yet', () async {
+      await emit(3);
+      expect(fakeDao.batches, isEmpty);
+      expect(fakeDao.persisted, isEmpty);
+    });
+
+    test(
+      'flushes one batch automatically when batch size is reached',
+      () async {
+        await emit(10);
+        expect(fakeDao.batches.length, 1);
+        expect(fakeDao.batches.first.length, 10);
+        expect(fakeDao.persisted.length, 10);
+      },
+    );
+
+    test('never falls back to single insert()', () async {
+      await emit(10);
+      expect(fakeDao.insertCalls, 0);
+    });
+
+    test('pause flushes the buffered remainder', () async {
+      await emit(4);
+      expect(fakeDao.persisted, isEmpty); // still buffered
+      await provider.pauseSession();
+      expect(fakeDao.persisted.length, 4);
+    });
+
+    test('stop flushes the buffered remainder', () async {
+      await emit(4);
+      await provider.stopSession();
+      expect(fakeDao.persisted.length, 4);
+    });
+
+    test(
+      'every point is persisted exactly once across auto + manual flush',
+      () async {
+        await emit(13); // one auto-flush at 10, 3 left buffered
+        await provider.pauseSession(); // flush the remaining 3
+        final ids = fakeDao.persisted.map((p) => p.id).toList();
+        expect(ids.length, 13);
+        expect(ids.toSet().length, 13); // no duplicates, no losses
+      },
+    );
+
+    test(
+      'flushPendingGps() persists buffered points (background hook)',
+      () async {
+        await emit(2);
+        await provider.flushPendingGps();
+        expect(fakeDao.persisted.length, 2);
+      },
+    );
   });
 }

@@ -399,11 +399,13 @@ class SeedService {
     _log('   Sensor Summaries: ${summary['sensorSummaries']}');
     _log('   Health Platform Data: ${summary['healthPlatformData']}');
     _log('   User Benefits: ${summary['userBenefits']}');
+    // getSeedSummary() is Map<String, dynamic>; these two are non-null numerics
+    // (fold initial values), so a direct num cast is safe.
     _log(
-      '   Total Distance: ${(summary['totalDistance'] / 1000).toStringAsFixed(1)}km',
+      '   Total Distance: ${((summary['totalDistance'] as num) / 1000).toStringAsFixed(1)}km',
     );
     _log(
-      '   Total Duration: ${(summary['totalDuration'] / 60).toStringAsFixed(0)} minutes',
+      '   Total Duration: ${((summary['totalDuration'] as num) / 60).toStringAsFixed(0)} minutes',
     );
   }
 }

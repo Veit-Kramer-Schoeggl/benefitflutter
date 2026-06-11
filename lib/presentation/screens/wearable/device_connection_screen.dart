@@ -313,7 +313,7 @@ class _DeviceConnectionScreenState extends State<DeviceConnectionScreen> {
                               final userId = userProvider.userId;
                               if (userId == null) return;
                               await healthProvider.syncAll(userId);
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(

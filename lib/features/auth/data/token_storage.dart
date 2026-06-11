@@ -35,7 +35,9 @@ class SecureTokenStorage implements TokenStorage {
     : _storage =
           storage ??
           const FlutterSecureStorage(
-            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            // encryptedSharedPreferences removed (deprecated in fss 10, removed
+            // in v11): the plugin auto-migrates stored data to custom ciphers.
+            aOptions: AndroidOptions(),
             iOptions: IOSOptions(
               accessibility: KeychainAccessibility.first_unlock_this_device,
             ),

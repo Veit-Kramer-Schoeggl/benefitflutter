@@ -80,7 +80,7 @@ class ContinuousTrackingConfig {
     if (value is List) return List<String>.from(value);
     if (value is String) {
       try {
-        return List<String>.from(jsonDecode(value));
+        return List<String>.from(jsonDecode(value) as List);
       } catch (_) {
         return ['03:00'];
       }

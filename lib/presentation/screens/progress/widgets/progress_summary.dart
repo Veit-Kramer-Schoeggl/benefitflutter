@@ -69,7 +69,9 @@ class ProgressSummary extends StatelessWidget {
     );
   }
 
-  Map<String, dynamic> _getStatsForRange(bool Function(ActivityEntry) filter) {
+  ({double distanceKm, Duration duration, int sessions}) _getStatsForRange(
+    bool Function(ActivityEntry) filter,
+  ) {
     double distanceKm = 0.0;
     Duration totalDuration = Duration.zero;
     int sessionCount = 0;
@@ -82,11 +84,11 @@ class ProgressSummary extends StatelessWidget {
       }
     }
 
-    return {
-      'distanceKm': distanceKm,
-      'duration': totalDuration,
-      'sessions': sessionCount,
-    };
+    return (
+      distanceKm: distanceKm,
+      duration: totalDuration,
+      sessions: sessionCount,
+    );
   }
 
   @override
@@ -142,18 +144,16 @@ class ProgressSummary extends StatelessWidget {
               _buildStatCard(
                 context: context,
                 title: 'This Week',
-                primaryValue:
-                    '${weekStats['distanceKm'].toStringAsFixed(1)} km',
-                secondaryValue: _formatDuration(weekStats['duration']),
+                primaryValue: '${weekStats.distanceKm.toStringAsFixed(1)} km',
+                secondaryValue: _formatDuration(weekStats.duration),
                 primaryColor: primaryColor,
               ),
 
               _buildStatCard(
                 context: context,
                 title: 'This Month',
-                primaryValue:
-                    '${monthStats['distanceKm'].toStringAsFixed(1)} km',
-                secondaryValue: _formatDuration(monthStats['duration']),
+                primaryValue: '${monthStats.distanceKm.toStringAsFixed(1)} km',
+                secondaryValue: _formatDuration(monthStats.duration),
                 primaryColor: primaryColor,
               ),
 

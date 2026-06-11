@@ -49,6 +49,14 @@ class ActivityProvider extends ChangeNotifier {
   DateTime? _lastGpsPointTime;
   final List<GpsPoint> _sessionGpsPoints = [];
 
+  // GPS points buffered for batched DB writes, flushed at [_gpsBatchSize] and
+  // on pause/stop/background. Distance + UI read _sessionGpsPoints (in-memory),
+  // NOT the DB, so batching the writes does not affect them. Trade-off: up to
+  // _gpsBatchSize unflushed points can be lost only on a hard process kill that
+  // skips the lifecycle 'paused' event; pause/stop/background always flush.
+  final List<GpsPoint> _pendingGpsPoints = [];
+  static const int _gpsBatchSize = 10;
+
   // Heart rate tracking state
   String? _heartRateDeviceId;
   StreamSubscription<SensorDataPoint>? _heartRateSubscription;
@@ -200,6 +208,7 @@ class ActivityProvider extends ChangeNotifier {
     _elapsedSeconds = 0;
     _currentDistance = 0.0;
     _sessionGpsPoints.clear();
+    _pendingGpsPoints.clear();
     _lastGpsPoint = null;
     _lastGpsPointTime = null;
     _currentHeartRate = null;
@@ -277,6 +286,7 @@ class ActivityProvider extends ChangeNotifier {
       _elapsedSeconds = 0;
       _currentDistance = 0.0;
       _sessionGpsPoints.clear();
+      _pendingGpsPoints.clear();
       _currentHeartRate = null;
       _sessionHeartRates.clear();
       _trackingState = TrackingState.tracking;
@@ -324,6 +334,9 @@ class ActivityProvider extends ChangeNotifier {
     try {
       // Stop timer
       _stopTimer();
+
+      // Persist buffered GPS points while paused.
+      await _flushGpsBuffer();
 
       // Update session status
       final updatedSession = Session(
@@ -484,6 +497,7 @@ class ActivityProvider extends ChangeNotifier {
       _elapsedSeconds = 0;
       _currentDistance = 0.0;
       _sessionGpsPoints.clear();
+      _pendingGpsPoints.clear();
       _lastGpsPoint = null;
       _lastGpsPointTime = null;
       _currentHeartRate = null;
@@ -676,11 +690,35 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Stop GPS tracking
   Future<void> _stopGpsTracking() async {
+    // Persist any buffered points before tearing down the stream.
+    await _flushGpsBuffer();
     await _gpsSubscription?.cancel();
     _gpsSubscription = null;
     await _sensorManager.stopSession();
     AppLogger.d('ActivityProvider: GPS tracking stopped');
   }
+
+  /// Flush buffered GPS points to the DB in a single batch.
+  ///
+  /// Race-safe: the buffer is swapped out *before* the await, so points that
+  /// arrive during the write are not dropped. Error-safe: on failure the batch
+  /// is re-queued so it retries on the next flush instead of being lost.
+  Future<void> _flushGpsBuffer() async {
+    if (_pendingGpsPoints.isEmpty) return;
+    final batch = List<GpsPoint>.of(_pendingGpsPoints);
+    _pendingGpsPoints.clear();
+    try {
+      await _gpsPointDao.insertBatch(batch);
+      AppLogger.d('ActivityProvider: flushed ${batch.length} GPS point(s)');
+    } catch (e) {
+      AppLogger.e('ActivityProvider: GPS batch flush failed - $e', e);
+      _pendingGpsPoints.insertAll(0, batch); // re-queue for next flush
+    }
+  }
+
+  /// Flush buffered GPS points now (e.g. when the app goes to background, so a
+  /// hard OS kill doesn't drop the last <batch points). Safe to call anytime.
+  Future<void> flushPendingGps() => _flushGpsBuffer();
 
   /// Handle incoming GPS point
   Future<void> _onGpsPoint(GpsPoint point) async {
@@ -705,9 +743,11 @@ class ActivityProvider extends ChangeNotifier {
         _lastGpsPoint = point;
         _lastGpsPointTime = point.timestamp;
 
-        // Persist to database
-        await _gpsPointDao.insert(point);
-        AppLogger.d('ActivityProvider: GPS point saved to database');
+        // Buffer for batched DB write; flush when the batch fills up.
+        _pendingGpsPoints.add(point);
+        if (_pendingGpsPoints.length >= _gpsBatchSize) {
+          await _flushGpsBuffer();
+        }
 
         // Recalculate distance
         _currentDistance = DistanceCalculator.calculateTotalDistance(

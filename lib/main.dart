@@ -234,6 +234,7 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         // App going to background
         appLockProvider.onAppPaused();
+        _flushGpsOnBackground();
         break;
       case AppLifecycleState.resumed:
         // App returning to foreground
@@ -241,6 +242,15 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
         break;
       default:
         break;
+    }
+  }
+
+  /// Persist buffered GPS points when backgrounding, so a hard OS kill doesn't
+  /// drop the last few unflushed points of an active session.
+  void _flushGpsOnBackground() {
+    final activityProvider = context.read<ActivityProvider>();
+    if (activityProvider.isTracking || activityProvider.isPaused) {
+      unawaited(activityProvider.flushPendingGps());
     }
   }
 
