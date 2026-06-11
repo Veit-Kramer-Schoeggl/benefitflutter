@@ -5,7 +5,10 @@ import 'package:benefitflutter/features/session/domain/session.dart';
 /// Provider for health platform (Health Connect / HealthKit) integration
 /// Manages connection status, syncing, and data retrieval
 class HealthPlatformProvider extends ChangeNotifier {
-  final HealthSyncService _syncService = HealthSyncService();
+  final HealthSyncService _syncService;
+
+  HealthPlatformProvider({HealthSyncService? syncService})
+    : _syncService = syncService ?? HealthSyncService();
 
   bool _isConnected = false;
   bool _isSyncing = false;
