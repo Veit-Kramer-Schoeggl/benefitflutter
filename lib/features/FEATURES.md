@@ -616,7 +616,9 @@ Future<void> _createAchievementsTable(Database db) async {
 
 ```dart
 class RepositoryConfig {
-  static dynamic getAchievementRepository() {
+  // Return the repository *interface*, not `dynamic`, so the composition root
+  // keeps compile-time type safety (matches the existing user/session/benefit getters).
+  static AchievementRepository getAchievementRepository() {
     return AchievementRepositoryImpl.create();
   }
 }

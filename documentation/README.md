@@ -16,7 +16,7 @@ Each topic has two documentation types:
 |-------|-----------|----------|-------------|
 | Feature Modules | [FEATURES.md](../lib/features/FEATURES.md) | [FEATURES_OVERVIEW.md](architecture/FEATURES_OVERVIEW.md) | Module architecture, sync strategies |
 | Authentication | [AUTH.md](../AUTH.md) | [AUTH_OVERVIEW.md](architecture/AUTH_OVERVIEW.md) | Auth system, JWT, session management |
-| Main Routing | [MAIN_AUTH.md](../lib/MAIN_AUTH.md) | [MAIN_AUTH_OVERVIEW.md](architecture/MAIN_AUTH_OVERVIEW.md) | App entry, routing, navigation |
+| Main Routing | [MAIN_AUTH.md](../lib/MAIN_AUTH.md) | [MAIN_AUTH_OVERVIEW.md](architecture/MAIN_AUTH_OVERVIEW.md) | App entry, go_router routing & redirect auth-gate, navigation |
 | Security | [SECURITY.md](../lib/features/security/SECURITY.md) | _N/A_ | Rate limiting, app lock, hardening |
 
 ## Data Layer
@@ -62,6 +62,7 @@ Each topic has two documentation types:
 | [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) | Review | Honest design evaluation for large-scale rollout + phased evolution plan |
 | [ROADMAP.md](ROADMAP.md) | Plan | Actionable checklist derived from the architecture review |
 | [FUTURE.md](FUTURE.md) | Overview | Future architecture plans (proposed target directory layout) |
+| [DEVICE_SMOKE_CHECKLIST.md](DEVICE_SMOKE_CHECKLIST.md) | Checklist | Manual on-device smoke tests (rounds 2a/2b/3), done + pending |
 
 ---
 

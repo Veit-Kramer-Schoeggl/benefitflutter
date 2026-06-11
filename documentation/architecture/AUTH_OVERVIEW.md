@@ -64,11 +64,17 @@ Secure storage and automatic refresh:
 - Secure storage using platform-specific mechanisms
 
 ### Auth Interceptor
-HTTP request handling:
+HTTP request handling (forward-looking infrastructure for a networked backend):
 - Attaches Bearer tokens to requests
 - Handles 401 unauthorized responses
 - Triggers automatic token refresh
 - Redirects to login on auth failure
+
+> **Note:** `AuthInterceptor` exists under `core/network/` but is **not yet wired**
+> into the live app — it is not instantiated or attached to `ApiClient`. The
+> shipped app authenticates via `MockAuthService`, which validates credentials
+> against the durable SQLite user store (`UserRepository` → `UserDao.findByEmail`
+> + `PasswordUtils`), so registrations/password changes survive restarts.
 
 ## Security Features
 

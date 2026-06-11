@@ -383,7 +383,13 @@ back to the `SplashScreen`.
 
 ## Summary
 
-**This routing setup gives you:**
+> **⚠️ Historical:** The routing specifics below (named routes,
+> `pushReplacement`) describe the superseded Navigator-1.0 setup. The current
+> app uses **go_router** (`lib/core/router/app_router.dart`); the auth-gate and
+> session *concepts* still hold, but routing is now a central `redirect` +
+> `StatefulShellRoute.indexedStack`, not a named-routes map.
+
+**This routing setup gave you:**
 
 1. ✅ **Professional routing** - Named routes, centralized
 2. ✅ **Real auth gate** - Splash restores the session via `AuthProvider.initialize()`

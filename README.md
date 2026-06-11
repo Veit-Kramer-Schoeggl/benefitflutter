@@ -50,7 +50,8 @@ Bottom navigation order (the app opens on the **Activity** tab by default):
 |---------|-------------|
 | **Offline-First** | All data stored locally in SQLite, syncs when online |
 | **Feature Modules** | User, Session, Benefit each self-contained |
-| **Provider Pattern** | State management with ChangeNotifier |
+| **Provider Pattern** | State management with ChangeNotifier (`AuthProvider` for identity/session, `ProfileProvider` for editable profile data) |
+| **Declarative Routing** | go_router (`MaterialApp.router`) with a redirect-based auth gate and `StatefulShellRoute` tabs (`lib/core/router/app_router.dart`) |
 | **Wearable Integration** | Health Connect, HealthKit, and BLE devices |
 
 ## Documentation
@@ -80,8 +81,8 @@ Bottom navigation order (the app opens on the **Activity** tab by default):
 
 ```
 lib/
-├── main.dart                    # App entry point with auth flow
-├── core/                        # Core utilities (config, constants, enums, network, seed, utils, deep_link)
+├── main.dart                    # App entry point (MaterialApp.router + provider setup)
+├── core/                        # Core utilities (config, constants, enums, logging, network, router, seed, utils, deep_link)
 ├── features/                    # Feature-based modules (auth, benefit, security, session, shared, user, wearable_integration)
 ├── presentation/                # UI layer (navigation, screens, shared widgets)
 └── providers/                   # State management (Provider / ChangeNotifier)

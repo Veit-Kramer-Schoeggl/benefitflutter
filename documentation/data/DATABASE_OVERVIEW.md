@@ -16,7 +16,7 @@ The BeneFit app uses SQLite for local data storage with an offline-first archite
 
 - **Database Type:** SQLite
 - **File Name:** benefit_app.db
-- **Current Version:** 11
+- **Current Version:** 12
 - **Pattern:** Offline-first with sync queue
 - **Location:** Platform databases directory (`getDatabasesPath()`)
 
@@ -104,6 +104,7 @@ The database uses incremental migrations to evolve the schema:
 - **v8-v9:** Benefit redemption (status, redeemed timestamp, redemption codes)
 - **v10:** Password security (rehash plaintext passwords to SHA-256)
 - **v11:** Continuous tracking (config, state, activity segments)
+- **v12:** Data-integrity hardening (orphan cleanup, email de-duplication, UNIQUE email index)
 
 ## Related Documentation
 

@@ -123,7 +123,10 @@ The activity provider accepts an optional sensor manager instance, defaulting to
 When a session starts, the provider requests the sensor manager to start all sensors for that session. It subscribes to the GPS data stream to receive location points in real-time. When the session stops, it unsubscribes and requests sensor shutdown.
 
 **Distance Tracking:**
-Each GPS point received is evaluated against storage thresholds to determine if it should be saved. Points meeting the criteria are persisted to the database and included in distance calculations. The in-memory list of session points enables efficient distance recalculation as new points arrive.
+Each GPS point received is evaluated against storage thresholds to determine if it should be saved. Points meeting the criteria are added to an in-memory list (used for distance recalculation) and buffered for persistence. The in-memory list of session points enables efficient distance recalculation as new points arrive.
+
+**Batched Persistence:**
+Database writes are batched rather than per-point. Qualifying points are appended to a pending buffer (`_pendingGpsPoints`) and flushed to the database in a single batch via `GpsPointDao.insertBatch` once the buffer reaches the batch size (`_gpsBatchSize = 10`), and also on pause, stop, and app-background (`flushPendingGps()`). Distance and the UI read the in-memory point list, not the database, so batching the writes does not affect them. The flush is race-safe (the buffer is swapped out before the await) and error-safe (a failed batch is re-queued for the next flush). The only loss window is a hard OS process-kill that skips the lifecycle `paused`/background event, dropping at most the unflushed (`< _gpsBatchSize`) points.
 
 **Threshold Logic:**
 GPS points are stored based on time elapsed since the last point or distance traveled since the last point. This hybrid approach ensures smooth tracking during steady movement while avoiding excessive storage during stationary periods.

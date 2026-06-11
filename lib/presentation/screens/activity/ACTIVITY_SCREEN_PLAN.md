@@ -512,7 +512,11 @@ FloatingActionButton(heroTag: 'stop', ...)
 > `SensorManager` (`lib/features/shared/sensors/sensor_manager.dart`) wrapping a
 > `GpsSensor` (`lib/features/shared/sensors/gps_sensor.dart`), persists points via
 > `GpsPointDao`, and computes distance with `DistanceCalculator`
-> (`lib/features/session/utils/distance_calculator.dart`). The `LocationService`
+> (`lib/features/session/utils/distance_calculator.dart`). GPS points are
+> **batch-inserted**: qualifying points are buffered and flushed via
+> `GpsPointDao.insertBatch` (batch size 10; also flushed on pause/stop/app-background)
+> instead of one insert per point. Distance/UI read the in-memory point list, not the
+> DB, so batching doesn't affect them. The `LocationService`
 > sketch below is kept for historical/design context only — the file
 > `lib/services/location/location_service.dart` does not exist (`lib/services/`
 > does not exist at all).

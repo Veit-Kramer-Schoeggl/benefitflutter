@@ -753,6 +753,13 @@ SessionCard(
 
 #### Future Extension: Navigation to Detail Screen
 
+> **Status update (go_router):** Navigation is now declarative via go_router, not
+> `Navigator.push`/`MaterialPageRoute`. The shipped `progress_screen.dart` taps
+> route through `_openSessionDetails(context, entry)` which calls
+> `context.push('/session/${entry.sessionId}')` (route defined in
+> `lib/core/router/app_router.dart`). The `Navigator.push` sketch below is the
+> original plan, kept for historical context.
+
 ```dart
 void _onSessionTapped(BuildContext context, Session session) {
   // Later: Navigate to SessionDetailScreen

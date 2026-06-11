@@ -91,6 +91,8 @@ The GPS sensor is the primary sensor for tracking:
 | **Quality Filtering** | Skips points that fail `meetsQualityRequirements()` (accuracy/age) |
 | **Stream-based** | Emits validated `GpsPoint` objects through a broadcast stream |
 
+> **Persistence note:** The GPS *sensor* only validates and streams points. The consumer (`ActivityProvider`) does the storage: qualifying points are buffered and **batch-inserted** into the database via `GpsPointDao.insertBatch` (batch size 10, also flushed on pause/stop/app-background) rather than written one at a time. Distance and the UI read the in-memory point list, so batching does not delay them.
+
 ## Data Flow
 
 ```
