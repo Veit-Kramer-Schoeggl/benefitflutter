@@ -66,12 +66,14 @@ class ActivityProvider extends ChangeNotifier {
 
   ActivityProvider(
     this._sessionRepository, {
+    String? userId,
     SensorManager? sensorManager,
     GpsPointDao? gpsPointDao,
     BleDataSource? bleDataSource,
     SessionBiometricDataDao? biometricDao,
     SessionSensorSummaryDao? summaryDao,
-  }) : _sensorManager = sensorManager ?? SensorManager(),
+  }) : _userId = userId,
+       _sensorManager = sensorManager ?? SensorManager(),
        _gpsPointDao = gpsPointDao ?? GpsPointDao(),
        _bleDataSource = bleDataSource ?? BleDataSource(),
        _biometricDao = biometricDao ?? SessionBiometricDataDao(),
