@@ -34,16 +34,20 @@ Fundament:
 
 ## 🟠 Phase 1 — Korrektheit, Datenintegrität & Entkopplung
 
-Daten (Reihenfolge beachten!): Schema-Single-Source → Migrationstests → Orphan-Cleanup → FK an.
+> **Foundation-Slice (2026-06-11) ✅ erledigt** auf `chore/phase-1-foundation`: Test-Suite grün
+> (689 Tests, 0 Failures), CI-`flutter test`-Gate jetzt **required**. Die großen breaking Refactors
+> (UserProvider-Split, go_router, AppConfig, Widget-Tests) sind die nächste Runde.
 
-- [ ] **(S)** Schema-Single-Source-of-Truth (`onCreate` vs `onUpgrade` vereinheitlichen)
-- [ ] **(M)** Migrationstests (In-Memory `sqflite_common_ffi`), in CI
-- [ ] **(M)** `db.transaction` um Mehrzeilen-Writes + `UNIQUE(users.email)` nach De-Dup
-- [ ] **(M)** DI-Naht in jeden Provider; kaputte Provider-Tests reparieren; fehlende Tests ergänzen
+- [x] **(S)** Schema-Single-Source-of-Truth (`onCreate` ruft idempotenten v11-Creator; Duplikat entfernt)
+- [x] **(M)** Migrationstests (In-Memory `sqflite_common_ffi`), in CI (fresh==upgraded, v12, FK-Check)
+- [x] **(M)** `db.transaction` (`finalizeSession`) + v12 Orphan-Cleanup + Email-Dedup + `UNIQUE(users.email)`
+- [x] **(M)** DI-Nähte (ActivityProvider userId, HealthSyncService, ProgressProvider-Ctor); 23+3 kaputte Tests repariert
+- [ ] **(S)** Live-GPS-Writes via `insertBatch()` bündeln *(aus Phase 0 verschoben — noch offen)*
 - [ ] **(L)** `UserProvider` → `AuthProvider` + `ProfileProvider`; `_pending*` in screen-scoped State
 - [ ] **(M)** Typisierte `AppConfig` via `--dart-define-from-file` (dev/staging/prod)
 - [ ] **(L)** `go_router` + Redirect-Auth-Guard (`StatefulShellRoute` für 5 Tabs)
 - [ ] **(L)** Widget-Test-Layer für kritische Flows (`pump_app.dart`)
+- [ ] **(S)** Dann: `strict-casts`/`fatal-infos` + 34-Info-Backlog aufräumen → `flutter analyze` required
 
 ## 🟡 Phase 2 — Echtes Backend, Sync & Auth *(der große Schritt)*
 

@@ -25,21 +25,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ---- Required gates (green today) ----
+      # ---- Required gates ----
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze (lib, errors-only)
         run: dart analyze lib
 
+      - name: Tests
+        run: flutter test
+
       - name: Build debug APK
         run: flutter build apk --debug
 
-      # ---- Informational (non-blocking until Phase 1 test repair) ----
+      # ---- Informational (non-blocking; promote once lib is fully lint-clean) ----
       - name: Analyze (full, informational)
         run: flutter analyze lib
-        continue-on-error: true
-
-      - name: Tests (non-blocking)
-        run: flutter test
         continue-on-error: true
