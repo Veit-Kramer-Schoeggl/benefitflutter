@@ -5,6 +5,7 @@ import 'package:benefitflutter/features/session/domain/session.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 import 'package:benefitflutter/core/enums/tracking_mode.dart';
+import 'package:benefitflutter/features/wearable_integration/domain/sensor_data_point.dart';
 
 /// Mock SessionRepository for testing
 class MockSessionRepository implements SessionRepository {
@@ -22,6 +23,14 @@ class MockSessionRepository implements SessionRepository {
     if (index != -1) {
       _sessions[index] = session;
     }
+  }
+
+  @override
+  Future<void> finalizeSession(
+    Session completed, {
+    SessionSensorSummary? summary,
+  }) async {
+    await updateSession(completed);
   }
 
   @override

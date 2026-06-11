@@ -17,7 +17,6 @@ import 'package:benefitflutter/features/wearable_integration/data/sources/ble_da
 import 'package:benefitflutter/features/wearable_integration/domain/sensor_data_point.dart';
 import 'package:benefitflutter/features/wearable_integration/domain/enums.dart';
 import 'package:benefitflutter/features/wearable_integration/data/daos/session_biometric_data_dao.dart';
-import 'package:benefitflutter/features/wearable_integration/data/daos/session_sensor_summary_dao.dart';
 
 /// Provider for Activity screen state management
 ///
@@ -32,7 +31,6 @@ class ActivityProvider extends ChangeNotifier {
   final GpsPointDao _gpsPointDao;
   final BleDataSource _bleDataSource;
   final SessionBiometricDataDao _biometricDao;
-  final SessionSensorSummaryDao _summaryDao;
 
   // Core state
   TrackingState _trackingState = TrackingState.idle;
@@ -71,13 +69,11 @@ class ActivityProvider extends ChangeNotifier {
     GpsPointDao? gpsPointDao,
     BleDataSource? bleDataSource,
     SessionBiometricDataDao? biometricDao,
-    SessionSensorSummaryDao? summaryDao,
   }) : _userId = userId,
        _sensorManager = sensorManager ?? SensorManager(),
        _gpsPointDao = gpsPointDao ?? GpsPointDao(),
        _bleDataSource = bleDataSource ?? BleDataSource(),
-       _biometricDao = biometricDao ?? SessionBiometricDataDao(),
-       _summaryDao = summaryDao ?? SessionSensorSummaryDao();
+       _biometricDao = biometricDao ?? SessionBiometricDataDao();
 
   // ===== GETTERS =====
 
@@ -463,13 +459,16 @@ class ActivityProvider extends ChangeNotifier {
             : null,
       );
 
-      // Save to repository (will trigger sync for completed sessions)
-      await _sessionRepository.updateSession(completedSession);
-
-      // Create session sensor summary if we have heart rate data
-      if (_sessionHeartRates.isNotEmpty) {
-        await _createSessionSummary(completedSession);
-      }
+      // Atomically persist the completed session + its HR summary in one
+      // transaction (sync runs after commit). On failure the catch below keeps
+      // the session active — no false "stopped" state.
+      final summary = _sessionHeartRates.isNotEmpty
+          ? _buildSessionSummary(completedSession)
+          : null;
+      await _sessionRepository.finalizeSession(
+        completedSession,
+        summary: summary,
+      );
 
       AppLogger.d(
         'ActivityProvider: Session completed - Duration: $_elapsedSeconds seconds, Distance: ${_currentDistance.toStringAsFixed(1)}m, HR Data Points: ${_sessionHeartRates.length}',
@@ -874,27 +873,21 @@ class ActivityProvider extends ChangeNotifier {
   }
 
   /// Create session sensor summary with wearable data
-  Future<void> _createSessionSummary(Session session) async {
-    try {
-      final hrStats = _calculateHeartRateStats();
-
-      final summary = SessionSensorSummary(
-        id: const Uuid().v4(),
-        sessionId: session.id,
-        avgHeartRate: hrStats['avgHeartRate']?.toDouble(),
-        maxHeartRate: hrStats['maxHeartRate'],
-        minHeartRate: hrStats['minHeartRate'],
-        dataSources: _heartRateDeviceId != null
-            ? ['ble:$_heartRateDeviceId']
-            : null,
-        createdAt: DateTime.now(),
-      );
-
-      await _summaryDao.upsert(summary);
-      AppLogger.d('ActivityProvider: Session summary created');
-    } catch (e) {
-      AppLogger.e('ActivityProvider: Error creating session summary - $e');
-    }
+  /// Build the per-session sensor summary. Persisted atomically with the
+  /// session via SessionRepository.finalizeSession.
+  SessionSensorSummary _buildSessionSummary(Session session) {
+    final hrStats = _calculateHeartRateStats();
+    return SessionSensorSummary(
+      id: const Uuid().v4(),
+      sessionId: session.id,
+      avgHeartRate: hrStats['avgHeartRate']?.toDouble(),
+      maxHeartRate: hrStats['maxHeartRate'],
+      minHeartRate: hrStats['minHeartRate'],
+      dataSources: _heartRateDeviceId != null
+          ? ['ble:$_heartRateDeviceId']
+          : null,
+      createdAt: DateTime.now(),
+    );
   }
 
   @override
