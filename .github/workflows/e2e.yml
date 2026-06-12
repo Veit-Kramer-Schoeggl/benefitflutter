@@ -43,4 +43,7 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # Realistic phone profile (~411dp) instead of the tiny ~320dp default
+          # AVD, which provokes minor narrow-screen layout overflows.
+          profile: pixel_6
           script: flutter test integration_test

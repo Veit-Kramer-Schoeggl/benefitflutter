@@ -552,9 +552,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 24),
                     ],
 
-                    // Create account link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    // Create account link — Wrap (not Row) so it never
+                    // overflows horizontally on narrow screens (the prompt +
+                    // button wrap to a second line instead).
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
                           "Don't have an account? ",
