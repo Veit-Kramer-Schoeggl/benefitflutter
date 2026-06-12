@@ -42,10 +42,37 @@ const _authArea = {
   '/reset-password',
 };
 
+/// Maps a raw custom-scheme deep link (e.g. `benefit://reset-password?token=…`)
+/// onto an in-app path, or returns null if [uri] is not a custom-scheme link we
+/// handle.
+///
+/// The platform delivers the raw `benefit://…` URI to go_router's built-in
+/// route-information pipeline; without this mapping go_router can't match it,
+/// hits `errorBuilder` and the app gets stuck on splash (smoke finding F5). The
+/// redirect runs before route matching, so mapping here recovers the link. The
+/// [Uri] constructor encodes the token correctly for the query string.
+String? customSchemeRedirect(Uri uri) {
+  if (uri.scheme != 'benefit') return null;
+  if (uri.host == 'reset-password') {
+    final token = uri.queryParameters['token'];
+    return (token != null && token.isNotEmpty)
+        ? Uri(
+            path: '/reset-password',
+            queryParameters: {'token': token},
+          ).toString()
+        : '/reset-password';
+  }
+  return '/splash'; // unknown custom-scheme host → safe fallback
+}
+
 /// Central auth redirect. Sync (the async session restore happens in
 /// [AuthProvider.initialize], triggered by the splash loader); `refreshListenable`
 /// re-runs this when auth state changes so splash flips to login/home.
 String? _redirect(AuthProvider auth, GoRouterState state) {
+  // Recover raw custom-scheme deep links before anything else (see F5).
+  final mapped = customSchemeRedirect(state.uri);
+  if (mapped != null) return mapped;
+
   final loc = state.matchedLocation;
 
   // Booting: hold on splash until the stored session has been restored.

@@ -91,21 +91,22 @@ class BiometricService {
   Future<List<AppBiometricType>> getAvailableBiometrics() async {
     try {
       final available = await _localAuth.getAvailableBiometrics();
-      return available
-          .map((type) {
-            switch (type) {
-              case local_auth.BiometricType.fingerprint:
-                return AppBiometricType.fingerprint;
-              case local_auth.BiometricType.face:
-                return AppBiometricType.faceId;
-              case local_auth.BiometricType.iris:
-                return AppBiometricType.iris;
-              default:
-                return AppBiometricType.none;
-            }
-          })
-          .where((type) => type != AppBiometricType.none)
-          .toList();
+      return available.map((type) {
+        switch (type) {
+          case local_auth.BiometricType.fingerprint:
+            return AppBiometricType.fingerprint;
+          case local_auth.BiometricType.face:
+            return AppBiometricType.faceId;
+          case local_auth.BiometricType.iris:
+            return AppBiometricType.iris;
+          // Android often reports the generic strength classes instead of a
+          // concrete sensor type; treat them as fingerprint for display so an
+          // enrolled biometric isn't dropped (smoke finding F6).
+          case local_auth.BiometricType.strong:
+          case local_auth.BiometricType.weak:
+            return AppBiometricType.fingerprint;
+        }
+      }).toList();
     } catch (e) {
       debugPrint('BiometricService: Error getting available biometrics - $e');
       return [];
