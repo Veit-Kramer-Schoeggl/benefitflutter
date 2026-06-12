@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:benefitflutter/core/config/repository_config.dart';
+import 'package:benefitflutter/features/session/data/session_repository.dart';
 import 'package:benefitflutter/features/session/domain/session.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
 import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
@@ -11,7 +12,20 @@ import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
 class SessionDetailScreen extends StatefulWidget {
   final String sessionId;
 
-  const SessionDetailScreen({super.key, required this.sessionId});
+  /// Optional injected dependencies — default to the production
+  /// [RepositoryConfig]/[GpsPointDao]/network tiles so the route is unchanged;
+  /// tests pass fakes to make the screen widget-testable.
+  final SessionRepository? repository;
+  final GpsPointDao? gpsPointDao;
+  final TileProvider? tileProvider;
+
+  const SessionDetailScreen({
+    super.key,
+    required this.sessionId,
+    this.repository,
+    this.gpsPointDao,
+    this.tileProvider,
+  });
 
   @override
   State<SessionDetailScreen> createState() => _SessionDetailScreenState();
@@ -24,9 +38,15 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   Session? _session;
   List<GpsPoint> _gpsPoints = [];
 
+  late final SessionRepository _sessionRepository;
+  late final GpsPointDao _gpsPointDao;
+
   @override
   void initState() {
     super.initState();
+    _sessionRepository =
+        widget.repository ?? RepositoryConfig.getSessionRepository();
+    _gpsPointDao = widget.gpsPointDao ?? GpsPointDao();
     _loadData();
   }
 
@@ -39,11 +59,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     });
 
     try {
-      final sessionRepository = RepositoryConfig.getSessionRepository();
-      final gpsPointDao = GpsPointDao();
-
-      final session = await sessionRepository.getSessionById(widget.sessionId);
-      final points = await gpsPointDao.findBySessionId(widget.sessionId);
+      final session = await _sessionRepository.getSessionById(widget.sessionId);
+      final points = await _gpsPointDao.findBySessionId(widget.sessionId);
 
       setState(() {
         _session = session;
@@ -164,6 +181,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.example.benefitflutter',
+              tileProvider: widget.tileProvider,
             ),
 
             // 📍 Route Polyline
