@@ -11,6 +11,10 @@ import 'package:benefitflutter/features/wearable_integration/domain/sensor_data_
 class MockSessionRepository implements SessionRepository {
   final List<Session> _sessions = [];
 
+  /// Pre-seed sessions synchronously (used by the harness before provider
+  /// wiring, since [getAllSessions] has no delay seam to seed against later).
+  void seedSessions(List<Session> sessions) => _sessions.addAll(sessions);
+
   @override
   Future<Session> createSession(Session session) async {
     _sessions.add(session);
