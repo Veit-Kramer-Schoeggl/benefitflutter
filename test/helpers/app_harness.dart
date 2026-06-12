@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:benefitflutter/core/config/theme.dart';
 import 'package:benefitflutter/core/router/app_router.dart';
+import 'package:benefitflutter/features/session/domain/session.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
 import 'package:benefitflutter/providers/activity_provider.dart';
 import 'package:benefitflutter/providers/app_lock_provider.dart';
@@ -61,10 +63,19 @@ class AppHarness {
 /// otherwise the redirect lands on /login.
 ///
 /// Uses a phone-sized viewport to avoid the default 800x600 overflow.
+///
+/// Pass [sessions] to pre-seed the session repository before the providers are
+/// wired — [ProgressProvider] loads sessions during pumping (no delay seam to
+/// seed against afterwards).
 Future<AppHarness> pumpApp(
   WidgetTester tester, {
   bool authenticated = false,
+  List<Session> sessions = const [],
 }) async {
+  // ProgressProvider.loadActivities() reads SharedPreferences before the
+  // session repo; without a mock it throws and the session load is skipped.
+  SharedPreferences.setMockInitialValues(const {});
+
   // Generous surface (reset on teardown) to avoid the default 800x600 layout
   // overflows when pumping full screens.
   tester.view.physicalSize = const Size(1200, 2400);
@@ -93,7 +104,7 @@ Future<AppHarness> pumpApp(
     await auth.initialize(); // restore session before pumping
   }
 
-  final sessionRepo = MockSessionRepository();
+  final sessionRepo = MockSessionRepository()..seedSessions(sessions);
   final benefitRepo = MockBenefitRepositoryForTest();
   final connectivity = FakeConnectivityService();
   final biometric = FakeBiometricService();
