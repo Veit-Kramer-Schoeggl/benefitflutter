@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:benefitflutter/core/config/repository_config.dart';
@@ -109,7 +110,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             const SizedBox(height: 12),
             _row('Distance', '${distanceKm.toStringAsFixed(2)} km'),
             _row('Duration', _formatDuration(duration)),
-            _row('Start', _session!.startTime.toLocal().toString()),
+            _row(
+              'Start',
+              DateFormat(
+                'dd.MM.yyyy, HH:mm',
+              ).format(_session!.startTime.toLocal()),
+            ),
           ],
         ),
       ),
