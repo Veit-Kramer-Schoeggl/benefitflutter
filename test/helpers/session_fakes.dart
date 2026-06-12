@@ -96,6 +96,15 @@ class FakeGpsPointDao extends GpsPointDao {
   int insertCalls = 0;
   final List<List<GpsPoint>> batches = [];
   final List<GpsPoint> persisted = [];
+  final Map<String, List<GpsPoint>> _seeded = {};
+
+  /// Pre-seed the points returned by [findBySessionId] (no DB access).
+  void seedGpsPoints(String sessionId, List<GpsPoint> points) =>
+      _seeded[sessionId] = points;
+
+  @override
+  Future<List<GpsPoint>> findBySessionId(String sessionId) async =>
+      _seeded[sessionId] ?? const [];
 
   @override
   Future<void> insert(GpsPoint point) async {
