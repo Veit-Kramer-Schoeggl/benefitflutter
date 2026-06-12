@@ -67,7 +67,7 @@ void main() {
     // DSN nothing is sent (no network, GDPR-safe for local/dev/CI builds).
     final dsn = AppConfig.sentryDsn;
     if (dsn.isEmpty) {
-      await _bootstrap();
+      await bootstrap();
     } else {
       AppLogger.enableSentry();
       await SentryFlutter.init((options) {
@@ -76,7 +76,7 @@ void main() {
         options.sendDefaultPii = false;
         options.tracesSampleRate = 0.0;
         options.beforeSend = _scrubSentryEvent;
-      }, appRunner: _bootstrap);
+      }, appRunner: bootstrap);
     }
   }, (error, stack) => AppLogger.e('Uncaught zone error', error, stack));
 }
@@ -96,8 +96,11 @@ SentryEvent? _scrubSentryEvent(SentryEvent event, Hint hint) {
   );
 }
 
-/// App initialization + runApp. Shared by the no-Sentry path and (later) Sentry's appRunner.
-Future<void> _bootstrap() async {
+/// App initialization + runApp. Shared by the no-Sentry path and Sentry's
+/// appRunner. Public so integration tests can boot the real app directly
+/// (without main()'s runZonedGuarded, which would clash with the test binding's
+/// zone).
+Future<void> bootstrap() async {
   // Seed database with test data in debug mode
   if (SeedConfig.isEnabled) {
     try {
