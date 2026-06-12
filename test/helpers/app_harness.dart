@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:benefitflutter/core/config/theme.dart';
@@ -27,6 +28,7 @@ const harnessUserId = 'test-user-1';
 /// Handles to the fakes + providers behind a pumped routed app, so tests can
 /// drive state (e.g. flip `authService.loginSucceeds`) and assert on it.
 class AppHarness {
+  final GoRouter router;
   final AuthProvider auth;
   final FakeAuthService authService;
   final FakeUserRepository userRepo;
@@ -39,6 +41,7 @@ class AppHarness {
   final MockGpsSensor gpsSensor;
 
   AppHarness({
+    required this.router,
     required this.auth,
     required this.authService,
     required this.userRepo,
@@ -153,6 +156,7 @@ Future<AppHarness> pumpApp(
   );
 
   return AppHarness(
+    router: router,
     auth: auth,
     authService: authService,
     userRepo: userRepo,
