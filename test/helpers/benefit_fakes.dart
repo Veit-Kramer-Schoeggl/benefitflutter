@@ -10,6 +10,7 @@ import 'mock_data.dart';
 class MockBenefitRepositoryForTest implements BenefitRepository {
   List<Benefit> mockBenefits = [];
   List<UserBenefit> mockUserBenefits = [];
+  List<BenefitPartner> mockPartners = [];
   double mockTotalSavings = 0.0;
   bool shouldThrowError = false;
   String errorMessage = 'Test error';
@@ -55,7 +56,7 @@ class MockBenefitRepositoryForTest implements BenefitRepository {
   @override
   Future<List<BenefitPartner>> getPartnersForBenefit(String benefitId) async {
     if (shouldThrowError) throw Exception(errorMessage);
-    return [];
+    return mockPartners;
   }
 
   @override
