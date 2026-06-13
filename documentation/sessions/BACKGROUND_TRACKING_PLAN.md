@@ -10,7 +10,7 @@
 
 # Background-Tracking-Runtime — Implementierungs-Fahrplan
 
-> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1 in Arbeit.
+> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1 ✅ abgeschlossen & verifiziert · WP2 als nächstes.
 > Lebendes Dokument — wird pro Work-Package fortgeschrieben (siehe [Decision-Log](#decision-log) & [Changelog](#changelog)).
 
 ## 1. Kontext & Ziel
@@ -157,7 +157,7 @@ WP1–WP6 mappen auf die Intentionen von Sprint 4 (Permissions + Manifest/Plist)
 
 | WP | Inhalt | Dateien (Kern) | Aufwand | Status |
 |----|--------|----------------|---------|--------|
-| **WP1** | **Native Config** (Manifest + Plist) | AndroidManifest.xml, Info.plist | S | 🟡 in Arbeit |
+| **WP1** | **Native Config** (Manifest + Plist) | AndroidManifest.xml, Info.plist | S | ✅ done |
 | WP2 | GpsSensor: plattformspez. Settings + FGS; Stream im Vordergrund starten; Naht für continuousDaily | gps_sensor.dart, gps_tracking_config.dart | S–M | ⬜ |
 | WP3 | Permission-Flow (while-in-use + Runtime-POST_NOTIFICATIONS + LocationService-Check) | gps_sensor.dart + aufrufender Screen | S–M | ⬜ |
 | WP4 | Dauer aus Timestamps (Background-Drift-Fix) | activity_provider.dart | S | ⬜ |
@@ -229,3 +229,4 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | Datum | WP | Änderung |
 |-------|----|---------|
 | 2026-06-13 | — | Doc angelegt; Status-quo, verifizierte Erkenntnisse, Fahrplan WP1–WP6 |
+| 2026-06-13 | WP1 | Native Config umgesetzt & verifiziert — Manifest: +`FOREGROUND_SERVICE(_LOCATION)`/`POST_NOTIFICATIONS`/`WAKE_LOCK`, −`ACCESS_BACKGROUND_LOCATION`; Plist: +`UIBackgroundModes:[location]`, Usage-Strings geschärft. `dart analyze` clean, 813 Tests grün, Debug-APK baut, gemergtes Manifest geprüft (FGS-Perms + `GeolocatorLocationService` da, kein aktives `ACCESS_BACKGROUND_LOCATION`). |
