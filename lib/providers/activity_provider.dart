@@ -60,13 +60,20 @@ class ActivityProvider extends ChangeNotifier {
   DateTime? _lastGpsPointTime;
   final List<GpsPoint> _sessionGpsPoints = [];
 
-  // GPS points buffered for batched DB writes, flushed at [_gpsBatchSize] and
-  // on pause/stop/background. Distance + UI read _sessionGpsPoints (in-memory),
-  // NOT the DB, so batching the writes does not affect them. Trade-off: up to
-  // _gpsBatchSize unflushed points can be lost only on a hard process kill that
-  // skips the lifecycle 'paused' event; pause/stop/background always flush.
+  // GPS points buffered for batched DB writes. Flushed when the buffer fills to
+  // [_gpsBatchSize], when it is older than [_maxBufferAge] (checked on point
+  // arrival — reliable in the background, unlike a throttled timer), and on
+  // pause/stop/background. Distance + UI read _sessionGpsPoints (in-memory), NOT
+  // the DB, so batching the writes does not affect them. Trade-off: only points
+  // buffered since the last flush can be lost on a hard process kill that skips
+  // the lifecycle 'paused' event; the batch + age caps keep that window small.
   final List<GpsPoint> _pendingGpsPoints = [];
-  static const int _gpsBatchSize = 10;
+  static const int _gpsBatchSize = 5;
+  static const Duration _maxBufferAge = Duration(seconds: 60);
+
+  /// Wall-clock time of the last buffer flush; bounds how long points may sit
+  /// unwritten. Set on session start and on every flush (via [_now]).
+  DateTime _lastFlush = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Heart rate tracking state
   String? _heartRateDeviceId;
@@ -329,6 +336,7 @@ class ActivityProvider extends ChangeNotifier {
       _currentDistance = 0.0;
       _sessionGpsPoints.clear();
       _pendingGpsPoints.clear();
+      _lastFlush = _now();
       _currentHeartRate = null;
       _sessionHeartRates.clear();
       _trackingState = TrackingState.tracking;
@@ -795,6 +803,7 @@ class ActivityProvider extends ChangeNotifier {
   /// is re-queued so it retries on the next flush instead of being lost.
   Future<void> _flushGpsBuffer() async {
     if (_pendingGpsPoints.isEmpty) return;
+    _lastFlush = _now(); // reset the staleness window on every flush path
     final batch = List<GpsPoint>.of(_pendingGpsPoints);
     _pendingGpsPoints.clear();
     try {
@@ -833,9 +842,12 @@ class ActivityProvider extends ChangeNotifier {
         _lastGpsPoint = point;
         _lastGpsPointTime = point.timestamp;
 
-        // Buffer for batched DB write; flush when the batch fills up.
+        // Buffer for batched DB write; flush when the batch fills up OR the
+        // buffer has been sitting longer than _maxBufferAge (checked here on
+        // point arrival, since a background timer would be throttled).
         _pendingGpsPoints.add(point);
-        if (_pendingGpsPoints.length >= _gpsBatchSize) {
+        if (_pendingGpsPoints.length >= _gpsBatchSize ||
+            _now().difference(_lastFlush) >= _maxBufferAge) {
           await _flushGpsBuffer();
         }
 

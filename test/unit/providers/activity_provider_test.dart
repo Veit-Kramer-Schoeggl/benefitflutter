@@ -293,10 +293,10 @@ void main() {
     test(
       'flushes one batch automatically when batch size is reached',
       () async {
-        await emit(10);
+        await emit(5);
         expect(fakeDao.batches.length, 1);
-        expect(fakeDao.batches.first.length, 10);
-        expect(fakeDao.persisted.length, 10);
+        expect(fakeDao.batches.first.length, 5);
+        expect(fakeDao.persisted.length, 5);
       },
     );
 
@@ -321,7 +321,7 @@ void main() {
     test(
       'every point is persisted exactly once across auto + manual flush',
       () async {
-        await emit(13); // one auto-flush at 10, 3 left buffered
+        await emit(13); // two auto-flushes at 5 and 10, 3 left buffered
         await provider.pauseSession(); // flush the remaining 3
         final ids = fakeDao.persisted.map((p) => p.id).toList();
         expect(ids.length, 13);
@@ -441,6 +441,50 @@ void main() {
       await p.startSession();
       t = t.add(const Duration(minutes: 7)); // 7 min backgrounded, no ticks
       expect(p.elapsedSeconds, 7 * 60);
+
+      p.dispose();
+    });
+  });
+
+  group('GPS buffer staleness (WP5)', () {
+    test('stale buffer flushes after 60s even below batch size', () async {
+      var t = DateTime(2026, 1, 1, 12, 0, 0);
+      final mockGps = MockGpsSensor();
+      final sm = SensorManager(gpsSensor: mockGps);
+      await sm.initialize();
+      final fakeDao = FakeGpsPointDao();
+      final p = ActivityProvider(
+        MockSessionRepository(),
+        userId: 'u1',
+        sensorManager: sm,
+        gpsPointDao: fakeDao,
+        now: () => t,
+      );
+      await p.startSession();
+
+      // Points ~1.1 km apart so each clears the distance threshold and is stored.
+      GpsPoint pt(int i) => GpsPoint(
+        id: 'p$i',
+        sessionId: 'x',
+        latitude: 0.01 * i,
+        longitude: 0.0,
+        timestamp: DateTime.now(),
+      );
+      Future<void> emit(GpsPoint g) async {
+        mockGps.emitMockPoint(g);
+        await pumpEventQueue();
+      }
+
+      // 3 points (< batch 5) within the 60s window → buffered, no DB write yet.
+      await emit(pt(0));
+      await emit(pt(1));
+      await emit(pt(2));
+      expect(fakeDao.persisted, isEmpty);
+
+      // 60s later, the next point trips the age threshold → flush all 4.
+      t = t.add(const Duration(seconds: 60));
+      await emit(pt(3));
+      expect(fakeDao.persisted.length, 4);
 
       p.dispose();
     });
