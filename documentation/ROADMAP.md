@@ -65,7 +65,7 @@ Fundament:
 
 ## 🟡 Phase 2 — Echtes Backend, Sync & Auth *(der große Schritt)*
 
-- [ ] **(L)** Background-Tracking-Runtime (Android Foreground-Service / iOS `UIBackgroundModes`)
+- [ ] **(L)** Background-Tracking-Runtime (Android Foreground-Service / iOS `UIBackgroundModes`) — 🟡 in Arbeit · [Fahrplan](sessions/BACKGROUND_TRACKING_PLAN.md)
 - [ ] **(L)** Sync funktionsfähig: `SyncManager` + `SyncQueueDao` (Drain/Backoff/Dead-Letter) **oder** Sync-Engine
 - [ ] **(Spike)** Backend-Entscheidung: PowerSync/Supabase vs. PostgREST → **Decision-Record** (Schritt 3)
 - [ ] **(M)** Versionierte, idempotente Konfliktauflösung; Benefits als append-only Ledger

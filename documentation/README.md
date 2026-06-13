@@ -39,6 +39,7 @@ Each topic has two documentation types:
 | Topic | Design | Plan | Description |
 |-------|--------|------|-------------|
 | Session System | [SESSION_DESIGN.md](sessions/SESSION_DESIGN.md) | [SESSION_PLAN.md](sessions/SESSION_PLAN.md) | Tracking modes, sprint breakdown |
+| Background Tracking (Phase 2) | [SESSION_DESIGN.md](sessions/SESSION_DESIGN.md) (Phase 5) | [BACKGROUND_TRACKING_PLAN.md](sessions/BACKGROUND_TRACKING_PLAN.md) | Foreground-service GPS for active sessions; WP1–WP6 |
 
 ## Integration
 
@@ -107,7 +108,8 @@ documentation/
 │   └── PROGRESS_SCREEN_OVERVIEW.md
 ├── sessions/                    # Session & tracking design/plan
 │   ├── SESSION_DESIGN.md
-│   └── SESSION_PLAN.md
+│   ├── SESSION_PLAN.md
+│   └── BACKGROUND_TRACKING_PLAN.md
 ├── wearables/                   # Wearable integration
 │   └── WEARABLE_INTEGRATION_OVERVIEW.md
 ├── widgets/                     # Widget overviews
