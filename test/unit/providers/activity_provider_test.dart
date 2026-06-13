@@ -396,4 +396,53 @@ void main() {
       p.dispose();
     });
   });
+
+  group('Session duration (WP4)', () {
+    test('accumulates active time and excludes pauses (timestamp-based)', () async {
+      var t = DateTime(2026, 1, 1, 12, 0, 0);
+      final repo = MockSessionRepository();
+      final p = ActivityProvider(
+        repo,
+        userId: 'u1',
+        now: () => t,
+        gpsPointDao: FakeGpsPointDao(),
+      );
+
+      await p.startSession();
+      t = t.add(const Duration(seconds: 10));
+      expect(p.elapsedSeconds, 10);
+
+      await p.pauseSession();
+      t = t.add(const Duration(seconds: 30)); // paused — must not count
+      expect(p.elapsedSeconds, 10);
+
+      await p.resumeSession();
+      t = t.add(const Duration(seconds: 5));
+      expect(p.elapsedSeconds, 15);
+
+      await p.stopSession();
+      final sessions = await repo.getAllSessions(userId: 'u1');
+      expect(sessions.single.durationSeconds, 15);
+
+      p.dispose();
+    });
+
+    test('elapsed self-corrects across a throttled timer (background)', () async {
+      // The 1s UI timer is never pumped here (simulating background throttling),
+      // yet a large wall-clock jump is reflected immediately on the next read.
+      var t = DateTime(2026, 1, 1, 12, 0, 0);
+      final p = ActivityProvider(
+        MockSessionRepository(),
+        userId: 'u1',
+        now: () => t,
+        gpsPointDao: FakeGpsPointDao(),
+      );
+
+      await p.startSession();
+      t = t.add(const Duration(minutes: 7)); // 7 min backgrounded, no ticks
+      expect(p.elapsedSeconds, 7 * 60);
+
+      p.dispose();
+    });
+  });
 }

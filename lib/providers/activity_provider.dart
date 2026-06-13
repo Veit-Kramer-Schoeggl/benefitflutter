@@ -40,8 +40,18 @@ class ActivityProvider extends ChangeNotifier {
   // Session data
   Session? _currentSession;
   bool _wasContinuousActive = false;
-  int _elapsedSeconds = 0;
   Timer? _timer;
+
+  // Active-duration accumulator (timestamp-based, excludes paused time).
+  // [_accumulatedActive] holds completed tracking segments; [_segmentStart] is
+  // the UTC start of the currently-running segment (null while paused/idle).
+  // Derived in [_elapsedSeconds] from the wall clock so it stays correct even
+  // when the 1s UI timer is throttled in the background.
+  Duration _accumulatedActive = Duration.zero;
+  DateTime? _segmentStart;
+
+  /// Injectable clock seam (defaults to the real clock) for deterministic tests.
+  final DateTime Function() _now;
 
   // GPS tracking state
   StreamSubscription<GpsPoint>? _gpsSubscription;
@@ -83,7 +93,9 @@ class ActivityProvider extends ChangeNotifier {
     GpsPointDao? gpsPointDao,
     BleDataSource? bleDataSource,
     SessionBiometricDataDao? biometricDao,
+    DateTime Function()? now,
   }) : _userId = userId,
+       _now = now ?? DateTime.now,
        _sensorManager = sensorManager ?? SensorManager(),
        _gpsPointDao = gpsPointDao ?? GpsPointDao(),
        _bleDataSource = bleDataSource ?? BleDataSource(),
@@ -99,6 +111,16 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Elapsed time in seconds
   int get elapsedSeconds => _elapsedSeconds;
+
+  /// Active tracking time in seconds, derived from the wall clock (excludes
+  /// paused time). Recomputed on every read so a background-throttled UI timer
+  /// never causes drift.
+  int get _elapsedSeconds {
+    var total = _accumulatedActive;
+    final start = _segmentStart;
+    if (start != null) total += _now().toUtc().difference(start);
+    return total.inSeconds;
+  }
 
   /// Loading state
   bool get isLoading => _isLoading;
@@ -221,7 +243,8 @@ class ActivityProvider extends ChangeNotifier {
 
     _trackingState = TrackingState.idle;
     _currentSession = null;
-    _elapsedSeconds = 0;
+    _accumulatedActive = Duration.zero;
+    _segmentStart = null;
     _currentDistance = 0.0;
     _sessionGpsPoints.clear();
     _pendingGpsPoints.clear();
@@ -300,8 +323,9 @@ class ActivityProvider extends ChangeNotifier {
       // Save to repository (local only, no sync until completed)
       _currentSession = await _sessionRepository.createSession(session);
 
-      // Initialize tracking state
-      _elapsedSeconds = 0;
+      // Initialize tracking state (start the first active-duration segment)
+      _accumulatedActive = Duration.zero;
+      _segmentStart = _now().toUtc();
       _currentDistance = 0.0;
       _sessionGpsPoints.clear();
       _pendingGpsPoints.clear();
@@ -350,8 +374,9 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Stop timer
+      // Stop timer and close the active-duration segment (pauses don't count).
       _stopTimer();
+      _finalizeSegment();
 
       // Persist buffered GPS points while paused.
       await _flushGpsBuffer();
@@ -379,7 +404,8 @@ class ActivityProvider extends ChangeNotifier {
       AppLogger.d('ActivityProvider: Session paused');
     } catch (e) {
       _error = 'Failed to pause session: ${e.toString()}';
-      // Resume timer on error
+      // Re-open the active segment and resume the timer on error.
+      _segmentStart = _now().toUtc();
       _startTimer();
       AppLogger.e('ActivityProvider: Pause error - $e');
     } finally {
@@ -422,7 +448,8 @@ class ActivityProvider extends ChangeNotifier {
 
       _trackingState = TrackingState.tracking;
 
-      // Restart timer
+      // Open a new active-duration segment and restart the timer.
+      _segmentStart = _now().toUtc();
       _startTimer();
 
       _error = null;
@@ -454,8 +481,9 @@ class ActivityProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Stop timer
+      // Stop timer and close the final active-duration segment.
       _stopTimer();
+      _finalizeSegment();
 
       // Stop GPS tracking
       await _stopGpsTracking();
@@ -512,7 +540,8 @@ class ActivityProvider extends ChangeNotifier {
 
       // Reset state
       _currentSession = null;
-      _elapsedSeconds = 0;
+      _accumulatedActive = Duration.zero;
+      _segmentStart = null;
       _currentDistance = 0.0;
       _sessionGpsPoints.clear();
       _pendingGpsPoints.clear();
@@ -655,8 +684,9 @@ class ActivityProvider extends ChangeNotifier {
   void _startTimer() {
     _timer?.cancel(); // Ensure no duplicate timers
 
+    // The tick only drives the UI; elapsed time is derived from timestamps in
+    // [_elapsedSeconds], so a throttled background timer never causes drift.
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _elapsedSeconds++;
       notifyListeners();
     });
 
@@ -668,6 +698,16 @@ class ActivityProvider extends ChangeNotifier {
     _timer?.cancel();
     _timer = null;
     AppLogger.d('ActivityProvider: Timer stopped');
+  }
+
+  /// Close the running active-duration segment into [_accumulatedActive].
+  /// No-op when already paused/idle. Called on pause and stop.
+  void _finalizeSegment() {
+    final start = _segmentStart;
+    if (start != null) {
+      _accumulatedActive += _now().toUtc().difference(start);
+      _segmentStart = null;
+    }
   }
 
   // ===== GPS TRACKING METHODS =====

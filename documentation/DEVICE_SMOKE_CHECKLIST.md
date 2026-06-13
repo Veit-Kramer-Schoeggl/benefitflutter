@@ -21,6 +21,7 @@ boot smoke, full UI flow not yet hand-ticked) · ⬜ pending
 - [ ] ⬜ **Foreground-Notification:** während aktiver Session erscheint die dauerhafte „BeneFit — Recording your activity session…"-Notification (nicht wegwischbar, `setOngoing`); verschwindet bei Stop.
 - [ ] ⬜ **Logcat FGS-Typ:** beim Session-Start KEINE `MissingForegroundServiceTypeException` / „FGS type not allowed" (Android 14+, targetSdk 36).
 - [ ] ⬜ **Display aus / Wakelock:** bei gesperrtem Display sampelt GPS weiter (kein Einfrieren bis zum Aufwecken).
+- [ ] ⬜ **Dauer korrekt nach Hintergrund (WP4):** Session starten → mehrere Minuten Hintergrund/Display aus → zurück → angezeigte **und** gespeicherte Dauer = reale aktive Zeit (kein Untercount durch gedrosselten Timer); eine Pause zählt nicht mit.
 - [ ] ⬜ **Phase-A-Grenze (erwartet, kein Bug):** App aus den Recents wischen → Tracking endet (kein Background-Isolate); App-Neustart verhält sich sauber (Session nicht korrupt).
 - [ ] ⬜ **OEM-Batterie (MIUI):** beobachten, ob MIUI den Prozess trotz FGS killt → ggf. Whitelisting-Hinweis nötig (Phase-2-Folgepunkt).
 
