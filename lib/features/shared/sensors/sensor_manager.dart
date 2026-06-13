@@ -179,6 +179,9 @@ class SensorManager {
       // implementations (e.g. test mocks) use the base signature.
       final gps = _gpsSensor;
       if (gps is GpsSensor) {
+        // Location is granted at this point; ensure the FGS notification can be
+        // shown (Android 13+) before starting the foreground-service stream.
+        await gps.ensureNotificationPermission();
         await gps.startStreaming(sessionId: sessionId, mode: mode);
       } else {
         await gps.startStreaming(sessionId: sessionId);

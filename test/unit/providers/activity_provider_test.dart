@@ -338,4 +338,62 @@ void main() {
       },
     );
   });
+
+  group('GPS permission warnings (WP3)', () {
+    Future<ActivityProvider> startWith(MockGpsSensor mockGps) async {
+      final sm = SensorManager(gpsSensor: mockGps);
+      await sm.initialize();
+      final p = ActivityProvider(
+        MockSessionRepository(),
+        userId: 'u1',
+        sensorManager: sm,
+      );
+      await p.startSession();
+      return p;
+    }
+
+    test('denied GPS: session still tracks and a warning is set', () async {
+      final mockGps = MockGpsSensor()..setPermissionGranted(false);
+      final p = await startWith(mockGps);
+
+      expect(p.isTracking, isTrue);
+      expect(p.gpsStartWarning, isNotNull);
+      expect(p.gpsNeedsSettings, isFalse);
+
+      p.dispose();
+    });
+
+    test('permanently denied GPS: needsSettings + settings hint', () async {
+      final mockGps = MockGpsSensor();
+      final sm = SensorManager(gpsSensor: mockGps);
+      await sm.initialize();
+      mockGps.setPermanentlyDenied(); // after init so the status flips
+      final p = ActivityProvider(
+        MockSessionRepository(),
+        userId: 'u1',
+        sensorManager: sm,
+      );
+      await p.startSession();
+
+      expect(p.isTracking, isTrue);
+      expect(p.gpsNeedsSettings, isTrue);
+      expect(p.gpsStartWarning, contains('Settings'));
+
+      p.dispose();
+    });
+
+    test('retryGpsIfNeeded clears the warning once permission granted', () async {
+      final mockGps = MockGpsSensor()..setPermissionGranted(false);
+      final p = await startWith(mockGps);
+      expect(p.gpsStartWarning, isNotNull);
+
+      // Simulate the user enabling location in system settings, then resuming.
+      mockGps.setPermissionGranted(true);
+      await p.retryGpsIfNeeded();
+
+      expect(p.gpsStartWarning, isNull);
+
+      p.dispose();
+    });
+  });
 }

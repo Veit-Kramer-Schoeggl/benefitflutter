@@ -3,6 +3,7 @@ import 'dart:ui'; // for ImageFilter.blur
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:benefitflutter/providers/activity_provider.dart';
 import 'package:benefitflutter/providers/connectivity_provider.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
@@ -104,6 +105,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     switch (state) {
       case TrackingState.idle:
         await provider.startSession();
+        if (!context.mounted) return;
+        _maybeShowGpsWarning(context, provider);
         break;
       case TrackingState.tracking:
         await provider.pauseSession();
@@ -134,6 +137,31 @@ class _ActivityScreenState extends State<ActivityScreen> {
         const SnackBar(content: Text("Long press only works while paused")),
       );
     }
+  }
+
+  /// Surface a non-fatal GPS notice after starting a session (the session still
+  /// runs, just without distance/route). Offers "Settings" when the location
+  /// permission is permanently denied.
+  void _maybeShowGpsWarning(BuildContext context, ActivityProvider provider) {
+    final warning = provider.gpsStartWarning;
+    if (warning == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(warning),
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 6),
+        action: provider.gpsNeedsSettings
+            ? SnackBarAction(
+                label: 'Settings',
+                textColor: Colors.white,
+                onPressed: () async {
+                  await openAppSettings();
+                },
+              )
+            : null,
+      ),
+    );
   }
 
   // ---------------------------------------------------------
@@ -328,6 +356,45 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               ),
                             ],
                           ),
+
+                          // GPS warning (non-fatal: session runs without route)
+                          if (provider.gpsStartWarning != null) ...[
+                            const SizedBox(height: 14),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.20),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Colors.orange.withValues(alpha: 0.6),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_off,
+                                    color: Colors.orangeAccent,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      provider.gpsStartWarning!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
 
                           const SizedBox(height: 28),
 

@@ -10,7 +10,7 @@
 
 # Background-Tracking-Runtime — Implementierungs-Fahrplan
 
-> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1–WP2 ✅ abgeschlossen & verifiziert · WP3 als nächstes.
+> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1–WP3 ✅ abgeschlossen & verifiziert · WP4 als nächstes.
 > Lebendes Dokument — wird pro Work-Package fortgeschrieben (siehe [Decision-Log](#decision-log) & [Changelog](#changelog)).
 
 ## 1. Kontext & Ziel
@@ -159,7 +159,7 @@ WP1–WP6 mappen auf die Intentionen von Sprint 4 (Permissions + Manifest/Plist)
 |----|--------|----------------|---------|--------|
 | **WP1** | **Native Config** (Manifest + Plist) | AndroidManifest.xml, Info.plist | S | ✅ done |
 | WP2 | GpsSensor: plattformspez. Settings + FGS; Stream im Vordergrund starten; Naht für continuousDaily | gps_sensor.dart, sensor_manager.dart, activity_provider.dart | S–M | ✅ done |
-| WP3 | Permission-Flow (while-in-use + Runtime-POST_NOTIFICATIONS + LocationService-Check) | gps_sensor.dart + aufrufender Screen | S–M | ⬜ |
+| WP3 | Permission-Flow (while-in-use + Runtime-POST_NOTIFICATIONS + LocationService-Check + Warn-UI/Retry) | gps_sensor.dart, sensor_manager.dart, activity_provider.dart, activity_screen.dart, main.dart | S–M | ✅ done |
 | WP4 | Dauer aus Timestamps (Background-Drift-Fix) | activity_provider.dart | S | ⬜ |
 | WP5 | Buffer-Robustheit (zeitbasierter Flush) | activity_provider.dart | S | ⬜ |
 | WP6 | Tests + Geräte-Smoke (inkl. Logcat-FGS-Check) | test/…, DEVICE_SMOKE_CHECKLIST.md | M | ⬜ |
@@ -227,6 +227,9 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | 2026-06-13 | `bluetooth-central` (iOS) deferren | Nicht für Background-GPS nötig; App-Store-2.5.4-Risiko bei ungenutztem Mode |
 | 2026-06-13 | WP2: `TrackingMode`-Naht via `GpsSensor`-Override (optionaler Zusatz-Param) statt `BaseSensor`-Erweiterung; `SensorManager` reicht über `is GpsSensor` durch | Hält das generische `BaseSensor`-Interface (auch `HeartRateSensor`) sauber; Mock läuft über Fallback-Zweig |
 | 2026-06-13 | continuous-`distanceFilter` provisorisch 50 m | Feintuning in Phase B; Phase A nutzt manual = 5 m |
+| 2026-06-13 | WP3: GPS-Ausfall via separatem `gpsStartWarning`-Kanal (nicht `_error`) melden | `_error` würde via [activity_screen.dart:190](../../lib/presentation/screens/activity/activity_screen.dart#L190) den ganzen Screen kapern; Session soll trotz fehlendem GPS sichtbar weiterlaufen |
+| 2026-06-13 | WP3: `POST_NOTIFICATIONS` best-effort (blockiert Tracking nicht) | FGS zeichnet auch ohne sichtbare Notification auf; Ablehnung wird nur geloggt + per Geräte-Smoke beobachtet |
+| 2026-06-13 | WP3: Resume-Retry (`retryGpsIfNeeded`) statt Mid-Session-Always-Flow | macht den „Open Settings"→zurück-Weg nutzbar, ohne `ACCESS_BACKGROUND_LOCATION` (das bleibt Phase B) |
 
 ## Changelog
 
@@ -235,3 +238,4 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | 2026-06-13 | — | Doc angelegt; Status-quo, verifizierte Erkenntnisse, Fahrplan WP1–WP6 |
 | 2026-06-13 | WP1 | Native Config umgesetzt & verifiziert — Manifest: +`FOREGROUND_SERVICE(_LOCATION)`/`POST_NOTIFICATIONS`/`WAKE_LOCK`, −`ACCESS_BACKGROUND_LOCATION`; Plist: +`UIBackgroundModes:[location]`, Usage-Strings geschärft. `dart analyze` clean, 813 Tests grün, Debug-APK baut, gemergtes Manifest geprüft (FGS-Perms + `GeolocatorLocationService` da, kein aktives `ACCESS_BACKGROUND_LOCATION`). |
 | 2026-06-13 | WP2 | `GpsSensor.buildLocationSettings` (plattformspezifisch): Android `AndroidSettings` + `ForegroundNotificationConfig` (Wakelock/ongoing), iOS `AppleSettings` (Background-Updates, `pauseLocationUpdatesAutomatically:false`, `showBackgroundLocationIndicator:true`, `activityType: fitness`); `TrackingMode` durch `SensorManager.startSession` → `GpsSensor` durchgereicht (`ActivityProvider` übergibt `session.trackingMode`); neuer Builder-Unit-Test. `dart analyze` clean, **817 Tests** grün, Debug-APK baut. |
+| 2026-06-13 | WP3 | Permission-Flow: `GpsSensor.ensureNotificationPermission` (Android best-effort) vor `startStreaming`; GPS-Ausfall über neuen `gpsStartWarning`-Kanal (+ `gpsNeedsSettings`) statt `_error`; `ActivityScreen` zeigt SnackBar (mit „Settings"→`openAppSettings`) + persistenten Warn-Banner; `retryGpsIfNeeded()` bei App-Resume (`main.dart`). 3 neue Provider-Tests; `ensureNotificationPermission`-Pfad nur per Geräte-Smoke (WP6) abgedeckt. `dart analyze` clean, **820 Tests** grün, Debug-APK baut. |

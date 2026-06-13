@@ -128,6 +128,34 @@ class GpsSensor extends BaseSensor<GpsPoint> {
     }
   }
 
+  /// Request the Android 13+ notification permission so the foreground-service
+  /// tracking notification is visible.
+  ///
+  /// Best-effort: GPS tracking still records if denied (the foreground service
+  /// starts regardless), so this never throws or blocks a session. No-op on
+  /// non-Android platforms; on Android < 13 `permission_handler` reports it as
+  /// already granted.
+  Future<void> ensureNotificationPermission() async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      debugPrint(
+        'GpsSensor: notification permission skipped (platform=$defaultTargetPlatform)',
+      );
+      return;
+    }
+    try {
+      if (await Permission.notification.isGranted) return;
+      final result = await Permission.notification.request();
+      if (!result.isGranted) {
+        debugPrint(
+          'GpsSensor: notification permission not granted ($result) — '
+          'foreground tracking notification may be hidden',
+        );
+      }
+    } catch (e) {
+      debugPrint('GpsSensor: notification permission request failed: $e');
+    }
+  }
+
   // ===== STREAMING =====
 
   @override

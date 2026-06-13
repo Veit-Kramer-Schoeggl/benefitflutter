@@ -269,6 +269,12 @@ class _BeneFitAppState extends State<BeneFitApp> with WidgetsBindingObserver {
     final activityProvider = context.read<ActivityProvider>();
     final isTracking = activityProvider.isTracking || activityProvider.isPaused;
 
+    // If a session is running but GPS stalled on a permission/service issue,
+    // retry now — the user may have just enabled it in system Settings.
+    if (isTracking) {
+      unawaited(activityProvider.retryGpsIfNeeded());
+    }
+
     await appLockProvider.onAppResumed(isTrackingActive: isTracking);
   }
 

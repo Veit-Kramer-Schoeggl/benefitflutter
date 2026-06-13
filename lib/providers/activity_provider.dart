@@ -9,6 +9,7 @@ import 'package:benefitflutter/core/enums/tracking_mode.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 import 'package:benefitflutter/core/enums/tracking_state.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_manager.dart';
+import 'package:benefitflutter/features/shared/sensors/sensor_status.dart';
 import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
 import 'package:benefitflutter/features/session/utils/distance_calculator.dart';
@@ -67,6 +68,11 @@ class ActivityProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Non-fatal GPS notice: the session still runs (timer/HR), but distance/route
+  // is not recorded because location is off or its permission was denied. Kept
+  // separate from [_error] so it does NOT replace the whole tracking screen.
+  String? _gpsStartWarning;
+
   // User ID (set by AuthProvider via ProxyProvider)
   String? _userId;
 
@@ -102,6 +108,16 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Whether there is an error
   bool get hasError => _error != null;
+
+  /// Non-fatal GPS notice (location off / permission denied) while a session is
+  /// running. Null when GPS is fine. Surface as a SnackBar / inline indicator,
+  /// not as a full-screen error.
+  String? get gpsStartWarning => _gpsStartWarning;
+
+  /// Whether the GPS issue needs the user to enable the permission in Settings
+  /// (permanently denied) — drives an "Open Settings" affordance.
+  bool get gpsNeedsSettings =>
+      _sensorManager.gpsSensor.status == SensorStatus.permanentlyDenied;
 
   /// Current distance in meters
   double get currentDistance => _currentDistance;
@@ -216,6 +232,7 @@ class ActivityProvider extends ChangeNotifier {
     _heartRateDeviceId = null;
     _wasContinuousActive = false;
     _error = null;
+    _gpsStartWarning = null;
   }
 
   /// Formatted time string (HH:MM:SS)
@@ -257,6 +274,7 @@ class ActivityProvider extends ChangeNotifier {
 
     _isLoading = true;
     _error = null;
+    _gpsStartWarning = null;
     notifyListeners();
 
     try {
@@ -506,6 +524,7 @@ class ActivityProvider extends ChangeNotifier {
       _trackingState = TrackingState.idle;
       _wasContinuousActive = false;
       _error = null;
+      _gpsStartWarning = null;
     } catch (e) {
       _error = 'Failed to stop session: ${e.toString()}';
       AppLogger.e('ActivityProvider: Stop session error - $e');
@@ -679,12 +698,42 @@ class ActivityProvider extends ChangeNotifier {
         AppLogger.d(
           'ActivityProvider: Failed to start GPS - permission denied or unavailable',
         );
-        _error = 'GPS unavailable. Distance tracking disabled.';
+        _gpsStartWarning = _gpsWarningForStatus(_sensorManager.gpsSensor.status);
         notifyListeners();
       }
     } catch (e) {
       AppLogger.e('ActivityProvider: GPS tracking error - $e');
-      _error = 'GPS error: ${e.toString()}';
+      _gpsStartWarning =
+          'Could not start GPS. Distance and route will not be recorded.';
+      notifyListeners();
+    }
+  }
+
+  /// Map a GPS sensor status to a user-facing, non-fatal warning message.
+  String _gpsWarningForStatus(SensorStatus status) {
+    switch (status) {
+      case SensorStatus.unavailable:
+        return 'Location is turned off. Enable location to record your route.';
+      case SensorStatus.permanentlyDenied:
+        return 'Location permission is blocked. '
+            'Enable it in Settings to record your route.';
+      default:
+        return 'Location permission is required to record your route.';
+    }
+  }
+
+  /// Re-attempt GPS after the user (likely) granted permission elsewhere
+  /// (e.g. returned from system Settings). No-op unless a session is tracking
+  /// without an active GPS stream and a warning is pending. Guards against
+  /// double-subscription via [_gpsSubscription].
+  Future<void> retryGpsIfNeeded() async {
+    if (!isTracking || _gpsSubscription != null || _gpsStartWarning == null) {
+      return;
+    }
+    AppLogger.d('ActivityProvider: Retrying GPS after resume');
+    await _startGpsTracking();
+    if (_gpsSubscription != null) {
+      _gpsStartWarning = null;
       notifyListeners();
     }
   }
