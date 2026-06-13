@@ -7,6 +7,7 @@ import 'package:benefitflutter/features/shared/sensors/base_sensor.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_status.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_exception.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
+import 'package:benefitflutter/core/enums/tracking_mode.dart';
 
 /// GPS sensor implementation using geolocator
 ///
@@ -130,7 +131,10 @@ class GpsSensor extends BaseSensor<GpsPoint> {
   // ===== STREAMING =====
 
   @override
-  Future<void> startStreaming({String? sessionId}) async {
+  Future<void> startStreaming({
+    String? sessionId,
+    TrackingMode mode = TrackingMode.manual,
+  }) async {
     // Guard: Check status
     if (_status != SensorStatus.available) {
       throw SensorException(
@@ -149,16 +153,14 @@ class GpsSensor extends BaseSensor<GpsPoint> {
       _currentSessionId = sessionId;
       _updateStatus(SensorStatus.active);
 
-      // Configure location settings
-      const locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5, // Minimum 5 meters between updates
-        // TODO: Consider adding timeLimit for production (e.g., 60 seconds)
-        // Currently removed because:
-        // 1. Emulator doesn't send continuous updates (needs manual location changes)
-        // 2. 10 seconds was too aggressive - caused errors during normal use
-        // 3. Real devices might need longer timeout for GPS acquisition
-        // Recommendation: Test on real device first, then decide if timeout needed
+      // Configure platform-specific location settings. On Android this enables
+      // geolocator's built-in foreground service (ongoing notification + wake
+      // lock); on iOS it enables background location updates. Both keep an
+      // active session recording while the app is backgrounded (but not across
+      // a process kill — that needs a separate background isolate, Phase B).
+      final locationSettings = buildLocationSettings(
+        platform: defaultTargetPlatform,
+        mode: mode,
       );
 
       // Start position stream
@@ -189,6 +191,66 @@ class GpsSensor extends BaseSensor<GpsPoint> {
     // Reset to available if we were tracking (active or error during tracking)
     if (_status == SensorStatus.active || _status == SensorStatus.error) {
       _updateStatus(SensorStatus.available);
+    }
+  }
+
+  // ===== LOCATION SETTINGS =====
+
+  /// Distance (in meters) the device must move before a new fix is emitted.
+  /// Manual sessions favour fidelity; continuous tracking (Phase B) favours
+  /// battery with a coarser filter.
+  static const int _manualDistanceFilter = 5;
+  static const int _continuousDistanceFilter = 50;
+
+  /// Foreground-service notification shown on Android while a session records.
+  /// The default [ForegroundNotificationConfig.notificationIcon] resolves to
+  /// `@mipmap/ic_launcher`, which the app ships.
+  static const ForegroundNotificationConfig _trackingNotification =
+      ForegroundNotificationConfig(
+        notificationTitle: 'BeneFit',
+        notificationText: 'Recording your activity session…',
+        enableWakeLock: true,
+        setOngoing: true,
+      );
+
+  /// Build platform-specific [LocationSettings] for the given tracking [mode].
+  ///
+  /// - Android: [AndroidSettings] with a foreground-service notification so the
+  ///   location stream survives the app being backgrounded (not a process kill).
+  /// - iOS: [AppleSettings] with background location updates enabled.
+  /// - Other platforms (desktop/tests): plain [LocationSettings].
+  ///
+  /// Exposed for testing the platform/mode branching without invoking Geolocator.
+  @visibleForTesting
+  static LocationSettings buildLocationSettings({
+    required TargetPlatform platform,
+    required TrackingMode mode,
+  }) {
+    final distanceFilter = mode == TrackingMode.continuousDaily
+        ? _continuousDistanceFilter
+        : _manualDistanceFilter;
+
+    switch (platform) {
+      case TargetPlatform.android:
+        return AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+          foregroundNotificationConfig: _trackingNotification,
+        );
+      case TargetPlatform.iOS:
+        return AppleSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+          allowBackgroundLocationUpdates: true,
+          pauseLocationUpdatesAutomatically: false,
+          showBackgroundLocationIndicator: true,
+          activityType: ActivityType.fitness,
+        );
+      default:
+        return LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+        );
     }
   }
 

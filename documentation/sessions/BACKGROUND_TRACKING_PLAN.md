@@ -10,7 +10,7 @@
 
 # Background-Tracking-Runtime — Implementierungs-Fahrplan
 
-> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1 ✅ abgeschlossen & verifiziert · WP2 als nächstes.
+> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1–WP2 ✅ abgeschlossen & verifiziert · WP3 als nächstes.
 > Lebendes Dokument — wird pro Work-Package fortgeschrieben (siehe [Decision-Log](#decision-log) & [Changelog](#changelog)).
 
 ## 1. Kontext & Ziel
@@ -158,7 +158,7 @@ WP1–WP6 mappen auf die Intentionen von Sprint 4 (Permissions + Manifest/Plist)
 | WP | Inhalt | Dateien (Kern) | Aufwand | Status |
 |----|--------|----------------|---------|--------|
 | **WP1** | **Native Config** (Manifest + Plist) | AndroidManifest.xml, Info.plist | S | ✅ done |
-| WP2 | GpsSensor: plattformspez. Settings + FGS; Stream im Vordergrund starten; Naht für continuousDaily | gps_sensor.dart, gps_tracking_config.dart | S–M | ⬜ |
+| WP2 | GpsSensor: plattformspez. Settings + FGS; Stream im Vordergrund starten; Naht für continuousDaily | gps_sensor.dart, sensor_manager.dart, activity_provider.dart | S–M | ✅ done |
 | WP3 | Permission-Flow (while-in-use + Runtime-POST_NOTIFICATIONS + LocationService-Check) | gps_sensor.dart + aufrufender Screen | S–M | ⬜ |
 | WP4 | Dauer aus Timestamps (Background-Drift-Fix) | activity_provider.dart | S | ⬜ |
 | WP5 | Buffer-Robustheit (zeitbasierter Flush) | activity_provider.dart | S | ⬜ |
@@ -213,6 +213,8 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
   Precise-Location-Nutrition-Label.
 - **DSGVO/Art. 9:** Consent für kontinuierliches GPS/HR.
 - **OEM-Battery-Optimization-Whitelisting**-Hinweis (Xiaomi/Huawei) — Phase-2-Folgepunkt.
+- **Notification-Icon (Android 11+):** System erzwingt flache, monochrome Tray-Icons → das farbige
+  `ic_launcher` erscheint ggf. als weißes Quadrat. Dediziertes monochromes Icon = UI-Polish Phase 3.
 - **`continuousDaily`-Runtime** (Phase B / Option 2 / `flutter_background_service`).
 
 ## Decision-Log
@@ -223,6 +225,8 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | 2026-06-13 | Eingebauter geolocator-FGS statt eigenem `foreground_service.dart` | Weniger nativer Code; Trade-off (keine Notification-Actions) bewusst akzeptiert |
 | 2026-06-13 | `ACCESS_BACKGROUND_LOCATION` für Phase A entfernen | Für im-Vordergrund-gestartete Location-FGS nicht nötig; vermeidet Play-BG-Location-Review; Phase B re-add |
 | 2026-06-13 | `bluetooth-central` (iOS) deferren | Nicht für Background-GPS nötig; App-Store-2.5.4-Risiko bei ungenutztem Mode |
+| 2026-06-13 | WP2: `TrackingMode`-Naht via `GpsSensor`-Override (optionaler Zusatz-Param) statt `BaseSensor`-Erweiterung; `SensorManager` reicht über `is GpsSensor` durch | Hält das generische `BaseSensor`-Interface (auch `HeartRateSensor`) sauber; Mock läuft über Fallback-Zweig |
+| 2026-06-13 | continuous-`distanceFilter` provisorisch 50 m | Feintuning in Phase B; Phase A nutzt manual = 5 m |
 
 ## Changelog
 
@@ -230,3 +234,4 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 |-------|----|---------|
 | 2026-06-13 | — | Doc angelegt; Status-quo, verifizierte Erkenntnisse, Fahrplan WP1–WP6 |
 | 2026-06-13 | WP1 | Native Config umgesetzt & verifiziert — Manifest: +`FOREGROUND_SERVICE(_LOCATION)`/`POST_NOTIFICATIONS`/`WAKE_LOCK`, −`ACCESS_BACKGROUND_LOCATION`; Plist: +`UIBackgroundModes:[location]`, Usage-Strings geschärft. `dart analyze` clean, 813 Tests grün, Debug-APK baut, gemergtes Manifest geprüft (FGS-Perms + `GeolocatorLocationService` da, kein aktives `ACCESS_BACKGROUND_LOCATION`). |
+| 2026-06-13 | WP2 | `GpsSensor.buildLocationSettings` (plattformspezifisch): Android `AndroidSettings` + `ForegroundNotificationConfig` (Wakelock/ongoing), iOS `AppleSettings` (Background-Updates, `pauseLocationUpdatesAutomatically:false`, `showBackgroundLocationIndicator:true`, `activityType: fitness`); `TrackingMode` durch `SensorManager.startSession` → `GpsSensor` durchgereicht (`ActivityProvider` übergibt `session.trackingMode`); neuer Builder-Unit-Test. `dart analyze` clean, **817 Tests** grün, Debug-APK baut. |

@@ -662,6 +662,7 @@ class ActivityProvider extends ChangeNotifier {
       final results = await _sensorManager.startSession(
         sessionId: _currentSession!.id,
         activityType: _selectedActivityType,
+        mode: _currentSession!.trackingMode,
       );
 
       if (results['gps'] == true) {

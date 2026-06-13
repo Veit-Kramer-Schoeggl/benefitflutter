@@ -5,6 +5,7 @@ import 'package:benefitflutter/features/shared/sensors/gps_sensor.dart';
 import 'package:benefitflutter/features/shared/sensors/sensor_status.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
+import 'package:benefitflutter/core/enums/tracking_mode.dart';
 
 /// Coordinator for managing multiple sensors
 ///
@@ -103,6 +104,7 @@ class SensorManager {
   Future<Map<String, bool>> startSession({
     required String sessionId,
     required ActivityType activityType,
+    TrackingMode mode = TrackingMode.manual,
   }) async {
     if (!_initialized) {
       throw StateError(
@@ -113,7 +115,7 @@ class SensorManager {
     final results = <String, bool>{};
 
     // Start GPS sensor
-    results['gps'] = await _startGpsSensor(sessionId);
+    results['gps'] = await _startGpsSensor(sessionId, mode);
 
     // Future: Start accelerometer if available
     // results['accelerometer'] = await _startAccelerometer(sessionId);
@@ -161,7 +163,7 @@ class SensorManager {
 
   // ===== GPS SPECIFIC =====
 
-  Future<bool> _startGpsSensor(String sessionId) async {
+  Future<bool> _startGpsSensor(String sessionId, TrackingMode mode) async {
     try {
       // Check if available
       if (_gpsSensor.status == SensorStatus.denied ||
@@ -171,8 +173,16 @@ class SensorManager {
         if (!granted) return false;
       }
 
-      // Start streaming
-      await _gpsSensor.startStreaming(sessionId: sessionId);
+      // Start streaming. The tracking mode (which tunes accuracy / enables the
+      // foreground service) is GPS-specific, so it is not on the BaseSensor
+      // interface — pass it only to the concrete GpsSensor; other
+      // implementations (e.g. test mocks) use the base signature.
+      final gps = _gpsSensor;
+      if (gps is GpsSensor) {
+        await gps.startStreaming(sessionId: sessionId, mode: mode);
+      } else {
+        await gps.startStreaming(sessionId: sessionId);
+      }
       return true;
     } catch (e) {
       debugPrint('Failed to start GPS sensor: $e');
