@@ -1,12 +1,33 @@
 # Device Smoke Checklist
 
-Manual on-device smoke tests for changes from Phase 1 rounds 2a / 2b / 3, collected so
-they can be walked through in one pass on a physical device (reference: Xiaomi Mi 11,
-Android 14). Run a **debug** build (`flutter install` re-seeds the DB: `test@gmail.com` /
-`1234`, `test2@gmail.com` / `1234`).
+Manual on-device smoke tests for changes from Phase 1 rounds 2a / 2b / 3 and Phase 2
+(background-tracking runtime), collected so they can be walked through in one pass on a
+physical device (reference: Xiaomi Mi 11, Android 14). Run a **debug** build
+(`flutter install` re-seeds the DB: `test@gmail.com` / `1234`, `test2@gmail.com` / `1234`).
 
 **Legend:** ✅ done/confirmed · 🟡 partially verified (logic covered by tests / automated
 boot smoke, full UI flow not yet hand-ticked) · ⬜ pending
+
+---
+
+## Phase 2 — Background-Tracking-Runtime *(WP1–WP2 im Code, on-device noch offen)*
+
+> Voraussetzung: echtes Gerät (Xiaomi Mi 11 / Android 14) — im Emulator/Unit-Test ist nur die
+> Settings-Konstruktion prüfbar. Detail-Fahrplan: [sessions/BACKGROUND_TRACKING_PLAN.md](sessions/BACKGROUND_TRACKING_PLAN.md).
+> Einige Punkte werden erst durch **WP3** (Permission-Flow) testbar.
+
+### Foreground-Service / GPS im Hintergrund (WP2)
+- [ ] ⬜ **GPS läuft im Hintergrund weiter (Kern):** Session starten → App in den Hintergrund / Display sperren → ~5–10 min bewegen → zurück/Stop → Route & Distanz vollständig, keine Lücke. *(geolocator-Foreground-Service)*
+- [ ] ⬜ **Foreground-Notification:** während aktiver Session erscheint die dauerhafte „BeneFit — Recording your activity session…"-Notification (nicht wegwischbar, `setOngoing`); verschwindet bei Stop.
+- [ ] ⬜ **Logcat FGS-Typ:** beim Session-Start KEINE `MissingForegroundServiceTypeException` / „FGS type not allowed" (Android 14+, targetSdk 36).
+- [ ] ⬜ **Display aus / Wakelock:** bei gesperrtem Display sampelt GPS weiter (kein Einfrieren bis zum Aufwecken).
+- [ ] ⬜ **Phase-A-Grenze (erwartet, kein Bug):** App aus den Recents wischen → Tracking endet (kein Background-Isolate); App-Neustart verhält sich sauber (Session nicht korrupt).
+- [ ] ⬜ **OEM-Batterie (MIUI):** beobachten, ob MIUI den Prozess trotz FGS killt → ggf. Whitelisting-Hinweis nötig (Phase-2-Folgepunkt).
+
+### Permissions (WP3 — erst nach Umsetzung testbar)
+- [ ] ⬜ **Location „while in use" reicht:** erste Session promptet Standort; „Beim Verwenden der App erlauben" genügt fürs Hintergrund-Tracking (kein „Immer" nötig).
+- [ ] ⬜ **POST_NOTIFICATIONS (Android 13+):** erste Session promptet Benachrichtigungs-Permission; bei Ablehnung zeichnet der FGS weiter auf (Notification unsichtbar) — Verhalten beobachten.
+- [ ] ⬜ **System-Ortung aus:** mit deaktivierter Geräte-Ortung → klare Fehlermeldung beim Start, kein Crash.
 
 ---
 
