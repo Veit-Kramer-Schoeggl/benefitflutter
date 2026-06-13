@@ -3,8 +3,23 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Background location (for continuous tracking - future) -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- Foreground service for active-session GPS tracking (Phase 2 / WP1).
+         The location service itself is declared by the geolocator_android plugin
+         (GeolocatorLocationService, foregroundServiceType="location") and merges in;
+         we only contribute the required permissions here. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Foreground-service notification (Android 13+ runtime permission) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Keep CPU/GPS alive with the screen off during a session (paired with enableWakeLock) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- ACCESS_BACKGROUND_LOCATION: deferred to Phase B (continuousDaily).
+         Active sessions start the location foreground service while the app is in the
+         foreground, so the while-in-use permission is sufficient; omitting this avoids
+         triggering Google Play's background-location review. Re-add when continuousDaily
+         (background-started tracking) is implemented. -->
+    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
 
     <!-- Activity Recognition (for future accelerometer) -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />

@@ -47,9 +47,16 @@
 	<true/>
 	<!-- Location Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>BeneFit needs your location to track your activity sessions and calculate distance traveled.</string>
+	<string>BeneFit uses your location to record your route and distance during an active workout session.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>BeneFit needs continuous location access to track your daily movement in the background.</string>
+	<string>BeneFit records your route while a workout session is active, including when the app is in the background or the screen is off.</string>
+	<!-- Background execution for active-session GPS tracking (Phase 2 / WP1).
+	     Required by CoreLocation/geolocator to deliver location updates while backgrounded;
+	     without the "location" value, background updates silently never fire. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<!-- Motion/Activity Permissions (future) -->
 	<key>NSMotionUsageDescription</key>
 	<string>BeneFit uses motion sensors to count your steps and detect activity types.</string>
