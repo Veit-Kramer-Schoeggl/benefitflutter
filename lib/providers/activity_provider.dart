@@ -746,7 +746,9 @@ class ActivityProvider extends ChangeNotifier {
         AppLogger.d(
           'ActivityProvider: Failed to start GPS - permission denied or unavailable',
         );
-        _gpsStartWarning = _gpsWarningForStatus(_sensorManager.gpsSensor.status);
+        _gpsStartWarning = _gpsWarningForStatus(
+          _sensorManager.gpsSensor.status,
+        );
         notifyListeners();
       }
     } catch (e) {

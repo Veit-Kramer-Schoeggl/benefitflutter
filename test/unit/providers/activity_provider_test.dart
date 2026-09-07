@@ -382,50 +382,56 @@ void main() {
       p.dispose();
     });
 
-    test('retryGpsIfNeeded clears the warning once permission granted', () async {
-      final mockGps = MockGpsSensor()..setPermissionGranted(false);
-      final p = await startWith(mockGps);
-      expect(p.gpsStartWarning, isNotNull);
+    test(
+      'retryGpsIfNeeded clears the warning once permission granted',
+      () async {
+        final mockGps = MockGpsSensor()..setPermissionGranted(false);
+        final p = await startWith(mockGps);
+        expect(p.gpsStartWarning, isNotNull);
 
-      // Simulate the user enabling location in system settings, then resuming.
-      mockGps.setPermissionGranted(true);
-      await p.retryGpsIfNeeded();
+        // Simulate the user enabling location in system settings, then resuming.
+        mockGps.setPermissionGranted(true);
+        await p.retryGpsIfNeeded();
 
-      expect(p.gpsStartWarning, isNull);
+        expect(p.gpsStartWarning, isNull);
 
-      p.dispose();
-    });
+        p.dispose();
+      },
+    );
   });
 
   group('Session duration (WP4)', () {
-    test('accumulates active time and excludes pauses (timestamp-based)', () async {
-      var t = DateTime(2026, 1, 1, 12, 0, 0);
-      final repo = MockSessionRepository();
-      final p = ActivityProvider(
-        repo,
-        userId: 'u1',
-        now: () => t,
-        gpsPointDao: FakeGpsPointDao(),
-      );
+    test(
+      'accumulates active time and excludes pauses (timestamp-based)',
+      () async {
+        var t = DateTime(2026, 1, 1, 12, 0, 0);
+        final repo = MockSessionRepository();
+        final p = ActivityProvider(
+          repo,
+          userId: 'u1',
+          now: () => t,
+          gpsPointDao: FakeGpsPointDao(),
+        );
 
-      await p.startSession();
-      t = t.add(const Duration(seconds: 10));
-      expect(p.elapsedSeconds, 10);
+        await p.startSession();
+        t = t.add(const Duration(seconds: 10));
+        expect(p.elapsedSeconds, 10);
 
-      await p.pauseSession();
-      t = t.add(const Duration(seconds: 30)); // paused — must not count
-      expect(p.elapsedSeconds, 10);
+        await p.pauseSession();
+        t = t.add(const Duration(seconds: 30)); // paused — must not count
+        expect(p.elapsedSeconds, 10);
 
-      await p.resumeSession();
-      t = t.add(const Duration(seconds: 5));
-      expect(p.elapsedSeconds, 15);
+        await p.resumeSession();
+        t = t.add(const Duration(seconds: 5));
+        expect(p.elapsedSeconds, 15);
 
-      await p.stopSession();
-      final sessions = await repo.getAllSessions(userId: 'u1');
-      expect(sessions.single.durationSeconds, 15);
+        await p.stopSession();
+        final sessions = await repo.getAllSessions(userId: 'u1');
+        expect(sessions.single.durationSeconds, 15);
 
-      p.dispose();
-    });
+        p.dispose();
+      },
+    );
 
     test('elapsed self-corrects across a throttled timer (background)', () async {
       // The 1s UI timer is never pumped here (simulating background throttling),

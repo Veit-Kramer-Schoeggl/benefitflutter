@@ -361,7 +361,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           if (provider.gpsStartWarning != null) ...[
                             const SizedBox(height: 14),
                             Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
                                 vertical: 10,
