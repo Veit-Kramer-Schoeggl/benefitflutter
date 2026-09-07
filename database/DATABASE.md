@@ -10,8 +10,11 @@
 
 Reference [database/schema_actual.puml](schema_actual.puml) for implemented tables and [database/schema_planned.puml](schema_planned.puml) for full roadmap.
 
+> **Diagram status: stale.** Both `.puml` files are a v11 snapshot (their titles read `Last updated: 2025-02-24`), and `schema_actual.puml`'s `users` entity is missing `password_hash`, `profile_image_path`, `is_verified` and `verification_status` (migrations v5-v7). Until they are regenerated from the current `CREATE TABLE` statements, **this document is the authoritative schema reference.**
+
 ## Overview
 
+- **Last updated:** 2026-08-28 (verified against branch `feat/phase-2-background-tracking`)
 - **Database:** SQLite (benefit_app.db)
 - **Current Version:** 12 (after data-integrity hardening: orphan cleanup, email de-dup, UNIQUE email index)
 - **Pattern:** Offline-first with sync queue
@@ -28,22 +31,29 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 - `id` (TEXT, PRIMARY KEY) - Unique user identifier
 - `name` (TEXT, NOT NULL) - User's full name
 - `email` (TEXT, NOT NULL) - User's email address
-- `password_hash` (TEXT, NOT NULL) - SHA-256 hashed password (v7, hashed in v10)
+- `password_hash` (TEXT) - SHA-256 hashed password (v7, hashed in v10). Constraint differs by install path - see note below
 - `display_name` (TEXT) - Display name for profile (v3)
 - `gender` (TEXT) - User's gender (male/female/other) (v3)
 - `date_of_birth` (INTEGER) - Date of birth timestamp (v3)
 - `timezone` (TEXT) - User's timezone (v3)
 - `profile_image_path` (TEXT) - Path to profile image file (v5)
 - `is_verified` (INTEGER) - Email verification status 0/1 (v6)
-- `verification_status` (TEXT) - Verification state: 'unverified'/'pending'/'verified' (v6)
+- `verification_status` (TEXT, DEFAULT 'unverified') - Verification state. Only `unverified` and `verified` are ever written (`lib/presentation/screens/profile/profile_screen.dart:954`); the in-flight *pending* state lives in memory in `AuthProvider._pendingVerificationCode` and is never persisted to this column (v6)
 - `created_at` (INTEGER, NOT NULL) - Account creation timestamp
 - `updated_at` (INTEGER, NOT NULL) - Last update timestamp
+
+> **Note - `password_hash` differs between fresh and upgraded installs.** A fresh database creates the column as `TEXT NOT NULL` with no default (`database_helper.dart:609`); a database upgraded through migration v7 gets `TEXT DEFAULT ''` and nullable (`database_helper.dart:475`), because SQLite cannot add a `NOT NULL` column without a default. Two installs both reporting version 12 therefore carry different constraints on the same column. Rows migrated from before v7 hold `''`, which `PasswordUtils.verifyPassword` can never match, until the user sets a password. Test fixtures and future migrations must handle both shapes.
 
 **Indexes:**
 - Primary key on `id`
 - Unique index on `email` (`idx_users_email_unique`, v12; replaces the earlier non-unique `idx_users_email`)
 
 **Security Note:** Passwords are stored as SHA-256 hashes (64 hex characters). Plain text passwords are never stored. DB-backed authentication looks up the user via `UserDao.findByEmail` (`email = ? COLLATE NOCASE`) and verifies with `PasswordUtils.verifyPassword`.
+
+Two properties of this setup are worth knowing before touching the `users` table:
+
+- **Hashing is plain, unsalted SHA-256** - `PasswordUtils.hashPassword` is `sha256.convert(utf8.encode(password))` and nothing more (`lib/core/utils/password_utils.dart:9-13`): no per-user salt, no key stretching. Adequate for the local-only prototype, but a salted KDF (bcrypt/argon2) is required before any server-backed auth. Swapping the algorithm needs a migration in the shape of v10.
+- **The UNIQUE email index does not match the lookup collation** - `idx_users_email_unique` is a plain `UNIQUE` index (`database_helper.dart:624` / `:302`) and therefore uses SQLite's default BINARY collation, so `a@x.com` and `A@x.com` can both be inserted, while `findByEmail` matches `COLLATE NOCASE` with `limit: 1` and would return an arbitrary one of them. The v12 de-duplication also groups case-sensitively (`GROUP BY email`, `database_helper.dart:269`). Callers must normalise with `.trim().toLowerCase()` before insert; a `CREATE UNIQUE INDEX ... ON users(email COLLATE NOCASE)` would close the gap in a future migration.
 
 ### sessions
 
@@ -53,11 +63,11 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 - `id` (TEXT, PRIMARY KEY) - Unique session identifier (UUID)
 - `user_id` (TEXT, NOT NULL, FK) - Foreign key to users table
 - `tracking_mode` (TEXT, NOT NULL) - "manual" or "continuousDaily"
-- `activity_type` (TEXT, NOT NULL) - "running", "walking", or "cycling"
-- `status` (TEXT, NOT NULL) - "active", "paused", or "completed"
+- `activity_type` (TEXT, NOT NULL) - `ActivityType` enum name; 12 values: `running`, `walking`, `cycling`, `swimming`, `strengthTraining`, `yoga`, `hiking`, `trailRunning`, `dancing`, `martialArts`, `teamSports`, `other` (unknown values decode to `other`, see `lib/core/enums/activity_type.dart`)
+- `status` (TEXT, NOT NULL) - `SessionStatus` enum name: `active`, `paused`, `completed` or `cancelled` (unknown values decode to `completed`). No production code writes `cancelled` today
 - `start_time` (INTEGER, NOT NULL) - Session start timestamp (milliseconds since epoch)
 - `end_time` (INTEGER, NULL) - Session end timestamp (NULL for active sessions)
-- `duration_seconds` (INTEGER, NULL) - Total duration in seconds (NULL for continuous mode)
+- `duration_seconds` (INTEGER, NULL) - Total duration in seconds. NULL while a session is still running; populated on completion from timestamps - manual sessions use the paused-time-excluding active-duration accumulator (`ActivityProvider._elapsedSeconds`), continuous sessions use `endTime - startTime` (`lib/providers/activity_provider.dart:629`)
 - `distance_meters` (REAL, NULL) - Total distance calculated from GPS points
 - `tracking_date` (INTEGER, NULL) - Date for continuous tracking sessions
 - `created_at` (INTEGER, NOT NULL) - Record creation timestamp
@@ -111,7 +121,12 @@ Reference [database/schema_actual.puml](schema_actual.puml) for implemented tabl
 - Foreign key: `session_id` references `sessions(id)` ON DELETE CASCADE
 
 **Data Retention:**
-GPS points are deleted after successful sync to server (see [GpsTrackingConfig](../lib/core/config/gps_tracking_config.dart)). Session summary (distance, duration) is retained permanently.
+Session summary (distance, duration) is retained permanently. Post-sync deletion of GPS points is **planned, not implemented**: `GpsPointDao.deleteBySessionId`, `deleteOlderThan` and `deleteBySessions` exist but have no production caller anywhere in `lib/`, and `GpsTrackingConfig.deleteGpsPointsAfterSync` (`../lib/core/config/gps_tracking_config.dart`) is a constant that no code reads. GPS points therefore accumulate locally for the life of the session row and are removed only by the `sessions` foreign-key cascade when a session is deleted.
+
+**Write path (batched since WP5):**
+Accepted points are not inserted one by one. They are buffered in memory and written with `GpsPointDao.insertBatch`, flushed when the buffer reaches 5 points (`_gpsBatchSize`) or is older than 60 s (`_maxBufferAge`, checked on point arrival rather than by a background-throttled timer), and on pause / stop / app-background (`lib/providers/activity_provider.dart:70-72`, `:804-820`). The buffer is swapped out before the awaited write, and a failed batch is re-queued rather than dropped (`:814`).
+
+> **Durability trade-off:** a hard OS kill that skips the lifecycle `paused` event loses the points buffered since the last flush - at most 4 points or 60 s of track.
 
 ### user_biometrics_reported (v3)
 
@@ -227,7 +242,7 @@ Stores height, weight, and other biometric measurements. Multiple entries allowe
 > **Note:** `sync_queue` is the only table with an INTEGER AUTOINCREMENT primary key. There is no dedicated DAO; it is referenced only by `clearAllTables()`.
 
 **Notes:**
-Sync queue entries are deleted after successful sync. Failed syncs are retried with exponential backoff.
+**Status: not wired.** The table is created and cleared, but no code inserts, reads, updates or deletes a row - grepping `lib/` for `sync_queue` returns only the DDL and the `clearAllTables()` list (`database_helper.dart:784-805`, `:832`). `queueForSync` and `processQueue` are no-op stubs with commented-out example bodies in all three strategies (`session_sync_strategy.dart`, `user_sync_strategy.dart`, `benefit_sync_strategy.dart`). Once sync lands, entries are to be deleted after successful sync and failures retried with backoff (`BaseSyncStrategy.maxRetries` / `retryDelaySeconds`, `lib/features/shared/sync/base_sync_strategy.dart:59,62` - both currently unread).
 
 ## Wearable Integration Tables (v4)
 
@@ -467,7 +482,7 @@ DAOs live in `lib/features/wearable_integration/data/daos/`.
 - Created `session_motion_data` table for motion sensor readings
 - Created `session_sensor_summary` table for aggregated metrics (kept permanently)
 - Created `health_platform_data` table for health platform data
-- Created indexes for all of the above
+- Created 7 indexes across `wearable_devices`, `session_biometric_data`, `session_motion_data` and `health_platform_data`; `session_sensor_summary` gets no explicit `CREATE INDEX` - its inline `session_id TEXT NOT NULL UNIQUE` column constraint supplies the implicit unique index
 - Added wearable data columns to `sessions` table: `avg_heart_rate`, `max_heart_rate`, `min_heart_rate`, `avg_heart_rate_variability`, `total_steps`, `avg_cadence`, `calories_burned`, `heart_rate_zones`, `has_wearable_data` (DEFAULT 0), `connected_device_ids`
 
 ### v5 (Profile Image)
@@ -511,12 +526,25 @@ GPS tracking parameters are configurable in [lib/core/config/gps_tracking_config
 **Key Parameters:**
 - **Frequency:** Hybrid - 5 seconds OR 10 meters (whichever comes first)
 - **Accuracy:** Minimum 50 meters accuracy required
-- **Data Retention:** GPS points deleted after successful sync
+- **Data Retention:** *Planned* - GPS points are **not** deleted today (no sync path exists; see [gps_points > Data Retention](#gps_points-new-in-v2))
 - **Distance Calculation:** Haversine formula from GPS coordinates
+
+**Acquisition layer (`GpsSensor`)**
+
+`GpsTrackingConfig` is the *storage-side* filter. Above it sits an OS-level layer that decides which fixes are delivered at all: `GpsSensor.buildLocationSettings` (`../lib/features/shared/sensors/gps_sensor.dart`, line 253) configures the platform stream before any threshold is evaluated.
+
+| Setting | Value | Where |
+|---------|-------|-------|
+| Accuracy | `LocationAccuracy.high` (all platforms) | `gps_sensor.dart:264,270,279` |
+| `distanceFilter` | 5 m for manual sessions, 50 m for `continuousDaily` | `gps_sensor.dart:230-231` |
+| Android background | `ForegroundNotificationConfig` with `enableWakeLock` + `setOngoing` | `gps_sensor.dart:236-242,266` |
+| iOS background | `allowBackgroundLocationUpdates`, `pauseLocationUpdatesAutomatically: false`, `activityType: fitness` | `gps_sensor.dart:269-276` |
+
+The Android foreground service is what keeps an active session recording while the app is backgrounded (it does **not** survive a process kill). `GpsTrackingConfig` thresholds are then applied per delivered fix in `ActivityProvider._shouldStoreGpsPoint` (`../lib/providers/activity_provider.dart`, line 893).
 
 ## Future Schema (from database/schema_planned.puml)
 
-The following tables are planned for future implementation:
+`schema_planned.puml` marks **seven** entities `<<planned>>`; all seven are listed below.
 
 ### session_stream_data
 **Purpose:** Real-time heart rate tracking during sessions
@@ -526,6 +554,19 @@ The following tables are planned for future implementation:
 - HR zone classification
 - Real-time performance metrics
 
+### session_batch_data
+**Purpose:** Batched sensor payloads uploaded per session (`schema_planned.puml:277`)
+
+**Fields:**
+- `session_id` (FK) - Owning session
+- `upload_timestamp` - When the batch was uploaded
+- `data_start_time` / `data_end_time` - Time window covered by the batch
+- `gps_track_data` (JSON) - GPS track for the window
+- `accelerometer_data` (JSON) - Raw accelerometer samples
+- `active_segments` (JSON) - Detected active segments
+- `privacy_level` - Privacy level for the batch
+- `created_at` - Record creation timestamp
+
 ### session_analysis
 **Purpose:** Post-session terrain validation and fitness scores
 
@@ -533,6 +574,29 @@ The following tables are planned for future implementation:
 - Terrain type detection (flat, hilly, mountainous)
 - Performance scores
 - Training effect metrics
+
+### user_fitness_scores
+**Purpose:** Per-user aggregate fitness scoring (`schema_planned.puml:305`)
+
+**Fields:**
+- `user_id` (FK, unique) - Owning user
+- `lifetime_score` - Cumulative fitness score
+- `last_updated` - Timestamp of the last recalculation
+- `daily_average_30d` / `weekly_average_4w` - Rolling averages
+- `calculation_version` - Version of the scoring algorithm used
+- `recalculation_needed` - Flag for pending recalculation
+- `created_at` / `updated_at` - Record timestamps
+
+### daily_fitness_contributions
+**Purpose:** Per-day contribution rows feeding the fitness score (`schema_planned.puml:319`)
+
+**Fields:**
+- `user_id` (FK) - Owning user
+- `contribution_date` - Day the contribution belongs to
+- `daily_score` - Score contributed that day
+- `session_count` - Number of sessions that day
+- `activity_type_breakdown` (JSON) - Score split by activity type
+- `created_at` / `updated_at` - Record timestamps
 
 ### user_biometrics_measured
 **Purpose:** Automatically measured biometric data (VO2 max, heart rate zones)
@@ -566,21 +630,26 @@ The following tables are planned for future implementation:
 ### Manual Session Flow
 1. User starts manual session → Session created with status "active"
 2. GPS points recorded every 5 seconds OR 10 meters
-3. GPS points stored in `gps_points` table with session_id
+3. Accepted points are buffered in memory and written to `gps_points` via `GpsPointDao.insertBatch` when the buffer reaches 5 points or is older than 60 s, and on pause / stop / app-background (`ActivityProvider._flushGpsBuffer`, `lib/providers/activity_provider.dart:804`). Distance and the live UI read the in-memory list, not the DB
 4. Distance calculated from GPS points using Haversine formula
 5. User stops session → Session status updated to "completed"
-6. Session and GPS points added to `sync_queue`
-7. Background sync uploads data to server
-8. After successful sync, GPS points deleted (session summary retained)
+6. *(Planned)* Session and GPS points added to `sync_queue`
+7. *(Planned)* Background sync uploads data to server
+8. *(Planned)* After successful sync, GPS points deleted (session summary retained)
+
+> **Steps 6-8 are planned, not implemented.** The app stops at step 5 today - see [Sync Flow](#sync-flow) below.
 
 ### Continuous Tracking Flow
 1. Continuous session active in background
-2. GPS points recorded at lower frequency (5 min OR 100 meters)
+2. *(Planned)* Lower-frequency recording (5 min OR 100 m via `GpsTrackingConfig.continuousMode*`). Today no GPS stream is attached to a continuous session, and `ActivityProvider` always evaluates thresholds with `isContinuousMode: false` (`lib/providers/activity_provider.dart:906`) - no call site in `lib/` ever passes `true`. The only continuous-specific setting actually wired up is `GpsSensor._continuousDistanceFilter` = 50 m
 3. User starts manual session → Continuous session completed
 4. Manual session runs normally
 5. User stops manual session → Continuous session restarted
 
 ### Sync Flow
+
+> **Status: planned, not implemented.** Nothing writes to `sync_queue` today. In all three strategies `uploadToRemote` returns a hardcoded `Future.value(true)` and `downloadFromRemote` throws `UnimplementedError('PostgREST not yet configured')`, while `queueForSync` / `processQueue` are no-ops. The steps below describe the target design, not current behaviour.
+
 1. Completed sessions added to `sync_queue` with type "session"
 2. GPS points included in session sync payload
 3. Background sync service processes queue (FIFO)
@@ -627,6 +696,8 @@ WHERE user_id = ? AND status = 'completed';
 
 ## Database Maintenance
 
+> **Status: manual / planned.** Neither routine below is executed by the app - there is no scheduled cleanup job (`GpsPointDao.deleteOlderThan` has no caller) and no sync path that could mark data as safe to drop. The statements document the intended maintenance.
+
 ### Cleanup old GPS points
 GPS points older than 30 days should be cleaned up if sync failed:
 
@@ -645,7 +716,7 @@ WHERE retry_count > 10;
 
 ## Related Files
 
-- **Schema Diagrams:** [database/schema_actual.puml](schema_actual.puml) | [database/schema_planned.puml](schema_planned.puml)
+- **Schema Diagrams:** [database/schema_actual.puml](schema_actual.puml) | [database/schema_planned.puml](schema_planned.puml) - *stale, v11 snapshot dated 2025-02-24; see the note at the top of this document*
 - **Database Helper:** [lib/features/shared/database/database_helper.dart](../lib/features/shared/database/database_helper.dart)
 - **GPS Configuration:** [lib/core/config/gps_tracking_config.dart](../lib/core/config/gps_tracking_config.dart)
 - **Session Model:** [lib/features/session/domain/session.dart](../lib/features/session/domain/session.dart)

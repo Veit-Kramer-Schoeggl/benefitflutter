@@ -12,35 +12,68 @@ Based on the investigation of the BeneFit Flutter app codebase and research into
 
 > **Note:** This document began as a pre-implementation research/recommendation
 > paper on the 2025 wearable ecosystem. The wearable integration described below
-> has since been **implemented**. Sections 1, 6 and 7 have been updated to reflect
-> the current code; the remaining sections retain their original ecosystem research
-> and design rationale.
+> has since been **built** — with important parts not yet wired up end to end
+> (see section 1). Sections 1, 6 and 7 reflect the current code; sections 2-5 and 8
+> are the original 2025 ecosystem research and are deliberately left as they were.
+>
+> **Status:** ecosystem research from 2025; implementation status re-verified against
+> the code on **2026-08-28** (branch `feat/phase-2-background-tracking`). For the
+> file-and-line detail behind every claim in section 1, see
+> [WEARABLE_INTEGRATION.md](../../lib/features/wearable_integration/WEARABLE_INTEGRATION.md).
 
 ## 1. Current State of Your App
 
-Your BeneFit Flutter app has a **full wearable integration** under
-`lib/features/wearable_integration/`:
+Your BeneFit Flutter app has a **substantial wearable integration** under
+`lib/features/wearable_integration/` — the Health-platform half works end to end; the
+BLE half is built but not yet connected up:
 
-**Implemented:**
+**Implemented and working:**
 - Extensible sensor framework (`BaseSensor<T>` pattern)
 - GPS tracking with real-time streaming
 - Session management (manual & continuous modes)
 - User biometrics storage (height, weight)
-- Offline-first sync architecture
-- Bluetooth/BLE integration (`BleDataSource` + `HeartRateSensor`)
-- Real-time heart rate monitoring (BLE Heart Rate Service `0x180D`)
 - 3rd party health API integration: Health Connect (Android) and Apple
   HealthKit (iOS) via the `health` package, orchestrated by `HealthSyncService`
-  and `HealthPlatformProvider`
+  and `HealthPlatformProvider` — connect, permission handling, a manual "Sync Now"
+  of a 7-day window and local batch storage all work
+- BLE device scan and pairing UI (`DevicePairingScreen`)
 - Five dedicated database tables (`wearable_devices`, `health_platform_data`,
   `session_biometric_data`, `session_motion_data`, `session_sensor_summary`)
   with matching DAOs
+
+**Built but NOT wired end-to-end:**
+- **BLE heart-rate stack** (Heart Rate Service `0x180D`): `HeartRateSensor`,
+  `BleDataSource` and the `ActivityProvider` plumbing are complete, but no UI passes a
+  device id to `startSession()` (`activity_screen.dart:107`), and every screen/provider
+  owns a **separate** `BleDataSource` instance (`device_pairing_screen.dart:21`,
+  `device_connection_screen.dart:31`, `activity_provider.dart:108`). Live heart rate,
+  the connected-device list and BLE session summaries therefore never fire in the
+  shipped app.
+- **Local-first storage with sync-strategy scaffolding**: `SessionSyncStrategy.uploadToRemote()`
+  is a stub returning `true` without a network call (`session_sync_strategy.dart:23-32`)
+  and `downloadFromRemote()` throws `UnimplementedError` (`:34-42`). No backend is wired,
+  so "offline-first sync" is currently offline-only storage.
+- Automatic health sync after a successful connect — the call exists but is guarded by a
+  user id that nothing ever sets (`HealthPlatformProvider.initialize()` has no caller).
 
 **Not Implemented:**
 - Standalone step-counter / power-meter BLE sensors (only `HeartRateSensor`
   exists as a BLE sensor; steps/power arrive via the Health platform APIs)
 - ANT+ protocol support
 - Google Fit (intentionally skipped in favour of Health Connect)
+- Persistence of paired BLE devices — `wearable_devices` is written only by the demo
+  seeder (`seed_service.dart:302-315`)
+- Heart-rate zone computation and display — the session summary shows a hard-coded
+  placeholder behind a TODO (`session_summary_screen.dart:299-334`)
+- Health-platform enrichment at session completion — `enrichSession()` exists but has no
+  production caller
+- The 90-day health-data cleanup — `cleanupOldData()` has no caller
+  (`health_platform_provider.dart:260`), so `health_platform_data` grows unbounded
+- Deduplication of health syncs — every sync re-inserts the window under fresh UUIDs
+- BLE auto-reconnect and battery readout (`ble_data_source.dart:236-241`)
+- Sleep / SpO2 / VO2 max / workout sync — `syncAll()` covers 6 types only
+  (`health_sync_service.dart:111-116`), and on Android resting heart rate has no
+  Health Connect permission, so 5 land in practice
 
 ---
 
@@ -49,7 +82,7 @@ Your BeneFit Flutter app has a **full wearable integration** under
 ### A. Direct Device Connection (Bluetooth BLE)
 
 **BLE (Bluetooth Low Energy)** - The dominant technology in 2025:
-- **Market Share:** 648 million Bluetooth wearables shipped in 2024
+- **Market Share:** 648 million Bluetooth wearables shipped (2024 figure, from the 2025 research)
 - **Supported Devices:** Almost all modern wearables
 - **Power Consumption:** Excellent - months on coin battery
 - **Range:** ~10-30 meters
@@ -75,14 +108,14 @@ Your BeneFit Flutter app has a **full wearable integration** under
 
 ### B. 3rd Party Health Platform APIs
 
-**IMPORTANT UPDATE FOR 2025:** Google Fit API is being **deprecated June 30, 2025**
+**Google Fit APIs were shut down on 30 June 2025** — Health Connect is the Android standard.
 
 | Platform | OS | Status | Data Types | Integration Complexity |
 |----------|----|---------|-----------|-----------------------|
-| **Health Connect** | Android | **New Standard (2025)** | Steps, heart rate, distance, sleep, nutrition, SpO2, VO2 max | Medium |
+| **Health Connect** | Android | **Android standard** | Steps, heart rate, distance, sleep, nutrition, SpO2, VO2 max | Medium |
 | **Apple HealthKit** | iOS | Active, no changes | Same as Health Connect + clinical records | Medium |
 | **Samsung Health** | Android | Active (migrating to Health Connect) | Same as Health Connect | Medium |
-| **Google Fit** | Android | **Deprecated after June 2025** | Steps, heart rate, distance, calories | Don't use |
+| **Google Fit** | Android | **Retired (June 2025)** | Steps, heart rate, distance, calories | Don't use |
 
 **Key Insight:** For Android, you should integrate with **Health Connect**, not Google Fit.
 
@@ -227,7 +260,10 @@ lib/presentation/screens/wearable/
 2. **Sensor Extension:** New sensors extend your existing `BaseSensor<T>` pattern
 3. **Platform-Specific Implementations:** Use Flutter platform channels where needed
 4. **Unified Data Model:** Normalize data from all sources to common models
-5. **Priority System:** Health APIs as primary, BLE as fallback/real-time enhancement
+5. **Priority System (design intent, not implemented):** no cross-source merge exists.
+   Session summaries are built from BLE readings only (`activity_provider.dart:1020-1033`)
+   and `HealthSyncService.enrichSession()` (`health_sync_service.dart:302`) is never
+   invoked at session completion — see WEARABLE_INTEGRATION.md → *Conflict Resolution*.
 
 ---
 
@@ -252,11 +288,26 @@ lib/presentation/screens/wearable/
 - `ant_plus` was considered for Garmin/cycling sensors but is **not** a
   dependency; ANT+ is not supported.
 
-**Testing:**
-- `flutter_test` - the only test dependency; tests rely on hand-written mocks
-  that extend `BaseSensor` (e.g. `test/mocks/mock_gps_sensor.dart`) rather than
-  a mocking package (`mockito`/`mocktail` are **not** dependencies)
-- Physical devices recommended for BLE testing
+**Testing** (`pubspec.yaml:103-121`):
+- `flutter_test` (SDK) and `integration_test` (SDK) — the latter drives
+  `integration_test/app_happy_path_test.dart`
+- `sqflite_common_ffi` `^2.4.2` - host-side DAO/migration tests
+  (`test/features/shared/database/migration_test.dart`)
+- `flutter_lints` `^6.0.0`, `flutter_launcher_icons` `^0.14.4`
+- Mocks are hand-written; `mockito`/`mocktail` are **not** dependencies. Examples:
+  `test/mocks/mock_gps_sensor.dart` (extends `BaseSensor`) and
+  `test/helpers/health_fakes.dart` (`FakeHealthSyncService implements HealthSyncService`,
+  injected via `HealthPlatformProvider(syncService: ...)`)
+- **Platform constraint that shapes the tests:** `HealthSyncService`'s constructor throws
+  `UnsupportedError` on anything other than Android/iOS
+  (`health_sync_service.dart:16-26`), while `main.dart:196` constructs
+  `HealthPlatformProvider` unconditionally. Host tests therefore *must* inject the fake.
+  `ActivityProvider` offers the same kind of seams (`bleDataSource:`, `biometricDao:` —
+  `activity_provider.dart:96-109`)
+- Automated coverage of this feature is thin: the domain models, the provider (against the
+  fake) and the schema are tested; `BleDataSource`, `HeartRateSensor`, the two health
+  sources, `HealthSyncService` and the five wearable DAOs have **no tests**
+- Physical devices remain required for BLE testing
 
 ---
 

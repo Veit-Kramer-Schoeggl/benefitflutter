@@ -10,15 +10,19 @@
 
 ## Purpose
 
-The BeneFit app uses SQLite for local data storage with an offline-first architecture. All user data, sessions, and benefits are stored locally and synced to the server when connectivity is available.
+The BeneFit app uses SQLite for local data storage with an offline-first architecture. All user data, sessions, and benefits are stored locally.
+
+The schema is *built* for sync - there is a `sync_queue` table and a per-entity sync strategy for sessions, users and benefits - but **server sync is not yet implemented**. `uploadToRemote` returns a hardcoded `true`, `downloadFromRemote` throws `UnimplementedError('PostgREST not yet configured')`, and nothing writes to `sync_queue`. The app is currently **local-only**.
 
 ## Database Information
 
+- **Last updated:** 2026-08-28 (verified against branch `feat/phase-2-background-tracking`)
 - **Database Type:** SQLite
 - **File Name:** benefit_app.db
 - **Current Version:** 12
 - **Pattern:** Offline-first with sync queue
 - **Location:** Platform databases directory (`getDatabasesPath()`)
+- **Foreign keys:** enforced at runtime via `PRAGMA foreign_keys = ON`, set per connection in `DatabaseHelper.onConfigure`; a one-time `PRAGMA foreign_key_check` logs any pre-existing orphan rows on open
 
 ## Core Tables
 
@@ -32,7 +36,7 @@ Stores user account information and profile data:
 ### Sessions
 Tracks activity sessions (workouts):
 - Session metadata (start time, end time, duration)
-- Activity type (walking, running, cycling)
+- Activity type (12 `ActivityType` values, e.g. walking, running, cycling, swimming, yoga)
 - Tracking mode (manual or continuous)
 - Distance and performance metrics
 
@@ -56,10 +60,12 @@ Records of benefits earned by users:
 - Timestamp of earning
 
 ### Sync Queue
-Manages offline operations:
+Intended to manage offline operations:
 - Pending create/update/delete operations
 - Retry count and error tracking
 - Ensures data consistency across devices
+
+**Status: created but not wired.** The table exists in every database, but no code inserts, reads or removes a row yet. It becomes live when server sync is implemented.
 
 ## Additional Tables
 
@@ -87,16 +93,17 @@ Beyond the core tables, the schema includes feature-specific table groups:
 
 | Feature | Description |
 |---------|-------------|
-| **Offline-First** | All data saved locally before sync |
-| **Cascade Deletes** | Related records deleted automatically |
+| **Offline-First** | All data saved locally; the sync half of the pattern is not built yet |
+| **Cascade Deletes** | Related records deleted automatically - enforced per connection via `PRAGMA foreign_keys = ON` in `DatabaseHelper.onConfigure`, without which SQLite silently ignores every cascade rule |
 | **Indexed Queries** | Performance-optimized for common queries |
 | **Migration Support** | Schema versioning for updates |
-| **Data Retention** | GPS points cleaned after successful sync |
+| **Data Retention** | GPS points are kept locally today; post-sync cleanup is planned, not implemented (see [DATABASE.md](../../database/DATABASE.md)) |
 
 ## Schema Versioning
 
 The database uses incremental migrations to evolve the schema:
-- **v1-v2:** Core tables (users, sessions, GPS points)
+- **v1:** Core tables (users, sessions, benefits, user_benefits, sync_queue)
+- **v2:** GPS points
 - **v3:** Profile enhancements (reported biometrics, user preferences, demographics)
 - **v4:** Wearable integration (devices, biometric/motion/sensor data, health platform)
 - **v5:** Profile image support

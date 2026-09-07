@@ -4,6 +4,8 @@
 > **Overview Version:** [Progress Screen Overview](../../../../documentation/screens/PROGRESS_SCREEN_OVERVIEW.md) - High-level concepts
 >
 > **Related:** [DATABASE.md](../../../../database/DATABASE.md) | [PROVIDER_GUIDE.md](../../PROVIDER_GUIDE.md) | [Session Feature](../../../features/session/)
+>
+> **Last verified against code:** 2026-08-28 (branch `feat/phase-2-background-tracking`)
 ---
 
 # Progress Screen Implementation Plan
@@ -19,6 +21,11 @@
 > - The provider exposes `loadActivities()` / `updateUserId()` (no
 >   `fetchSessions` / `refresh` / `isRefreshing`); user id is injected via
 >   `ChangeNotifierProxyProvider` rather than a hard-coded `test-user-123`.
+> - It also exposes an opt-in `initialize()` (`=> loadActivities()`) that
+>   currently has **no call site** in `lib/` or `test/`, plus the two public
+>   prefs helpers `saveManualEntriesToPrefs()` / `loadManualEntriesFromPrefs()`.
+>   The read-only surface is `isLoading`, `error`, `activities` and `isEmpty` —
+>   there is no `hasError` and no `sessions` getter.
 > - The provider adds manual-entry CRUD (`addActivity` / `updateActivity` /
 >   `removeActivity`) and statistics aggregations
 >   (`getDistancePerWeekday`, `getDurationPerWeekdayMinutes`,
@@ -28,8 +35,16 @@
 >   `StatisticsTab`, `ActivitiesTab`, `ActivityListItem`, `CustomBarChart` /
 >   `CustomLineChart` (`custom_charts.dart`) and `ProgressSummary`, plus a
 >   manual-entry dialog and an "EARNED SO FAR" bottom bar (no `RefreshIndicator`).
-> - Tapping an activity opens `SessionDetailScreen`; manual entries open an
->   edit/delete dialog.
+> - Tapping *any* activity — manual or recorded — opens `SessionDetailScreen`
+>   via `_openSessionDetails` → `context.push('/session/<sessionId>')`
+>   (`progress_screen.dart:454` and `:363-365`). The manual edit/delete dialog
+>   (`_handleTapOrSwipeAction`, `progress_screen.dart:368`) is present but
+>   **dead code**: it carries an `// ignore: unused_element` marker and has no
+>   call site.
+> - Manual entries have no database row — their `sessionId` is a locally
+>   generated UUID persisted only to `SharedPreferences` — so tapping one still
+>   pushes `/session/<uuid>` and `SessionDetailScreen` renders
+>   `Error: Exception: Session not found: …`. **Status: known gap.**
 >
 > The phase-by-phase walkthrough below is retained as the original learning-oriented
 > plan and as a Provider-pattern reference.
@@ -233,6 +248,12 @@ class BenefitCard extends StatelessWidget {
 
 **File**: `lib/providers/progress_provider.dart`
 
+> ⚠️ **Historical sample — does not describe the shipped file.** The real
+> `lib/providers/progress_provider.dart` holds `List<ActivityEntry>` (not
+> `List<Session>`), has no `fetchSessions` / `refresh` / `isRefreshing` /
+> `hasError`, and does no work in its constructor. Read the file for the
+> current API.
+
 ```dart
 import 'package:flutter/foundation.dart';
 import 'package:benefitflutter/features/session/data/session_repository.dart';
@@ -332,6 +353,15 @@ MultiProvider(
 ### Phase 3: Update Screen
 
 **File**: `lib/presentation/screens/progress/progress_screen.dart`
+
+> ⚠️ **Historical sample — will not compile against the current provider.** It
+> calls `fetchSessions`, `refresh`, `hasError` and `sessions`, none of which
+> exist. The current API is `isLoading`, `error`, `activities`
+> (`List<ActivityEntry>`), `isEmpty`, `loadActivities()` and `updateUserId()`.
+> The shared `LoadingWidget` / `ErrorDisplayWidget` / `EmptyStateWidget`
+> referenced here do exist with these constructors, but the shipped screen uses
+> a plain `CircularProgressIndicator` / `Text` instead, and each tab widget
+> renders its own empty state.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -463,6 +493,15 @@ Sessions should be clickable to show details later. For now we show a Toast/Snac
 
 #### Updated Screen Implementation with Interactivity:
 
+> ⚠️ **Historical sample — will not compile against the current provider.** It
+> calls `fetchSessions`, `refresh`, `hasError` and `sessions`, none of which
+> exist. The current API is `isLoading`, `error`, `activities`
+> (`List<ActivityEntry>`), `isEmpty`, `loadActivities()` and `updateUserId()`.
+> The shared `LoadingWidget` / `ErrorDisplayWidget` / `EmptyStateWidget`
+> referenced here do exist with these constructors, but the shipped screen uses
+> a plain `CircularProgressIndicator` / `Text` instead, and each tab widget
+> renders its own empty state.
+
 ```dart
 // 4. Success State with clickable sessions
 return RefreshIndicator(
@@ -515,7 +554,16 @@ void _onSessionTapped(BuildContext context, Session session) {
 
 #### Alternative: Session Card Widget (extracted)
 
-**File**: `lib/presentation/screens/progress/widgets/session_card.dart`
+**File (never created — the shipped equivalent is `widgets/activity_list_item.dart`)**: `lib/presentation/screens/progress/widgets/session_card.dart`
+
+> **Status: never built.** `lib/presentation/screens/progress/widgets/` contains
+> exactly five files — `activities_tab.dart`, `activity_list_item.dart`,
+> `custom_charts.dart`, `progress_summary.dart`, `statistics_tab.dart`. The
+> shipped `ActivityListItem` takes an `ActivityEntry` (not a `Session`), renders
+> one generic `Image.asset('assets/images/icons/activity/icon_activity.png')`
+> tinted with `colorScheme.primary` instead of per-type icons/colours, and adds
+> an `onLongPress` callback. There is no per-activity-type icon or colour
+> anywhere in the current code.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -550,7 +598,7 @@ class SessionCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _getActivityColor(session.activityType).withOpacity(0.1),
+                  color: _getActivityColor(session.activityType).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -670,6 +718,9 @@ class SessionCard extends StatelessWidget {
 }
 ```
 
+> Note: this project uses `withValues(alpha:)`; `withOpacity` is deprecated and
+> has zero call sites left in the Dart sources under `lib/`.
+
 **Usage in Screen:**
 ```dart
 ListView.builder(
@@ -774,6 +825,38 @@ void _onSessionTapped(BuildContext context, Session session) {
 
 ---
 
+## Charts (`widgets/custom_charts.dart`)
+
+No charting package is used — the five charts on the Statistics tab are 595
+lines of hand-rolled Flutter.
+
+- `CustomBarChart` (`custom_charts.dart:22`): bars are `Positioned`
+  `Container`s (width 20, 4 px corner radius, minimum height 5) inside a
+  `Stack`, with the value printed above each bar to one decimal.
+- `CustomLineChart` (`custom_charts.dart:290`): precomputes `Offset`s and hands
+  them to `LineChartPainter extends CustomPainter` (`custom_charts.dart:547`),
+  which strokes a 2 px polyline and fills 3 px-radius dots.
+- **API difference (breaks copy-paste):** `CustomBarChart.customLabels` is
+  `Map<int, String>?` and optional — it falls back to the hard-coded German
+  `['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']` for keys 1-7, otherwise
+  `key.toString()`. `CustomLineChart.customLabels` is non-nullable and
+  **required** (`custom_charts.dart:293`, `:299`).
+- Shared layout constants in both widgets: 200 px plot area, 18 px x-label
+  strip, 30 px y-label gutter.
+- Both duplicate `_calculateYAxisValues`, a nice-number algorithm (max 5 ticks,
+  10 % headroom, step snapped to 1/2/5/10 × 10^n). The line-chart copy
+  additionally forces the fixed ladder `[0, 10, 20, 30, 40, 50]` whenever the
+  computed max label is below 50 (`custom_charts.dart:347-350`); the bar-chart
+  copy does not.
+- `CustomLineChart` derives its plot width from
+  `MediaQuery.of(context).size.width - 32 - 30` (`custom_charts.dart:389-390`),
+  so it assumes a full-width parent.
+- Empty-data guards differ: the bar chart bails only on `data.isEmpty`
+  (`custom_charts.dart:84`); the line chart also bails when every value is 0
+  (`custom_charts.dart:362`).
+
+---
+
 ## Summary: Why This Architecture?
 
 | Component | Responsibility | Advantage |
@@ -790,12 +873,17 @@ void _onSessionTapped(BuildContext context, Session session) {
 
 ## Checklist
 
-- [ ] Create `lib/providers/progress_provider.dart`
-- [ ] Register provider in `main.dart`
-- [ ] Update `progress_screen.dart` with Consumer
-- [ ] Implement 4 states (Loading, Error, Empty, Success)
-- [ ] Optional: Extract widgets (`session_card.dart`)
-- [ ] Test: Start app, open Progress tab
+- [x] Create `lib/providers/progress_provider.dart`
+- [x] Register provider in `main.dart` (as
+      `ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>`,
+      `main.dart:172-179`)
+- [x] Update `progress_screen.dart` with `Consumer<ProgressProvider>`
+- [x] Implement the states — loading and error in the screen
+      (`progress_screen.dart:439-446`), empty inside each tab widget
+- [x] Extract widgets — shipped as `activities_tab.dart`,
+      `activity_list_item.dart`, `custom_charts.dart`, `progress_summary.dart`,
+      `statistics_tab.dart` (not `session_card.dart`)
+- [x] Covered by `test/widget/screens/progress_screen_test.dart` (5 widget tests)
 
 ---
 

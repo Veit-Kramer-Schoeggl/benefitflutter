@@ -4,6 +4,8 @@
 > **Overview Version:** [FEATURES_OVERVIEW.md](../../documentation/architecture/FEATURES_OVERVIEW.md) - High-level concepts
 >
 > **Related:** [DATABASE.md](../../database/DATABASE.md) | [PROVIDER_GUIDE.md](../presentation/PROVIDER_GUIDE.md)
+>
+> **Stand:** 2026-08-28 · **Verified against:** DB schema v12, branch `feat/phase-2-background-tracking` (WP1–WP5 done, WP6 device smoke open)
 ---
 
 # Feature Modules Architecture
@@ -21,7 +23,7 @@ The app uses a **feature-based modular architecture** where each domain entity (
 | Module | Responsibility | Notes |
 |---|---|---|
 | `user` | User profile, biometrics, preferences | Full repository + DAO + sync-strategy pattern (`user_dao`, `user_biometrics_dao`, `user_preferences_dao`) |
-| `session` | Activity sessions, GPS, continuous tracking, segments | Repository + DAO + sync-strategy; also `gps_point_dao`, `continuous_tracking_*`, `activity_segment_dao` |
+| `session` | Activity sessions, GPS, continuous tracking, segments | Repository + DAO + sync-strategy; also `gps_point_dao`, `continuous_tracking_*`, `activity_segment_dao`. Ships a **second, local-only** repository (`ContinuousTrackingRepository`) with no sync strategy — see [below](#the-sessions-second-repository-continuoustrackingrepository) |
 | `benefit` | Benefits catalog & earned rewards | Repository + DAO + sync-strategy; `benefit_dao` manages both `benefits` and `user_benefits` |
 | `auth` | Authentication, tokens, password validation | `auth_service`, `token_storage`, domain result types, widgets (no DAO/sync-strategy) |
 | `security` | Biometric app lock, rate limiting, session timeout | Services + preferences storage (no DAO) |
@@ -30,11 +32,15 @@ The app uses a **feature-based modular architecture** where each domain entity (
 
 The full repository + DAO + sync-strategy pattern below applies to the three synced entities (`user`, `session`, `benefit`). The `auth`, `security`, `wearable_integration`, and `shared` modules use service/source classes and (for wearable) DAOs without a `*_sync_strategy.dart`.
 
+**Per-module detail docs:** [SECURITY.md](security/SECURITY.md) · [SENSORS.md](shared/sensors/SENSORS.md) · [WEARABLE_INTEGRATION.md](wearable_integration/WEARABLE_INTEGRATION.md) · [WIDGETS.md](auth/widgets/WIDGETS.md)
+
+**Size (2026-08-28):** 78 `.dart` files / ~13 900 lines across the seven modules — `benefit` 671 (8 files), `security` 789 (5), `user` 1 020 (9), `shared` 1 908 (9), `auth` 2 126 (15), `session` 3 250 (17), `wearable_integration` 4 096 (15).
+
 ### Key Principles
 
 1. **Local-First**: All data saved to SQLite first, synced to server when online
 2. **Offline-Resilient**: App works fully offline, syncs when connectivity restored
-3. **Feature-Isolated**: Each module is self-contained (~300 lines of code)
+3. **Feature-Isolated**: Each module owns its own data layer. Allowed dependencies today: any module → `shared`; `auth` → `user` (`AuthService` uses `UserRepository`, `auth/data/auth_service.dart:5`); `session` ↔ `wearable_integration` (sensor summaries — `session/data/session_repository.dart:4` and `wearable_integration/data/services/health_sync_service.dart:8`, i.e. a cycle). **Known violation to clean up:** `shared/sensors/gps_sensor.dart:9` and `shared/sensors/sensor_manager.dart:6` import `session/domain/gps_point.dart`, so the cross-cutting `shared` module currently depends on a feature module.
 4. **Custom Sync**: Each entity has its own sync strategy and conflict resolution
 
 ---
@@ -124,7 +130,10 @@ CREATE TABLE sync_queue (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   entity_type TEXT NOT NULL,        -- 'user' | 'session' | 'benefit'
   entity_id TEXT NOT NULL,
-  operation TEXT NOT NULL,          -- 'create' | 'update' | 'delete'
+  operation TEXT NOT NULL,          -- 'create' | 'update' | 'delete' (SyncOperation enum);
+                                    -- BenefitRepositoryImpl also passes 'redeem'
+                                    -- (benefit_repository_impl.dart:119) — extend the
+                                    -- enum before the queue is wired up
   data TEXT NOT NULL,               -- JSON serialized entity
   created_at INTEGER NOT NULL,
   retry_count INTEGER DEFAULT 0,
@@ -132,13 +141,13 @@ CREATE TABLE sync_queue (
 )
 ```
 
-> **Note:** The five tables above are the core entities. The full schema (version **11**) also includes profile tables (`user_biometrics_reported`, `user_preferences`), GPS tracking (`gps_points`), wearable integration (`wearable_devices`, `session_biometric_data`, `session_motion_data`, `session_sensor_summary`, `health_platform_data`), and continuous-tracking tables (`continuous_tracking_config`, `continuous_tracking_state`, `activity_segments`). See [DATABASE.md](../../database/DATABASE.md) for the complete schema, all columns, and migration history.
+> **Note:** The five tables above are the core entities. The full schema (version **12**) also includes profile tables (`user_biometrics_reported`, `user_preferences`), GPS tracking (`gps_points`), wearable integration (`wearable_devices`, `session_biometric_data`, `session_motion_data`, `session_sensor_summary`, `health_platform_data`), and continuous-tracking tables (`continuous_tracking_config`, `continuous_tracking_state`, `activity_segments`) — 16 tables in total. Schema v12 added no new tables or columns: it is a data-integrity migration (orphan-row cleanup, email de-duplication with session/benefit history re-parenting, and a UNIQUE email index — `database_helper.dart:_migrateToV12`). See [DATABASE.md](../../database/DATABASE.md) for the complete schema, all columns, and migration history.
 
 #### Indexes for Performance
 
 ```sql
--- User lookups
-CREATE INDEX idx_users_email ON users(email);
+-- User lookups (v12 replaced the earlier non-unique idx_users_email)
+CREATE UNIQUE INDEX idx_users_email_unique ON users(email);
 
 -- Session queries
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
@@ -181,7 +190,7 @@ WHERE user_id = ?
 ORDER BY start_time DESC
 ```
 
-**Get pending sync operations**
+**Get pending sync operations** — **Status: planned.** No code reads or writes `sync_queue` today; the only production statement touching it is the `DELETE` in `DatabaseHelper.clearAllTables`.
 ```sql
 SELECT * FROM sync_queue
 ORDER BY created_at ASC
@@ -192,7 +201,7 @@ LIMIT 100
 
 ## Feature Module Structure
 
-Each feature follows this structure:
+Each **synced** feature (`user`, `session`, `benefit`) follows this baseline; the real modules add folders on top of it:
 
 ```
 lib/features/<feature_name>/
@@ -205,24 +214,49 @@ lib/features/<feature_name>/
     └── <feature>_repository_impl.dart  # Implementation (DAO + Sync)
 ```
 
+**Other shapes:** `auth` adds `utils/` and `widgets/` and has **no DAO and no repository** (service classes over secure storage); `security` has `data/` + `services/` and no DAO either; `wearable_integration` puts its repository interface in `domain/repositories/` and implements it with three platform **sources** (`HealthConnectSource`, `HealthKitSource`, `BleDataSource`) instead of a `*_repository_impl.dart`.
+
 ### Example: Session Module
 
+The session module is the largest one and does *not* fit the 5-file template — it holds 17 files:
+
 ```
-lib/features/session/
-├── domain/
-│   └── session.dart                    # Session model
-└── data/
-    ├── session_repository.dart         # Interface: createSession(), updateSession()
-    ├── session_dao.dart                # DAO: insert(), update(), findById()
-    ├── session_sync_strategy.dart      # Sync: conflict resolution rules
-    └── session_repository_impl.dart    # Combines DAO + Sync
+lib/features/session/                        # 17 files, ~3 250 lines
+├── domain/                                  # 6 models
+│   ├── session.dart
+│   ├── activity_entry.dart
+│   ├── activity_segment.dart
+│   ├── gps_point.dart
+│   ├── continuous_tracking_config.dart
+│   └── continuous_tracking_state.dart
+├── data/                                    # 10 files — TWO repository pairs
+│   ├── session_repository.dart              # Interface: createSession(), finalizeSession(), …
+│   ├── session_repository_impl.dart         # Combines DAO + Sync + transaction
+│   ├── session_sync_strategy.dart           # Sync: conflict resolution rules
+│   ├── session_dao.dart                     # DAO: insert(), update(), findById()
+│   ├── continuous_tracking_repository.dart      # 2nd interface — local-only
+│   ├── continuous_tracking_repository_impl.dart # over 3 DAOs, no sync strategy
+│   ├── continuous_tracking_config_dao.dart
+│   ├── continuous_tracking_state_dao.dart
+│   ├── activity_segment_dao.dart
+│   └── gps_point_dao.dart
+└── utils/
+    └── distance_calculator.dart
 ```
+
+#### The session's second repository: `ContinuousTrackingRepository`
+
+`ContinuousTrackingRepository` (`session/data/continuous_tracking_repository.dart:9`) declares 18 methods over `ContinuousTrackingConfigDao`, `ContinuousTrackingStateDao` and `ActivitySegmentDao`. It is deliberately **local-only**: no sync strategy, no `ConnectivityService`, no `queueForSync` call anywhere in its implementation.
+
+> **Status: not wired.** It is not exposed through `RepositoryConfig` and, as of 2026-08-28, has **no callers outside its own two files**. Register it in `RepositoryConfig` before consuming it from a provider.
 
 ---
 
 ## Sync Strategies
 
 Each entity has custom sync behavior defined in its `*_sync_strategy.dart` file.
+
+> **The three snippets below are excerpts, not compilable files.** `BaseSyncStrategy` declares six members every concrete strategy must supply — `shouldSync`, `uploadToRemote`, `downloadFromRemote`, `queueForSync`, `processQueue` and the getter `requiresSync` (`shared/sync/base_sync_strategy.dart:16-56`); only `resolveConflict`, `maxRetries` and `retryDelaySeconds` have defaults. The excerpts show just the sync-decision and conflict-resolution overrides. The four remote-facing methods are **Phase-1 stubs** in all three real files: `uploadToRemote` returns `Future.value(true)`, `downloadFromRemote` throws `UnimplementedError('PostgREST not yet configured')`, and `queueForSync` / `processQueue` are no-ops.
 
 ### User Sync Strategy
 
@@ -248,6 +282,7 @@ class UserSyncStrategy extends BaseSyncStrategy<User> {
   }
 
   // maxRetries (3) and retryDelaySeconds (5) inherited from BaseSyncStrategy
+  // uploadToRemote / downloadFromRemote / queueForSync / processQueue omitted — see source
 }
 ```
 
@@ -299,6 +334,8 @@ class SessionSyncStrategy extends BaseSyncStrategy<Session> {
     // Default: Remote wins
     return remote;
   }
+
+  // uploadToRemote / downloadFromRemote / queueForSync / processQueue omitted — see source
 }
 ```
 
@@ -324,6 +361,9 @@ class BenefitSyncStrategy extends BaseSyncStrategy<UserBenefit> {
     // Remote wins (benefits awarded by server)
     return remote;
   }
+
+  // shouldSync omitted — the real class returns true for every UserBenefit
+  // uploadToRemote / downloadFromRemote / queueForSync / processQueue omitted — see source
 }
 ```
 
@@ -333,7 +373,7 @@ class BenefitSyncStrategy extends BaseSyncStrategy<UserBenefit> {
 
 ### Repository Interface (Contract)
 
-Defines the public API for data operations.
+Defines the public API for data operations. `SessionSensorSummary` comes from `lib/features/wearable_integration/domain/sensor_data_point.dart` — one of the two `session` ↔ `wearable_integration` edges noted above.
 
 ```dart
 abstract class SessionRepository {
@@ -349,6 +389,14 @@ abstract class SessionRepository {
   Future<Session> getSessionById(String sessionId);
   Future<Session> createSession(Session session);
   Future<void> updateSession(Session session);
+
+  /// Atomically persist a completed session and its optional sensor [summary]
+  /// in one DB transaction, then sync (outside the transaction).
+  Future<void> finalizeSession(
+    Session completed, {
+    SessionSensorSummary? summary,
+  });
+
   Future<void> deleteSession(String sessionId);
   Future<List<Session>> getSessionsInDateRange({
     required String userId,
@@ -367,14 +415,17 @@ class SessionRepositoryImpl implements SessionRepository {
   final SessionDao _dao;
   final SessionSyncStrategy _syncStrategy;
   final ConnectivityService _connectivity;
+  final SessionSensorSummaryDao _summaryDao;
 
   SessionRepositoryImpl({
     required SessionDao dao,
     required SessionSyncStrategy syncStrategy,
     required ConnectivityService connectivity,
+    SessionSensorSummaryDao? summaryDao, // optional — defaulted below
   })  : _dao = dao,
         _syncStrategy = syncStrategy,
-        _connectivity = connectivity;
+        _connectivity = connectivity,
+        _summaryDao = summaryDao ?? SessionSensorSummaryDao();
 
   /// Factory constructor with default dependencies
   factory SessionRepositoryImpl.create() {
@@ -410,6 +461,27 @@ class SessionRepositoryImpl implements SessionRepository {
     }
   }
 
+  @override
+  Future<void> finalizeSession(
+    Session completed, {
+    SessionSensorSummary? summary,
+  }) async {
+    // Session row + sensor summary commit atomically, so a crash can't leave
+    // a completed session without its summary.
+    final db = await DatabaseHelper().database;
+    await db.transaction((txn) async {
+      await _dao.update(completed, executor: txn);
+      if (summary != null) {
+        await _summaryDao.upsert(summary, executor: txn);
+      }
+    });
+
+    // Sync only AFTER the durable commit — never inside the transaction.
+    if (completed.status == SessionStatus.completed) {
+      await _syncCompletedSession(completed);
+    }
+  }
+
   /// Upload completed session, queueing for later when offline or on failure
   Future<void> _syncCompletedSession(Session session) async {
     if (await _connectivity.isOnline()) {
@@ -427,6 +499,17 @@ class SessionRepositoryImpl implements SessionRepository {
   }
 }
 ```
+
+### Transactional Writes
+
+`finalizeSession` is the app's session-completion write path and the only multi-table transactional write in the codebase. It persists the completed session **and** its optional `SessionSensorSummary` inside a single `db.transaction`, so a crash can never leave a completed session without its summary (or a summary without its session).
+
+Two conventions make this work and are worth copying into new modules:
+
+- **DAOs accept an `executor`.** `SessionDao.update(session, {DatabaseExecutor? executor})` (`session_dao.dart:123`) and `SessionSensorSummaryDao.upsert(summary, {DatabaseExecutor? executor})` (`session_sensor_summary_dao.dart:12-16`) fall back to the singleton database when no executor is passed, so they can either stand alone or join the caller's transaction.
+- **Network work stays outside the transaction.** `_syncCompletedSession` runs only after the commit returns.
+
+Source: `lib/features/session/data/session_repository_impl.dart:110-129`.
 
 ---
 
@@ -456,6 +539,8 @@ Repository updates local SQLite
 
 ### Offline → Online Sync
 
+> **Status: not implemented.** The flow below is the target design. None of it runs today: `queueForSync` and `processQueue` are no-ops in all three strategies, nothing inserts into or reads the `sync_queue` table, and **no `SyncManager` class exists anywhere in the repository**.
+
 ```
 User goes offline
     ↓
@@ -467,7 +552,7 @@ User comes back online
     ↓
 ConnectivityService detects online
     ↓
-SyncManager processes queue (FIFO)
+Sync coordinator processes queue (FIFO)   ← not yet implemented
     ↓
 For each queued operation:
   - Send to server
@@ -554,10 +639,29 @@ class AchievementDao {
 
 **File**: `lib/features/achievement/data/achievement_sync_strategy.dart`
 
+`BaseSyncStrategy` declares six abstract members, so a concrete strategy must supply all of them or the file will not compile:
+
 ```dart
 class AchievementSyncStrategy extends BaseSyncStrategy<Achievement> {
   @override
+  bool get requiresSync => true;
+
+  @override
   int get maxRetries => 3;
+
+  @override
+  Future<bool> shouldSync(Achievement entity) async => true;
+
+  @override
+  Future<bool> uploadToRemote(Achievement entity) async {
+    // Phase 1 (SQLite only): simulate success
+    return Future.value(true);
+  }
+
+  @override
+  Future<Achievement> downloadFromRemote(String entityId) async {
+    throw UnimplementedError('PostgREST not yet configured');
+  }
 
   @override
   Future<Achievement> resolveConflict(
@@ -566,6 +670,16 @@ class AchievementSyncStrategy extends BaseSyncStrategy<Achievement> {
   ) async {
     // Define your conflict resolution logic
     return remote; // Simple: remote wins
+  }
+
+  @override
+  Future<void> queueForSync(Achievement entity, String operation) async {
+    // Phase 1: no-op
+  }
+
+  @override
+  Future<void> processQueue() async {
+    // Phase 1: no-op
   }
 }
 ```
@@ -609,6 +723,14 @@ Future<void> _createAchievementsTable(Database db) async {
   ''');
 }
 ```
+
+Defining the creator is not enough — three further edits in `lib/features/shared/database/database_helper.dart` are mandatory:
+
+1. Bump `static const int dbVersion` (line 36, currently `12`) to `13`.
+2. Call `await _createAchievementsTable(db);` from `_onCreate` (line 95) — it currently invokes eight creators plus `_migrateToV4` and `_createContinuousTrackingTables`.
+3. Add an upgrade branch to `_onUpgrade` (line 177): `if (oldVersion < 13) { await _createAchievementsTable(db); }`.
+
+Write the creator with `CREATE TABLE IF NOT EXISTS` so the *same* method can serve both paths — this is the pattern `_createContinuousTrackingTables` uses for v11 (defined at `database_helper.dart:111`, called from `_onCreate` at `:107` and from `_onUpgrade` at `:226`). Then document the migration in [DATABASE.md](../../database/DATABASE.md).
 
 ### Step 7: Register in RepositoryConfig
 
@@ -682,12 +804,14 @@ PostgREST API
 PostgreSQL (Server database)
 ```
 
-### Migration Path
+### Sync Migration Stages
 
-1. **Phase 1** (Current): SQLite only, no server
-2. **Phase 2**: Add PostgREST endpoints, keep SQLite as cache
-3. **Phase 3**: Implement sync_queue processing
-4. **Phase 4**: Real-time sync with conflict resolution
+1. **Stage 1** (Current): SQLite only, no server
+2. **Stage 2**: Add PostgREST endpoints, keep SQLite as cache
+3. **Stage 3**: Implement sync_queue processing
+4. **Stage 4**: Real-time sync with conflict resolution
+
+> These stages describe remote sync only. They are **not** the same numbering as [ROADMAP.md](../../documentation/ROADMAP.md), whose "Phase 2 — Echtes Backend, Sync & Auth" also bundles the background-tracking work currently in progress on branch `feat/phase-2-background-tracking`. Where this document says "Phase 1", it always means *Stage 1 — SQLite only*.
 
 The feature module structure already supports this migration:
 - Repository interfaces remain unchanged
@@ -748,10 +872,12 @@ test/
 │   │       └── session_sync_strategy_test.dart
 │   └── providers/
 │       └── benefit_provider_test.dart
-└── integration/
-    └── data/
-        └── session_dao_test.dart
+└── integration/                  # exists but is EMPTY — DAO integration tests still TODO
 ```
+
+All four `test/unit/**` paths above exist. `test/integration/` currently contains no files, so item 2 of the list above is aspirational. The seams for it are already in place: `DatabaseHelper.debugDatabase` (`database_helper.dart:32`) injects the connection every DAO uses, and `DatabaseHelper.openAppDatabase(factory, path, {version})` (`database_helper.dart:52-56`) opens the real schema against an in-process `sqflite-ffi` database — the migration test `test/features/shared/database/migration_test.dart` already uses that seam.
+
+As of 2026-08-28 the repo has **52 test files under `test/`** plus one under `integration_test/`, **823 tests, all passing**.
 
 ---
 
@@ -761,10 +887,10 @@ The feature module architecture provides:
 
 ✅ **Offline-First**: SQLite ensures app works without connectivity
 ✅ **Scalable**: Add new entities in 3-4 hours
-✅ **Maintainable**: Each module is self-contained (~300 LOC)
+✅ **Maintainable**: Clear module boundaries; modules currently range from ~670 LOC (`benefit`) to ~4 100 LOC (`wearable_integration`)
 ✅ **Flexible Sync**: Custom strategies per entity
 ✅ **Future-Ready**: Designed for PostgREST migration
-✅ **Production-Ready**: Conflict resolution, error handling, retry logic
+⚠️ **Sync scaffolded, not live**: conflict-resolution rules are written and unit-tested, but `resolveConflict` has **no production caller** and `maxRetries` / `retryDelaySeconds` are read by no code. The only strategy method called from production is `shouldSync` (`user_repository_impl.dart:141`). The retry loop and the queue processor still have to be built.
 
 For high-level overview, see [README.md](../../documentation/README.md)
 For seed data documentation, see [lib/core/seed/SEED.md](../core/seed/SEED.md)

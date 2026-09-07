@@ -1,5 +1,11 @@
 # FUTURE.md — Roadmap: Target (Clean-Architecture) Directory Structure
 
+> **Last updated:** 2026-08-28 (verified against `lib/` on branch `feat/phase-2-background-tracking`).
+>
+> **Status: aspirational — NOT built.** Nothing in the tree below exists as shown; it is a target
+> layout, not a description of the code. The "Actual current top-level structure" note further down
+> is the authoritative description of what is really on disk today (141 Dart files, ~30,700 lines).
+>
 > NOTE: For the prioritized engineering evolution plan (launch blockers, data integrity,
 > backend/sync, scale & rollout readiness) see [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md)
 > and the checklist in [ROADMAP.md](ROADMAP.md). This file only covers the proposed target

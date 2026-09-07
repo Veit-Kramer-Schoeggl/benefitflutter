@@ -12,11 +12,11 @@ Reusable authentication widgets for consistent password handling across the Bene
 
 ## Overview
 
-This module provides a unified system for password input, validation, and strength indication. All widgets are designed to work together and pull their validation rules from a single source of truth: `PasswordValidator`.
+This module provides a unified system for password input, validation, and strength indication. All widgets are designed to work together, and they read `PasswordValidator.minLength` from a single source of truth. The requirement *labels*, however, are still duplicated inside the widgets - see [Changing Password Requirements](#changing-password-requirements).
 
 ### Key Benefits
 
-- **Single Source of Truth**: Change password requirements in `PasswordValidator` and all widgets update automatically
+- **Single Source of Truth (for `minLength`)**: widgets interpolate `PasswordValidator.minLength`; requirement *labels* are still duplicated across three widget files - see [Changing Password Requirements](#changing-password-requirements)
 - **Consistent UX**: Same look and behavior across registration, login, reset, and profile screens
 - **Composable**: Use widgets individually or combine them for richer experiences
 - **Accessible**: Built with Flutter's accessibility features in mind
@@ -62,7 +62,10 @@ PasswordTextField(
 
 #### Form Integration
 
-Use `PasswordFormField` when working with Flutter's `Form` widget:
+Use `PasswordFormField` when working with Flutter's `Form` widget.
+**Status: no call sites** - implemented and exported, but currently used nowhere in `lib/`;
+the app's only `PasswordTextField` usage is the Profile change-password dialog
+(`profile_screen.dart:999, 1006, 1025`).
 
 ```dart
 Form(
@@ -92,16 +95,49 @@ Form(
 
 #### Properties
 
+All 13 constructor parameters of `PasswordTextField`:
+
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `controller` | `TextEditingController` | required | Text controller |
 | `labelText` | `String` | 'Password' | Field label |
-| `validateStrength` | `bool` | false | Enable strength validation |
-| `validateOnChange` | `bool` | false | Validate as user types |
-| `showRequirementsHelper` | `bool` | false | Show requirements helper text |
-| `errorText` | `String?` | null | External error (overrides internal) |
+| `validateStrength` | `bool` | false | Run `PasswordValidator.getErrors` - **only takes effect together with `validateOnChange: true`** |
+| `validateOnChange` | `bool` | false | Attach a controller listener; does nothing unless `validateStrength` is also true |
+| `showRequirementsHelper` | `bool` | false | Shows `'Min 8 chars, uppercase, lowercase, number'` as helper text |
+| `errorText` | `String?` | null | External error; takes precedence over the internal one |
 | `enabled` | `bool` | true | Field enabled state |
-| `onValidationChanged` | `ValueChanged<List<String>>?` | null | Callback with current errors |
+| `focusNode` | `FocusNode?` | null | Focus node |
+| `onValidationChanged` | `ValueChanged<List<String>>?` | null | Fires only when both `validateStrength` and `validateOnChange` are true |
+| `onChanged` | `ValueChanged<String>?` | null | Callback on text change |
+| `onSubmitted` | `VoidCallback?` | null | Callback on submit |
+| `textInputAction` | `TextInputAction?` | null | Keyboard action |
+| `autofillHints` | `Iterable<String>?` | null | Autofill hints |
+
+> **Gotcha:** `PasswordTextField` validates only when *both* `validateStrength` and
+> `validateOnChange` are true - the listener is attached in `initState` for `validateOnChange`
+> (`password_text_field.dart:90-92`) and `_onTextChanged` returns early when `validateStrength`
+> is false (`:103-104`). `validateStrength: true` on its own is a no-op, and
+> `onValidationChanged` never fires. `PasswordFormField` differs: `validateStrength: true` alone
+> is enough there, because validation runs from the form validator (`:235-238`).
+
+#### PasswordFormField Properties
+
+`PasswordFormField` is **not** a drop-in replacement for `PasswordTextField`: it has no
+`validateOnChange`, `errorText`, `onValidationChanged` or `onSubmitted`, and it adds
+`additionalValidator`. Copying `errorText:` or `validateOnChange:` across is a compile error.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `controller` | `TextEditingController` | required | Text controller |
+| `labelText` | `String` | 'Password' | Field label; also used in the `'<label> is required'` message |
+| `validateStrength` | `bool` | false | Run `PasswordValidator.validate` inside the form validator |
+| `showRequirementsHelper` | `bool` | false | Show the compact requirements helper text |
+| `enabled` | `bool` | true | Field enabled state |
+| `focusNode` | `FocusNode?` | null | Focus node |
+| `additionalValidator` | `String? Function(String?)?` | null | Runs after the built-in empty/strength checks |
+| `onChanged` | `ValueChanged<String>?` | null | Callback on text change |
+| `textInputAction` | `TextInputAction?` | null | Keyboard action |
+| `autofillHints` | `Iterable<String>?` | null | Autofill hints |
 
 ---
 
@@ -155,7 +191,10 @@ PasswordStrengthIndicator(
 
 ### PasswordRequirementsText
 
-Static text displaying password requirements. Automatically syncs with `PasswordValidator`.
+Static text displaying password requirements. Reads `PasswordValidator.minLength`; the rest of
+the labels are hardcoded in `password_requirements_text.dart:58-67`.
+
+**Status: no call sites** - implemented and exported, but currently used nowhere in `lib/`.
 
 #### Compact (Single Line)
 
@@ -201,27 +240,103 @@ PasswordRequirementsText(
 
 ---
 
+### VerificationCodeField
+
+A styled input field for 6-digit verification codes used in email verification, password reset, and account deletion flows.
+
+#### Basic Usage
+
+```dart
+final _codeController = TextEditingController();
+
+VerificationCodeField(
+  controller: _codeController,
+  labelText: 'Verification Code',
+)
+```
+
+#### With Mock Code Hint (Development)
+
+```dart
+VerificationCodeField(
+  controller: _codeController,
+  labelText: 'Enter Code',
+  mockCode: '123456',
+  showMockCodeHint: true,
+)
+```
+
+#### Form Integration
+
+Use `VerificationCodeFormField` when working with Flutter's `Form` widget.
+**Status: no call sites** - implemented and exported, but currently used nowhere in `lib/`.
+
+```dart
+Form(
+  key: _formKey,
+  child: VerificationCodeFormField(
+    controller: _codeController,
+    labelText: 'Reset Code',
+    onFieldSubmitted: () => _handleSubmit(),
+  ),
+)
+```
+
+#### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `controller` | `TextEditingController` | required | Text controller |
+| `labelText` | `String` | 'Verification Code' | Field label |
+| `enabled` | `bool` | true | Field enabled state |
+| `errorText` | `String?` | null | External error message |
+| `mockCode` | `String?` | null | Mock code to display (dev only) |
+| `showMockCodeHint` | `bool` | false | Show mock code hint box |
+| `onChanged` | `ValueChanged<String>?` | null | Callback on text change |
+| `onSubmitted` | `VoidCallback?` | null | Callback on submit |
+| `textInputAction` | `TextInputAction` | `done` | Keyboard action |
+
+> The table above describes `VerificationCodeField`. `VerificationCodeFormField` differs: it has
+> **no** `errorText`, its submit callback is named `onFieldSubmitted` (not `onSubmitted`), and it
+> adds `additionalValidator` (`String? Function(String?)?`) which runs after the built-in empty /
+> 6-digit checks (`verification_code_field.dart:147-168`).
+
+#### Features
+
+- Centered, large font with letter spacing for easy reading
+- Digits-only input filtering
+- Built-in validation (empty check, 6-digit length) on `VerificationCodeFormField`
+- Optional mock code hint box for development
+- Consistent styling across all verification flows
+
+---
+
 ## Changing Password Requirements
 
-All password requirements are defined in a single location:
+`PasswordValidator` (`lib/features/auth/utils/password_validator.dart`) owns the rules, but the
+widgets only read `minLength` from it.
 
-```
-lib/features/auth/utils/password_validator.dart
-```
-
-To change requirements (e.g., minimum length):
+**Changing `minLength` is automatic.** Editing this one line updates every widget:
 
 ```dart
 class PasswordValidator {
   static const int minLength = 8;  // Change this value
-
-  // Add new requirements here...
-  static bool hasSpecialChar(String password) =>
-      password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 }
 ```
 
-After changing the validator, all widgets automatically reflect the new rules.
+The interpolation sites are `password_requirements_text.dart:59` and `:67`,
+`password_strength_indicator.dart:174`, and `password_text_field.dart:126` and `:245`.
+
+**Adding a new rule is _not_ automatic.** After adding e.g. `hasSpecialChar` to
+`PasswordValidator.validate` / `getErrors`, no widget would display or score it until you also
+update all five hardcoded places:
+
+1. `password_requirements_text.dart:58-63` - the `requirements` label list
+2. `password_requirements_text.dart:66-67` - `compactString`
+3. `password_strength_indicator.dart:172-189` - the `_Requirement` list
+4. `password_strength_indicator.dart:131-145` - `score` plus the hardcoded `totalChecks = 4`
+   and the two length bonuses
+5. `password_text_field.dart:126` and `:245` - the hardcoded helper strings
 
 ---
 
@@ -332,78 +447,13 @@ class MyNewWidget extends StatelessWidget {
 
 ---
 
-### VerificationCodeField
-
-A styled input field for 6-digit verification codes used in email verification, password reset, and account deletion flows.
-
-#### Basic Usage
-
-```dart
-final _codeController = TextEditingController();
-
-VerificationCodeField(
-  controller: _codeController,
-  labelText: 'Verification Code',
-)
-```
-
-#### With Mock Code Hint (Development)
-
-```dart
-VerificationCodeField(
-  controller: _codeController,
-  labelText: 'Enter Code',
-  mockCode: '123456',
-  showMockCodeHint: true,
-)
-```
-
-#### Form Integration
-
-Use `VerificationCodeFormField` when working with Flutter's `Form` widget:
-
-```dart
-Form(
-  key: _formKey,
-  child: VerificationCodeFormField(
-    controller: _codeController,
-    labelText: 'Reset Code',
-    onFieldSubmitted: () => _handleSubmit(),
-  ),
-)
-```
-
-#### Properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `controller` | `TextEditingController` | required | Text controller |
-| `labelText` | `String` | 'Verification Code' | Field label |
-| `enabled` | `bool` | true | Field enabled state |
-| `errorText` | `String?` | null | External error message |
-| `mockCode` | `String?` | null | Mock code to display (dev only) |
-| `showMockCodeHint` | `bool` | false | Show mock code hint box |
-| `onChanged` | `ValueChanged<String>?` | null | Callback on text change |
-| `onSubmitted` | `VoidCallback?` | null | Callback on submit |
-| `textInputAction` | `TextInputAction` | `done` | Keyboard action |
-
-#### Features
-
-- Centered, large font with letter spacing for easy reading
-- Digits-only input filtering
-- Built-in validation (empty check, 6-digit length) on `VerificationCodeFormField`
-- Optional mock code hint box for development
-- Consistent styling across all verification flows
-
----
-
 ## Related Files
 
 | File | Purpose |
 |------|---------|
-| `password_validator.dart` | Core validation logic and requirements |
-| `password_utils.dart` | Password hashing (SHA-256) |
-| `auth_service.dart` | Authentication API integration |
+| `lib/features/auth/utils/password_validator.dart` | Validation rules (`minLength = 8`, uppercase, lowercase, digit) |
+| `lib/core/utils/password_utils.dart` | SHA-256 hashing + `verifyPassword` |
+| `lib/features/auth/data/auth_service.dart` | `AuthService` interface + `MockAuthService` (in-memory or SQLite-backed; **no network calls** - `RealAuthService` does not exist yet) |
 
 ## Migration Guide
 
@@ -414,4 +464,6 @@ To migrate existing screens to use these widgets:
 3. Add `PasswordStrengthIndicator` for visual feedback
 4. Remove duplicated validation logic (use `PasswordValidator` directly)
 
-See the [commit history](#) for examples of migrated screens.
+Migrated examples in the app today: `register_screen.dart:354`,
+`reset_password_screen.dart:232, 282`, `email_verification_screen.dart:118`,
+`profile_screen.dart:999-1025, 1256`.

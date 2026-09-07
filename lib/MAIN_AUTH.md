@@ -4,29 +4,24 @@
 > **Overview Version:** [MAIN_AUTH_OVERVIEW.md](../documentation/architecture/MAIN_AUTH_OVERVIEW.md) - High-level concepts
 >
 > **Related:** [AUTH.md](../AUTH.md) | [PROVIDER_GUIDE.md](presentation/PROVIDER_GUIDE.md)
+>
+> **Stand:** 2026-08-28 — verified against `lib/main.dart`, `lib/core/router/app_router.dart`,
+> `lib/core/deep_link/deep_link_handler.dart`, `lib/presentation/screens/splash/splash_screen.dart`
+> (go_router 17.3.0).
 ---
 
 # Main.dart Authentication & Routing Architecture
 
 This document explains how the main.dart routing setup works and how authentication is integrated.
 
-> **⚠️ Routing migrated to go_router (Phase 1 / Round 3).** The Navigator-1.0 description
-> below (static `routes` map, global `navigatorKey`, `pushReplacementNamed`, `onUnknownRoute`,
-> `IndexedStack` tabs) is **historical**. The app now uses **go_router**:
-> - Route tree + central auth redirect live in **`lib/core/router/app_router.dart`**
->   (`createAppRouter(AuthProvider)`). `main.dart` uses `MaterialApp.router`.
-> - The auth gate is a **`redirect`** keyed on `AuthProvider.isInitialized`/`isAuthenticated`
->   with `refreshListenable: authProvider`; the splash screen is now a pure loader that only
->   calls `AuthProvider.initialize()`.
-> - The 5 tabs are a **`StatefulShellRoute.indexedStack`** (`/home/{community,progress,activity,
->   benefit,profile}`, default Activity). Full-screen pushes (`/session/:id`, `/device-connection`,
->   `/device-pairing`, `/benefit-qr`) run on the root navigator.
-> - The app-lock overlay stays in `MaterialApp.router`'s `builder`; deep links navigate via the
->   router (`DeepLinkHandler` buffers cold-start links until init; reset token via `extra`).
-> - Screens navigate with `context.go`/`context.push` (no named routes / `navigatorKey`).
->
-> Read the sections below for the auth/session *concepts* (still accurate), but treat the routing
-> mechanics as superseded by `app_router.dart`.
+> **Routing note:** the app migrated from Navigator 1.0 to **go_router 17.3.0** in Phase 1 / Round 3.
+> The route tree, the central auth redirect and `rootNavigatorKey` now live in
+> **`lib/core/router/app_router.dart`**; `main.dart` only builds the router and renders
+> `MaterialApp.router`. Screens navigate with `context.go`/`context.push` — no named routes
+> (18 `context.go`/`context.push` call sites in `lib/`, zero `pushNamed`/`pushReplacementNamed`).
+> A global `rootNavigatorKey` still exists (`app_router.dart:28`), but only as go_router's root
+> `navigatorKey`, as `parentNavigatorKey` for the full-screen pushes, and to pop lingering dialogs
+> on forced logout (`main.dart:287`); it is no longer used for navigation.
 
 > **Provider note (Phase 1 / Round 2):** Authentication state lives in **`AuthProvider`**
 > (`lib/providers/auth_provider.dart`), which replaced the former monolithic `UserProvider`.
@@ -42,15 +37,15 @@ This document explains how the main.dart routing setup works and how authenticat
 
 Think of it like a **decision tree**:
 1. App starts → Shows Splash Screen
-2. Splash initializes `AuthProvider` and checks: "Is user authenticated?"
-3. **If YES** → Navigate to `/home` (main app with 5 tabs)
+2. Splash calls `AuthProvider.initialize()`; the router's central `redirect` then checks: "Is user authenticated?"
+3. **If YES** → redirect to `/home/activity` (Activity tab of the 5-tab shell — there is no bare `/home` route)
 4. **If NO** → Navigate to `/login` (login screen)
-5. After successful login → Navigate to `/home`
+5. After successful login → `/home/activity`
 
-Authentication is fully implemented: the splash screen restores any stored
-session via `AuthProvider.initialize()` and routes accordingly. A separate
-runtime **app-lock overlay** (biometric/password) can re-gate the app after it
-returns from the background.
+Authentication is fully implemented: the splash screen triggers the session
+restore via `AuthProvider.initialize()` and the redirect routes accordingly. A
+separate runtime **app-lock overlay** (biometric/password) can re-gate the app
+after it returns from the background.
 
 ---
 
@@ -58,99 +53,133 @@ returns from the background.
 
 #### 1. main.dart - The Entry Point
 
-`void main() async` bootstraps the app before `runApp`:
+`void main()` is synchronous. It installs the global error handlers inside a
+`runZonedGuarded` and delegates all async work to the public `bootstrap()` seam
+(public so `integration_test/` can boot the real app without main()'s zone,
+which would clash with the test binding):
 
 ```
-main() async
-  ├─> WidgetsFlutterBinding.ensureInitialized()
-  ├─> SeedService.seedIfNeeded()        (only if SeedConfig.isEnabled; errors swallowed)
+main()                                        (main.dart:30)
+  └─> runZonedGuarded(
+       ├─> WidgetsFlutterBinding.ensureInitialized()
+       ├─> AppLogger.init()
+       ├─> FlutterError.onError / platformDispatcher.onError / ErrorWidget.builder
+       └─> AppConfig.sentryDsn.isEmpty
+             ? await bootstrap()
+             : SentryFlutter.init(..., appRunner: bootstrap)   // opt-in via --dart-define
+     )
+
+bootstrap() async                             (main.dart:103)
+  ├─> if (SeedConfig.isEnabled) SeedService.create(userRepository:, sessionRepository:,
+  │      benefitRepository:) → seedIfNeeded()      (failures logged via AppLogger.e, non-fatal)
   ├─> SensorManager().initialize()
   ├─> tokenStorage = SecureTokenStorage()
-  ├─> authService  = MockAuthService()
-  ├─> DeepLinkHandler(navigatorKey).initialize()
-  └─> runApp(
-        MultiProvider(
-          providers: [ AuthProvider (FIRST), ProfileProvider, BenefitProvider,
-                       ProgressProvider, ConnectivityProvider, ActivityProvider,
-                       HealthPlatformProvider, AppLockProvider ],
-          child: const BeneFitApp(),       // StatefulWidget, not MaterialApp directly
-        ),
-      )
+  ├─> authService  = MockAuthService(userRepository: RepositoryConfig.getUserRepository())
+  │      // durable SQLite user store, so registrations/password changes survive a restart
+  ├─> authProvider = AuthProvider(repository:, authService:, tokenStorage:)
+  │      // built here, NOT in MultiProvider, so router + deep links share the instance
+  ├─> router = createAppRouter(authProvider)
+  ├─> DeepLinkHandler(router: router, authProvider: authProvider).initialize()
+  └─> runApp(MultiProvider(providers: [
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),   // FIRST
+        ProfileProvider, BenefitProvider, ProgressProvider, ConnectivityProvider,
+        ActivityProvider, HealthPlatformProvider, AppLockProvider,
+      ], child: BeneFitApp(router: router)))
 ```
 
-`BeneFitApp` is a `StatefulWidget` (with `WidgetsBindingObserver`) whose
-`build` returns `Consumer<AppLockProvider>` → `MaterialApp`:
+**Boot stages.** `main()` (`main.dart:30`) installs `AppLogger`,
+`FlutterError.onError`, `binding.platformDispatcher.onError` and a release-safe
+`ErrorWidget.builder`, then runs `bootstrap()` either directly or as
+`SentryFlutter.init(appRunner: bootstrap)` when `AppConfig.sentryDsn` is
+non-empty (opt-in via `--dart-define=SENTRY_DSN=…`; `sendDefaultPii = false`,
+`tracesSampleRate = 0.0`, breadcrumb messages redacted by `_scrubSentryEvent`).
+Boot-time work therefore belongs in `bootstrap()`, not in `main()`.
+
+`BeneFitApp` is a `StatefulWidget` that **requires** the `GoRouter`; its state
+mixes in `WidgetsBindingObserver`:
 
 ```
-BeneFitApp (StatefulWidget)
-  └─> Consumer<AppLockProvider> → MaterialApp
-      ├─> navigatorKey: navigatorKey (global key, for deep links / forced logout)
-      ├─> Routes defined:
-      │   ├─ '/' → SplashScreen
-      │   ├─ '/login' → LoginScreen
-      │   ├─ '/register' → RegisterScreen
-      │   ├─ '/verify' → EmailVerificationScreen
-      │   ├─ '/forgot-password' → ForgotPasswordScreen
-      │   ├─ '/reset-password' → ResetPasswordScreen
-      │   └─ '/home' → MainNavigationScreen
-      ├─> builder: shows AppLockScreen overlay when appLockProvider.isLocked
-      ├─> onUnknownRoute → SplashScreen
-      └─> initialRoute: '/' (starts at splash)
+BeneFitApp(router: router)                    (main.dart:206)
+  └─> _BeneFitAppState with WidgetsBindingObserver
+      ├─> initState: addObserver + postFrame AppLockProvider.initialize()
+      ├─> didChangeAppLifecycleState:
+      │     paused/inactive → AppLockProvider.onAppPaused() + ActivityProvider.flushPendingGps()
+      │     resumed        → ActivityProvider.retryGpsIfNeeded() + AppLockProvider.onAppResumed(...)
+      ├─> _handlePasswordRequired: logout + AppLockProvider.reset() +
+      │     rootNavigatorKey.currentState?.popUntil(isFirst) + router.go('/login')
+      └─> build: MaterialApp.router
+          ├─> routerConfig: widget.router      (route tree in core/router/app_router.dart)
+          ├─> theme: AppTheme.lightTheme
+          └─> builder: Consumer<AppLockProvider> → AppLockScreen when isLocked, else child
 ```
 
-**What happens:**
-- App launches and runs the async bootstrap above
-- MaterialApp looks at `initialRoute: '/'`
-- Shows the widget mapped to `'/'` → **SplashScreen**
+**Lifecycle hooks in detail** (`main.dart:233-279`):
+- `paused` / `inactive` → `AppLockProvider.onAppPaused()` plus
+  `ActivityProvider.flushPendingGps()` when a session is running or paused
+  (`_flushGpsOnBackground`, `main.dart:254-259`), so an OS kill does not drop
+  buffered GPS points.
+- `resumed` → `_handleAppResumed` (`main.dart:261-279`) returns early if the
+  user is not authenticated, calls `retryGpsIfNeeded()` while tracking (the user
+  may have just granted the permission in system settings), and passes
+  `isTrackingActive:` into `AppLockProvider.onAppResumed(...)` so the lock never
+  interrupts an active session.
+
+**What happens:** go_router starts at `initialLocation: '/splash'` and builds
+`SplashScreen`; the central `redirect` then decides where the user actually
+lands.
 
 ---
 
-#### 2. SplashScreen - The Decision Maker
+#### 2. SplashScreen - A Pure Loader
 
 ```
-SplashScreen loads
-  └─> initState() runs
-      └─> _checkAuthAndNavigate()
-          ├─> _status = 'Loading...'          (~500ms delay)
-          ├─> _status = 'Checking session...'
-          ├─> await context.read<AuthProvider>().initialize()  (restores stored session)
-          │
-          └─> Navigate based on authProvider.isAuthenticated:
-              ├─ If true → show 'Welcome back, <name>!' (~500ms), then
-              │            Navigator.pushReplacementNamed('/home')
-              └─ If false → Navigator.pushReplacementNamed('/login')
-
-          (on exception → debugPrint, _status = 'Error: $e', 2s delay,
-           pushReplacementNamed('/login'))
+SplashScreen                       (presentation/screens/splash/splash_screen.dart)
+  └─> initState()
+      └─> addPostFrameCallback(() => context.read<AuthProvider>().initialize())
+  └─> build() → brand-green Scaffold: logo, 'BeneFit', 'Move More, Save More',
+                CircularProgressIndicator, static status text 'Loading...'
 ```
 
-**Key concept: `pushReplacementNamed`**
-- Removes splash from navigation stack
-- User can't press "back" to return to splash
-- Clean navigation flow
+The splash performs **no navigation**. `_status` is a `final String`
+(`splash_screen.dart:18`) and never changes — there is no `setState` in the
+file. `AuthProvider.initialize()` is idempotent (`if (_isInitialized) return;`),
+flips `isInitialized` and calls `notifyListeners()`; because the router was built
+with `refreshListenable: authProvider`, the central `redirect` re-runs and moves
+the user to `/home/activity` or `/login`.
 
 ---
 
-#### 3. The Routes Map
+#### 3. The Route Tree (go_router)
 
-```dart
-routes: {
-  '/': (context) => const SplashScreen(),
-  '/login': (context) => const LoginScreen(),
-  '/register': (context) => const RegisterScreen(),
-  '/verify': (context) => const EmailVerificationScreen(),
-  '/forgot-password': (context) => const ForgotPasswordScreen(),
-  '/reset-password': (context) => const ResetPasswordScreen(),
-  '/home': (context) => const MainNavigationScreen(),
-},
-onUnknownRoute: (settings) =>
-    MaterialPageRoute(builder: (context) => const SplashScreen()),
-```
+Declared in `lib/core/router/app_router.dart` by `createAppRouter(AuthProvider)`:
 
-**How routing works:**
-- Each route name (`'/login'`) maps to a widget builder function
-- `Navigator.pushReplacementNamed('/home')` looks up `'/home'` in the map
-- Builds and displays `MainNavigationScreen()`
+- `initialLocation: '/splash'`, `navigatorKey: rootNavigatorKey`,
+  `refreshListenable: authProvider`, `redirect: _redirect`, and an `errorBuilder`
+  that logs `Router: unknown route <uri>` and renders `SplashScreen`.
+- Root-navigator routes: `/splash`, `/login`, `/register`, `/verify`,
+  `/forgot-password`, `/reset-password` — the last builds
+  `ResetPasswordScreen(token: (state.extra as String?) ?? state.uri.queryParameters['token'])`.
+- `StatefulShellRoute.indexedStack` with five branches, each with its own
+  navigator key so per-tab stacks survive switching: `/home/community` (0),
+  `/home/progress` (1), `/home/activity` (2, default), `/home/benefit` (3),
+  `/home/profile` (4). The shell builder renders
+  `MainNavigationScreen(navigationShell: …)`.
+- Full-screen pushes pinned with `parentNavigatorKey: rootNavigatorKey` so they
+  cover the bottom bar: `/session/:id` (id from `state.pathParameters`),
+  `/device-connection`, `/device-pairing`, `/benefit-qr` (`extra` is a
+  `BenefitViewModel?` — null after a process restart, and the screen handles that).
+
+**Redirect order** (`_redirect`, `app_router.dart:71-101`):
+1. `customSchemeRedirect(state.uri)` — rewrites raw
+   `benefit://reset-password?token=…` to `/reset-password?token=…`; any other
+   `benefit://` host → `/splash`; non-custom schemes fall through.
+2. `!auth.isInitialized` → hold on `/splash`.
+3. On `/splash` once initialized → `/home/activity` or `/login`.
+4. Unauthenticated outside `_authArea` (`/login`, `/register`, `/verify`,
+   `/forgot-password`, `/reset-password`) → `/login`.
+5. Authenticated on `/login` → `/home/activity`. `/verify` and `/reset-password`
+   are deliberately **not** bounced — a just-verified user is briefly
+   authenticated while still on those screens.
 
 ---
 
@@ -158,11 +187,17 @@ onUnknownRoute: (settings) =>
 
 ```
 lib/
-├── main.dart                              # Entry point, bootstrap, providers, routes
+├── main.dart                              # Entry point, bootstrap(), error handlers,
+│                                          #   provider tree, MaterialApp.router
+├── core/
+│   ├── router/
+│   │   └── app_router.dart                # go_router tree, central redirect, rootNavigatorKey
+│   └── deep_link/
+│       └── deep_link_handler.dart         # benefit:// links → router.go (buffers cold start)
 ├── presentation/
 │   ├── screens/
 │   │   ├── splash/
-│   │   │   └── splash_screen.dart         # Initial loading + auth-gate screen
+│   │   │   └── splash_screen.dart         # Pure loading screen; triggers AuthProvider.initialize()
 │   │   ├── auth/
 │   │   │   ├── login_screen.dart
 │   │   │   ├── register_screen.dart
@@ -171,9 +206,11 @@ lib/
 │   │   │   └── reset_password_screen.dart
 │   │   ├── security/
 │   │   │   └── app_lock_screen.dart       # Lock overlay (biometric/password)
+│   │   ├── session/                       # /session/:id (root-navigator push)
+│   │   ├── wearable/                      # /device-connection, /device-pairing
 │   │   └── ...                            # activity, benefit, community, profile, progress, ...
 │   └── navigation/
-│       └── main_navigation.dart           # 5-tab navigation
+│       └── main_navigation.dart           # 5-tab shell driven by StatefulNavigationShell
 ├── providers/                             # AuthProvider, ProfileProvider, AppLockProvider, ...
 └── features/auth/data/
     ├── auth_service.dart                  # AuthService / MockAuthService
@@ -189,17 +226,17 @@ lib/
 ```
 User opens app
   ↓
-SplashScreen shows ('Loading...' → 'Checking session...')
+SplashScreen shows ('Loading...') and fires AuthProvider.initialize()
   ↓
 AuthProvider.initialize() restores stored tokens from SecureTokenStorage
   ↓
 authProvider.isAuthenticated == true
   ↓
-'Welcome back, <name>!' (~500ms)
+notifyListeners() → refreshListenable fires → redirect re-runs
   ↓
-Navigator.pushReplacementNamed('/home')
+redirect → /home/activity
   ↓
-MainNavigationScreen appears (5 tabs)
+MainNavigationScreen appears (5 tabs, Activity selected)
 ```
 
 #### New / logged-out user:
@@ -207,19 +244,20 @@ MainNavigationScreen appears (5 tabs)
 ```
 User opens app
   ↓
-SplashScreen shows
+SplashScreen shows ('Loading...') and fires AuthProvider.initialize()
   ↓
 AuthProvider.initialize() finds no valid stored session
   ↓
 authProvider.isAuthenticated == false
   ↓
-Navigator.pushReplacementNamed('/login')
+redirect → /login
   ↓
 User enters credentials → authProvider.login(email, password)
   ↓
 Login successful → tokens saved to SecureTokenStorage
   ↓
-Navigator.pushReplacementNamed('/home')
+LoginScreen calls context.go('/home/activity')
+  (the redirect would also bounce an authenticated user off /login)
 ```
 
 Token persistence uses **`SecureTokenStorage`** (Flutter Secure Storage), not
@@ -227,176 +265,104 @@ Token persistence uses **`SecureTokenStorage`** (Flutter Secure Storage), not
 `auth_tokens`. At startup, `AuthProvider.initialize()` refreshes expired access
 tokens via `AuthService.refreshToken(...)`; on a refresh failure it clears the
 stored tokens and nulls the current user, so `isAuthenticated` becomes `false`
-and the splash screen subsequently routes to `/login`. (An `AuthInterceptor`
-exists under `core/network/` as not-yet-wired infrastructure for a future
-networked `AuthService` — it is not currently instantiated or attached to
+and the central redirect subsequently routes `/splash` → `/login`
+(`app_router.dart:85-86`). (An `AuthInterceptor` exists under `core/network/` as
+infrastructure for a future networked `AuthService` — **Status: not wired.** It is
+never imported or instantiated anywhere else in `lib/` and is not attached to
 `ApiClient`.)
 
 ---
 
-### Key Concepts Explained
+### Adding a New Route
 
-#### Named Routes vs Direct Navigation
-
-**Direct (what we used before):**
-```dart
-Navigator.push(
-  context,
-  MaterialPageRoute(builder: (context) => HomeScreen()),
-);
-```
-
-**Named (what we'll use):**
-```dart
-Navigator.pushNamed(context, '/home');
-```
-
-**Benefits:**
-- ✅ Centralized route definitions
-- ✅ Easy to maintain
-- ✅ Can pass arguments
-- ✅ Deep linking ready
-
----
-
-#### pushReplacement vs push
-
-**push** (adds to stack):
-```
-[Splash] → push → [Splash, Login] → push → [Splash, Login, Home]
-User can press back: Home → Login → Splash
-```
-
-**pushReplacement** (replaces current):
-```
-[Splash] → pushReplacement → [Login] → pushReplacement → [Home]
-User can't go back to Splash or Login
-```
-
-For auth flow, we want **pushReplacement** so users can't accidentally go back to splash/login after they're authenticated.
-
----
-
-### Adding New Routes Later
-
-When you want to add more screens (e.g., session details):
-
-**1. Add to routes:**
-```dart
-routes: {
-  '/': (context) => const SplashScreen(),
-  '/login': (context) => const LoginScreen(),
-  // ... other existing routes ...
-  '/home': (context) => const MainNavigationScreen(),
-  '/session-details': (context) => SessionDetailsScreen(), // NEW
-}
-```
-
-**2. Navigate to it:**
-```dart
-// From anywhere in the app:
-Navigator.pushNamed(context, '/session-details');
-```
-
-**3. Pass data (optional):**
-```dart
-// Navigate with arguments:
-Navigator.pushNamed(
-  context,
-  '/session-details',
-  arguments: sessionId,
-);
-
-// Receive in SessionDetailsScreen:
-final sessionId = ModalRoute.of(context)!.settings.arguments as String;
-```
+1. Add a `GoRoute` in `lib/core/router/app_router.dart`. Full-screen screens that
+   must cover the bottom bar need `parentNavigatorKey: rootNavigatorKey`; a screen
+   that belongs inside a tab goes into that branch's `routes:` list.
+2. If it must be reachable while logged out, add its path to `_authArea`
+   (`app_router.dart:37-43`) — otherwise the redirect bounces it to `/login`.
+3. Navigate with `context.push('/my-route')` (pushes onto the stack) or
+   `context.go('/my-route')` (replaces the location).
+4. Pass data by path parameter — `/session/:id` read via
+   `state.pathParameters['id']!` — or, for objects, via `extra`; `extra` does not
+   survive a process restart, so the builder must tolerate `null` (see
+   `/benefit-qr`).
 
 ---
 
 ### The Auth Check Implementation
 
-The auth check lives in `SplashScreen._checkAuthAndNavigate()` and delegates the
-actual session restore to `AuthProvider`. The splash screen never touches tokens
-or the network directly — it asks `AuthProvider` whether the user is
-authenticated.
+The auth check is declarative. `SplashScreen` only kicks off the restore:
 
 ```dart
-Future<void> _checkAuthAndNavigate() async {
-  try {
-    setState(() => _status = 'Loading...');
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() => _status = 'Checking session...');
-    final authProvider = context.read<AuthProvider>();
-    await authProvider.initialize(); // restores tokens from SecureTokenStorage
-
-    if (mounted) {
-      final isAuthenticated = authProvider.isAuthenticated;
-      if (isAuthenticated) {
-        setState(() =>
-            _status = 'Welcome back, ${authProvider.currentUser?.name ?? 'User'}!');
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-      Navigator.of(context).pushReplacementNamed(
-        isAuthenticated ? '/home' : '/login',
-      );
-    }
-  } catch (e) {
-    debugPrint('SplashScreen error: $e');
-    setState(() => _status = 'Error: $e');
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) context.read<AuthProvider>().initialize();
+  });
 }
 ```
 
-`AuthProvider.initialize()` is where the real work happens: it reads stored
-tokens via `SecureTokenStorage`, validates/refreshes them through `AuthService`,
-and exposes `isAuthenticated` / `currentUser`. The splash screen stays thin.
+`AuthProvider.initialize()` (`auth_provider.dart:121`) reads stored tokens from
+`SecureTokenStorage`, refreshes them when `tokens.isExpired`, restores the user
+via `_extractUserIdFromToken` + `repository.getUserById`, and always ends with
+`_isInitialized = true; notifyListeners();` in its `finally`. The router's
+`refreshListenable: authProvider` turns that notification into a re-run of
+`_redirect`, which then leaves `/splash`.
+
+---
+
+### Deep Links
+
+Two paths lead to `/reset-password`, and both are needed:
+
+- **Warm links** (app already running): `DeepLinkHandler._navigate` calls
+  `router.go('/reset-password', extra: token)`
+  (`deep_link_handler.dart:91`), keeping the token out of the URL history.
+- **Cold-start links**: the platform hands go_router the raw
+  `benefit://reset-password?token=…` URI, which matches no route. Step 1 of the
+  redirect, `customSchemeRedirect` (`app_router.dart:54-66`), rewrites it to
+  `/reset-password?token=…` (the token is re-encoded via the `Uri` constructor);
+  a token-less link becomes `/reset-password`, any other `benefit://` host
+  becomes `/splash`. Without this the app hits `errorBuilder` and sticks on
+  splash — the exact bug behind smoke finding F5. Covered by
+  `test/unit/router/deep_link_redirect_test.dart` (7 cases).
+
+`DeepLinkHandler` additionally buffers a link received before
+`AuthProvider.isInitialized` and replays it once the session restore finishes
+(`deep_link_handler.dart:64-77`), so the boot redirect cannot discard the target.
 
 ---
 
 ### Error Handling
 
-If anything in `_checkAuthAndNavigate()` throws (e.g. token storage or
-initialization fails), the splash screen logs the error, surfaces it in the
-on-screen status text, waits briefly, and then **falls back to `/login`** (not
-`/home`) so the user can re-authenticate:
+Errors are contained inside `AuthProvider.initialize()`, not in the splash
+screen — the splash has no try/catch and no fallback navigation. On a
+token-refresh failure `initialize()` clears storage, nulls user and tokens, sets
+`_isInitialized = true` and returns (`auth_provider.dart:136-153`); on any other
+exception the outer `catch` logs via `AppLogger.e` and nulls state while the
+`finally` still sets `_isInitialized = true` (`auth_provider.dart:172-181`).
+Either way the redirect sees `isInitialized && !isAuthenticated` and sends the
+user from `/splash` to `/login` (`app_router.dart:85-86`).
 
-```dart
-} catch (e) {
-  debugPrint('SplashScreen error: $e');
-  setState(() => _status = 'Error: $e');
-  await Future.delayed(const Duration(seconds: 2));
-  if (mounted) {
-    Navigator.of(context).pushReplacementNamed('/login');
-  }
-}
-```
-
-In addition, `onUnknownRoute` in `main.dart` routes any unrecognized route name
-back to the `SplashScreen`.
+Unknown locations hit go_router's `errorBuilder` (`app_router.dart:111-115`),
+which logs `Router: unknown route <uri>` via `AppLogger.e` and renders
+`SplashScreen`; the redirect then moves the user on.
 
 ---
 
 ## Summary
 
-> **⚠️ Historical:** The routing specifics below (named routes,
-> `pushReplacement`) describe the superseded Navigator-1.0 setup. The current
-> app uses **go_router** (`lib/core/router/app_router.dart`); the auth-gate and
-> session *concepts* still hold, but routing is now a central `redirect` +
-> `StatefulShellRoute.indexedStack`, not a named-routes map.
+**This routing setup gives you:**
 
-**This routing setup gave you:**
+1. ✅ **Declarative routing** - one `GoRouter` in `core/router/app_router.dart`; screens call `context.go`/`context.push`.
+2. ✅ **Central auth gate** - a single `redirect` keyed on `isInitialized`/`isAuthenticated`, re-run by `refreshListenable`.
+3. ✅ **Thin splash** - a pure loader that only calls `AuthProvider.initialize()`.
+4. ✅ **Stateful tabs** - `StatefulShellRoute.indexedStack`, one navigator per tab.
+5. ✅ **Deep links** - `benefit://reset-password?token=…` recovered by `customSchemeRedirect`, warm links routed by `DeepLinkHandler` with the token in `extra`.
+6. ✅ **Secure persistence** - tokens in `SecureTokenStorage` under `auth_tokens`; expired tokens refreshed at startup, cleared on failure.
+7. ✅ **Runtime lock** - `AppLockProvider` + `AppLockScreen` layered in `MaterialApp.router`'s `builder`.
 
-1. ✅ **Professional routing** - Named routes, centralized
-2. ✅ **Real auth gate** - Splash restores the session via `AuthProvider.initialize()`
-3. ✅ **Clean navigation** - `pushReplacement`, no back to splash/login
-4. ✅ **Scalable** - Easy to add new screens
-5. ✅ **Secure persistence** - Tokens in `SecureTokenStorage`; `AuthProvider.initialize()` refreshes expired tokens at startup and clears them on failure (splash then routes to `/login`)
-6. ✅ **Runtime lock** - `AppLockProvider` overlays the app after backgrounding
-
-**The beauty:** Authentication is centralized in `AuthProvider`; screens and the
-splash gate just read `isAuthenticated`, so the routing layer stays simple.
+**The beauty:** Authentication is centralized in `AuthProvider`; the router reads
+`isInitialized`/`isAuthenticated` in one place, so screens and the splash stay
+free of navigation logic.

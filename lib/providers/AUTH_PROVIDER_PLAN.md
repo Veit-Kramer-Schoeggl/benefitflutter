@@ -8,7 +8,8 @@
 
 # Authentication Provider Implementation Plan
 
-> **Status (implemented, split in Phase 1 / Round 2):** This plan has been carried out,
+> **Status (implemented, split in Phase 1 / Round 2 — last verified 2026-08-28 against branch
+> `feat/phase-2-background-tracking`):** This plan has been carried out,
 > significantly extended, and then **split into two providers**. The former monolithic
 > `UserProvider` (`lib/providers/user_provider.dart`, now removed) has been divided into:
 > - **`AuthProvider`** (`lib/providers/auth_provider.dart`) — identity & sessions: the
@@ -16,7 +17,9 @@
 >   (login, logout, session refresh, register, email verification, password reset,
 >   account deletion, `changePassword`, rate limiting). It is the **single source of
 >   identity truth** and exposes `setCurrentUser(User)` / `refreshUser()` so the profile
->   layer can sync edits back. Registered **first** in `MultiProvider` (`lib/main.dart`).
+>   layer can sync edits back. Constructed in `main()` **before** `runApp` (`lib/main.dart:133-137`)
+>   so `createAppRouter` and `DeepLinkHandler` share one instance, then registered **first** in the
+>   `MultiProvider` as `ChangeNotifierProvider<AuthProvider>.value` (`lib/main.dart:153`).
 > - **`ProfileProvider`** (`lib/providers/profile_provider.dart`) — editable profile data
 >   (profile fields via `updateUser`, biometrics, preferences). Wired as
 >   `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`; it writes to the
@@ -57,7 +60,8 @@ Create a **UserProvider** (or AuthProvider) that serves as the centralized state
 ## Phase 1: Create User Provider Infrastructure
 
 ### 1.1 Create `UserProvider` class
-**Location:** `lib/providers/user_provider.dart`
+**Location (historical):** `lib/providers/user_provider.dart` — never shipped in this form; superseded by
+`auth_provider.dart` + `profile_provider.dart` (commit `283f558`). See the banner at the top.
 
 **Responsibilities:**
 - Hold current user state
@@ -123,13 +127,21 @@ MultiProvider(
 )
 ```
 
-> **Implementation note:** The shipped `MultiProvider` (`lib/main.dart`) registers
-> `AuthProvider` first with injected dependencies (no `..initialize()` chained in `create`),
-> then `ProfileProvider` (as `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`),
-> followed by `BenefitProvider`, `ProgressProvider`, `ActivityProvider` (all via
-> `ChangeNotifierProxyProvider<AuthProvider, …>` calling `updateUserId(authProvider.userId)`),
-> plus plain `ChangeNotifierProvider`s for `ConnectivityProvider`, `HealthPlatformProvider`,
-> and `AppLockProvider`.
+> **Implementation note:** `AuthProvider` is **not** created by the `MultiProvider`. It is built in
+> `main()` (`lib/main.dart:133-137`) with an injected `UserRepository`, `MockAuthService` (itself
+> DB-backed, `lib/main.dart:127-129`) and `SecureTokenStorage`, then handed to `createAppRouter`
+> (`lib/main.dart:138`) and `DeepLinkHandler` (`lib/main.dart:142-145`) so all three share one
+> instance; the `MultiProvider` registers it first via
+> `ChangeNotifierProvider<AuthProvider>.value` (`lib/main.dart:153`).
+>
+> `initialize()` is **not** chained in `create` — `SplashScreen` triggers it exactly once from a
+> post-frame callback (`lib/presentation/screens/splash/splash_screen.dart:21-27`).
+>
+> Registration order in `lib/main.dart:151-199` is: `AuthProvider`, `ProfileProvider`
+> (`ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>`, whose `update` calls `attachAuth`),
+> `BenefitProvider`, `ProgressProvider`, `ConnectivityProvider`, `ActivityProvider`,
+> `HealthPlatformProvider`, `AppLockProvider`. The three proxies that call
+> `updateUserId(authProvider.userId)` are Benefit, Progress and Activity.
 
 ---
 
@@ -229,7 +241,8 @@ class User {
 ```
 
 ### Step 2: Create UserProvider
-**File:** `lib/providers/user_provider.dart`
+**File (historical):** `lib/providers/user_provider.dart` — see the banner at the top of this document;
+the shipped code is `auth_provider.dart` + `profile_provider.dart`.
 
 **Implementation priority:**
 1. Basic structure with hardcoded test user (for now)
@@ -355,22 +368,41 @@ if (userId == null) return LoadingOrLoginWidget();
 
 ## Phase 4: Testing Strategy
 
+> **Status: executed (Phase 1 / Round 2), with gaps.** Covered by
+> `test/unit/providers/auth_provider_test.dart` (32 tests), `test/unit/providers/profile_provider_test.dart`
+> (8), `test/widget/navigation/auth_redirect_test.dart` (3 — the go_router auth gate),
+> `test/widget/flows/register_verify_test.dart`, `test/widget/flows/forgot_reset_test.dart`,
+> `test/widget/screens/login_screen_test.dart` and `test/widget/screens/splash_screen_test.dart`.
+> The boxes below are the original plan, ticked only where a test actually asserts the item;
+> the unticked ones are genuine coverage gaps (verified 2026-08-28).
+
 ### 4.1 Test User Provider
-- [ ] Initialize with test user
-- [ ] Check userId is available
-- [ ] Check isAuthenticated state
-- [ ] Test logout clears user
+- [x] Initialize with test user — `auth_provider_test.dart` `initialize` group (stored/expired/no session)
+- [x] Check userId is available — `auth_provider_test.dart` "userId/isAuthenticated reflect lifecycle"
+- [x] Check isAuthenticated state — same test
+- [x] Test logout clears user — `auth_provider_test.dart` "clears user, tokens and notifies server"
 
 ### 4.2 Test Provider Updates
-- [ ] ProgressProvider receives userId on init
-- [ ] ProgressProvider reloads data when userId changes
-- [ ] ActivityProvider can create sessions with dynamic userId
-- [ ] BenefitScreen displays correct user data
+- [x] ProgressProvider receives userId on init — **indirect only**: the widget harness wires the real
+  `ChangeNotifierProxyProvider<AuthProvider, ProgressProvider>` (`test/helpers/app_harness.dart:134-140`)
+  and `test/widget/screens/progress_screen_test.dart` renders seeded sessions for that user. There is
+  **no** `test/unit/providers/progress_provider_test.dart`
+- [ ] ProgressProvider reloads data when userId changes — **no test** (no user-switch or
+  `updateUserId(null)` assertion exists anywhere under `test/`)
+- [x] ActivityProvider can create sessions with dynamic userId —
+  `test/unit/providers/activity_provider_test.dart` "startSession creates session and transitions to
+  tracking" (provider constructed with an injected `userId`)
+- [ ] BenefitScreen displays correct user data — **no test**; `benefit_screen_test.dart` asserts the
+  empty/success/error rendering, not per-user identity
 
 ### 4.3 Test User Switching
-- [ ] Logout clears all data
-- [ ] Login with different user loads different data
-- [ ] Providers react to user changes
+- [ ] Logout clears all data — **partial**: `auth_provider_test.dart` proves user + tokens are cleared and
+  `auth_redirect_test.dart` proves the redirect to `/login`; the per-provider cache reset on
+  `updateUserId(null)` is **untested**
+- [ ] Login with different user loads different data — **no test** (no multi-user switch scenario)
+- [x] Providers react to user changes — exercised end-to-end through the real ProxyProvider chain in
+  `login_screen_test.dart` ("successful login navigates to home") and `register_verify_test.dart`
+  ("full flow: register → verify → home")
 
 ---
 
@@ -380,8 +412,8 @@ if (userId == null) return LoadingOrLoginWidget();
 - Integrate with UserRepository ✅ (`AuthProvider`/`ProfileProvider` wrap `UserRepository`)
 - Add login/register methods ✅ (`login`, `register`, `verifyEmail`, plus password reset /
   account deletion / change password)
-- Add token management ✅ (`AuthTokens` + `TokenStorage`/`SecureTokenStorage`,
-  `refreshSession`, `AuthInterceptor` for 401 refresh)
+- Add token management ✅ (`AuthTokens` + `TokenStorage`/`SecureTokenStorage`, `refreshSession`;
+  `AuthInterceptor` for 401 refresh exists but is **dead code** — see §5.2)
 - Add auto-login from stored credentials ✅ (`initialize()` restores the session from
   `TokenStorage` and refreshes expired tokens)
 - Note: the live app uses `MockAuthService`; PostgREST/remote sync is still TODO.
@@ -412,7 +444,8 @@ if (userId == null) return LoadingOrLoginWidget();
 ```
 lib/
 ├── providers/
-│   ├── user_provider.dart           # NEW: Central user state
+│   ├── auth_provider.dart           # SHIPPED: identity, tokens, auth/account flows
+│   ├── profile_provider.dart        # SHIPPED: editable profile data (proxies AuthProvider)
 │   ├── progress_provider.dart       # UPDATE: Use dynamic userId
 │   ├── activity_provider.dart       # UPDATE: Use dynamic userId
 │   ├── benefit_provider.dart        # UPDATE: Use dynamic userId (if needed)
@@ -429,6 +462,12 @@ lib/
 ---
 
 ## Migration Checklist
+
+> **Status: historical.** The migration was carried out and then superseded by the
+> `AuthProvider` / `ProfileProvider` split (commit `283f558`). The hardcoded `'test-user-123'` constants
+> are gone from the providers and screens — the only remaining occurrences in `lib/` are seed/test data
+> (`lib/core/seed/seed_data.dart:26`, `lib/features/auth/data/auth_service.dart:133`). The unticked boxes
+> below are the original plan text, kept for traceability.
 
 ### Preparation
 - [ ] Check if User domain model exists and is complete

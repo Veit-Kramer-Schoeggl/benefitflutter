@@ -14,7 +14,7 @@
 > `MaterialApp.router`); the auth gate is now a central `redirect`, not the splash
 > screen navigating imperatively. See the updated "Current State" checklist below.
 
-## Current State (as of Sprint 1)
+## Current State (Sprints 0-3 done; 5 partial, 6 mostly done — last verified 2026-08-28 against branch `feat/phase-2-background-tracking`)
 
 ### Completed
 - [x] **AuthProvider** - Centralized auth/identity state management with ChangeNotifier (split out of the former `UserProvider`; editable profile data now lives in `ProfileProvider`)
@@ -29,6 +29,23 @@
 ### Known Issues (Bugs to Fix First)
 - [x] **ProgressProvider** - ~~Still hardcoded `'test-user-123'` on line 116~~ → Fixed with dynamic `_userId`
 - [x] **ProgressProvider** - ~~Missing `updateUserId()` method~~ → Added method
+
+### Provider split (Phase 1 / Round 2)
+
+`AuthProvider` (`lib/providers/auth_provider.dart`) owns **identity**: `currentUser`, `userId`,
+`AuthTokens` and `isAuthenticated` — a computed getter `_currentUser != null && _currentTokens != null`
+(`auth_provider.dart:80`), not a stored flag. It also owns every auth/account flow (login, logout,
+`refreshSession`, register, `verifyEmail`, password reset, account deletion, `changePassword`) and the
+`RateLimiterService`.
+
+`ProfileProvider` (`lib/providers/profile_provider.dart`) owns **editable profile data only** and never
+holds identity. The ProxyProvider hands it the `AuthProvider` via `attachAuth()` (`lib/main.dart:155-160`),
+and `updateUser` writes repository-first, then syncs memory: `await _repository.updateUser(updatedUser)`
+followed by `_auth!.setCurrentUser(updatedUser)` (`profile_provider.dart:69-70`).
+
+`setCurrentUser` compares with `identical()` rather than `==` on purpose: `User.==` compares by `id` only,
+so a same-id profile edit would otherwise be silently dropped and never propagate
+(`auth_provider.dart:707-717`).
 
 ### Test Credentials (MVP)
 
@@ -109,18 +126,40 @@ Replaced MVP hardcoded credentials with proper JWT authentication architecture.
 - `lib/core/network/api_client.dart` - Dio HTTP client
 - `lib/core/network/auth_interceptor.dart` - Bearer token interceptor
 
-### Unit Tests (72 tests)
+### Unit Tests (206 tests under `test/features/auth/`, plus 40 provider tests)
+
+**Domain models (97)**
 - `test/features/auth/domain/auth_tokens_test.dart` - 21 tests
 - `test/features/auth/domain/auth_result_test.dart` - 15 tests
-- `test/features/auth/data/auth_service_test.dart` - 22 tests
-- `test/features/auth/data/token_storage_test.dart` - 14 tests
+- `test/features/auth/domain/registration_result_test.dart` - 13 tests
+- `test/features/auth/domain/password_reset_request_result_test.dart` - 13 tests
+- `test/features/auth/domain/password_reset_result_test.dart` - 11 tests
+- `test/features/auth/domain/account_deletion_request_result_test.dart` - 12 tests
+- `test/features/auth/domain/account_deletion_result_test.dart` - 12 tests
 
-### Dependencies to Add
+**Data layer (73)**
+- `test/features/auth/data/auth_service_test.dart` - 48 tests
+- `test/features/auth/data/token_storage_test.dart` - 15 tests
+- `test/features/auth/data/mock_auth_service_db_test.dart` - 10 tests (DB-backed `MockAuthService`)
+
+**Utils (36)**
+- `test/features/auth/utils/password_validator_test.dart` - 36 tests
+
+**Providers (40)**
+- `test/unit/providers/auth_provider_test.dart` - 32 tests
+- `test/unit/providers/profile_provider_test.dart` - 8 tests
+
+### Dependencies (already added)
 ```yaml
 dependencies:
-  dio: ^5.0.0
-  flutter_secure_storage: ^9.0.0
+  dio: 5.9.1                     # exact pin (security-critical transport)
+  flutter_secure_storage: 10.0.0 # exact pin (security-critical)
 ```
+
+flutter_secure_storage 10 removed the deprecated `encryptedSharedPreferences` AndroidOptions flag;
+`SecureTokenStorage` (`lib/features/auth/data/token_storage.dart:37-44`) and `RateLimitStorage`
+(`lib/features/security/data/rate_limit_storage.dart:21-28`) now pass a bare `AndroidOptions()` and rely
+on the plugin's automatic cipher migration.
 
 ### Success Criteria
 - Login validates against real backend API
@@ -128,9 +167,18 @@ dependencies:
 - Tokens auto-refresh before expiration
 - 401 errors handled gracefully
 
+> **Reality check (2026-08-28):** criteria 1 and 4 are **not met by the shipped app** — there is no
+> networked backend. Login validates against `MockAuthService`, which checks credentials against the
+> durable SQLite user store (`UserRepository` → `UserDao.findByEmail` + `PasswordUtils`);
+> `ApiClient` and `AuthInterceptor` exist but are **never instantiated** (dead code), so no 401 path
+> runs. Criterion 3 holds **only on app start**: `AuthProvider.initialize()` refreshes expired tokens
+> during session restore (`lib/providers/auth_provider.dart:136-156`), while `refreshSession()`
+> (`auth_provider.dart:351`) has no call site and the 5-minute `AuthTokens.needsRefresh` window
+> (`lib/features/auth/domain/auth_tokens.dart:20-21`) is only read by the unwired interceptor.
+
 ---
 
-## Sprint 2: User Registration ✅ COMPLETED
+## Sprint 2: User Registration ✅ COMPLETED (except terms checkbox + resend code)
 **Effort:** 4-6 hours | **Priority:** High
 
 Allows new users to create accounts.
@@ -140,7 +188,7 @@ Allows new users to create accounts.
    - `lib/presentation/screens/auth/register_screen.dart`
    - Form fields: name, email, password, confirm password
    - Password strength indicator
-   - Terms & conditions checkbox
+   - ~~Terms & conditions checkbox~~ → **not implemented** — `register_screen.dart` has no consent checkbox (open item)
 
 2. **Add Registration API**
    - `POST /auth/register` endpoint integration
@@ -150,7 +198,7 @@ Allows new users to create accounts.
 3. **Email Verification (Optional)**
    - Send verification email after registration
    - Verification screen with code input
-   - Resend verification email option
+   - ~~Resend verification email option~~ → **not implemented** — no resend action in `email_verification_screen.dart` and no `resendVerification` on `AuthService` (`lib/features/auth/data/auth_service.dart`); the user must restart registration (`AuthProvider.clearPendingRegistration()`, `auth_provider.dart:570`)
 
 4. **Update Login Screen**
    - Add "Create Account" link to registration screen
@@ -163,6 +211,11 @@ Allows new users to create accounts.
 ### New Files
 - `lib/presentation/screens/auth/register_screen.dart`
 - `lib/presentation/screens/auth/email_verification_screen.dart` (optional)
+- `lib/features/auth/domain/registration_result.dart`
+
+Shared auth widgets created alongside this sprint: `lib/features/auth/widgets/` — `auth_widgets.dart`,
+`password_text_field.dart`, `password_strength_indicator.dart`, `password_requirements_text.dart`,
+`verification_code_field.dart` (see [WIDGETS.md](lib/features/auth/widgets/WIDGETS.md)).
 
 ### Success Criteria
 - Users can create new accounts
@@ -199,6 +252,8 @@ Allows users to reset forgotten passwords.
 ### New Files
 - `lib/presentation/screens/auth/forgot_password_screen.dart`
 - `lib/presentation/screens/auth/reset_password_screen.dart`
+- `lib/features/auth/domain/password_reset_request_result.dart`
+- `lib/features/auth/domain/password_reset_result.dart`
 
 ### Success Criteria
 - Users can request password reset via email
@@ -260,10 +315,10 @@ dependencies:
 ## Sprint 5: Profile & Account Management 🟡 PARTIAL
 **Effort:** 4-6 hours | **Priority:** Low
 
-Enhance profile with account management features. Change Password and Delete
-Account are implemented (as dialogs inside `profile_screen.dart`, not as the
-separate screens originally planned below); profile editing and session
-management remain future work.
+Enhance profile with account management features. Change Password, Delete Account
+and profile editing are implemented (as dialogs/inline editors inside
+`profile_screen.dart`, not as the separate screens originally planned below);
+only session management remains future work.
 
 ### Tasks
 1. ✅ **Change Password** (implemented in `profile_screen.dart`)
@@ -277,10 +332,11 @@ management remain future work.
    - Require a 6-digit confirmation code to confirm
    - Backend deletes all user data
 
-3. **Update Profile Information**
-   - Allow editing name, email
-   - Email change requires verification
-   - Profile photo upload
+3. ✅ **Update Profile Information** (implemented in `profile_screen.dart` via `ProfileProvider.updateUser`)
+   - Display name + gender editing — `_saveProfileData`, `profile_screen.dart:158-173`
+   - Email change with a **mock** verification dialog — `_handleEmailChange`, `profile_screen.dart:862-920`
+   - Profile photo upload (512x512, quality 80, stored in the app documents dir) —
+     `_pickImageFromGallery` / `_saveImageToAppDirectory`, `profile_screen.dart:533-575`
 
 4. **Session Management**
    - Show active sessions/devices
@@ -294,10 +350,14 @@ management remain future work.
 - ~~`lib/presentation/screens/profile/change_password_screen.dart`~~ → implemented as a dialog in `profile_screen.dart` instead
 - ~~`lib/presentation/screens/profile/delete_account_screen.dart`~~ → implemented as a dialog in `profile_screen.dart` instead
 
+Actually created: `lib/features/auth/domain/account_deletion_request_result.dart`,
+`lib/features/auth/domain/account_deletion_result.dart`
+
 ### Success Criteria
 - Users can change password with current password verification
 - Users can delete their account with confirmation
 - All user data deleted from backend on account deletion
+- Profile edits are persisted repository-first and then synced into `AuthProvider` via `setCurrentUser`
 
 ---
 
@@ -333,10 +393,10 @@ deferred (stubbed).
    - Ensure sensitive data encrypted at rest
    - Check for hardcoded secrets
 
-### Dependencies to Add
+### Dependencies (already added)
 ```yaml
 dependencies:
-  local_auth: ^2.0.0
+  local_auth: 3.0.0  # exact pin (security-critical)
 ```
 
 ### Success Criteria
@@ -353,10 +413,10 @@ dependencies:
 |--------|-------------|--------|----------|---------------|
 | **Sprint 0** | Bug fixes (ProgressProvider) | 1-2 hours | Critical | ✅ Done |
 | **Sprint 1** | Backend auth + tokens | 8-12 hours | High | ✅ Done |
-| **Sprint 2** | User registration | 4-6 hours | High | ✅ Done |
+| **Sprint 2** | User registration | 4-6 hours | High | ✅ Done (terms checkbox + resend code open) |
 | **Sprint 3** | Password recovery | 3-4 hours | Medium | ✅ Done |
 | **Sprint 4** | OAuth (Google/Apple) | 6-8 hours | Medium | Skipped (MVP) |
-| **Sprint 5** | Account management | 4-6 hours | Low | Partial (change password + delete account done) |
+| **Sprint 5** | Account management | 4-6 hours | Low | Partial (change password + delete account + profile editing done; session management open) |
 | **Sprint 6** | Security hardening | 4-6 hours | Medium | Mostly done (session timeout stubbed) |
 
 **Total Estimated Effort:** 30-44 hours

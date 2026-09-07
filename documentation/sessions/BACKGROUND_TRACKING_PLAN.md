@@ -10,7 +10,8 @@
 
 # Background-Tracking-Runtime — Implementierungs-Fahrplan
 
-> **Stand:** 2026-06-13 · **Branch:** `feat/phase-2-background-tracking` · **Status:** WP1–WP5 ✅ abgeschlossen & verifiziert · WP6 (Geräte-Smoke) als nächstes.
+> **Stand:** 2026-08-28 (Doc-Review; letzte Code-Änderung 2026-06-13, WP5 `fd7dfc1`) · **Branch:** `feat/phase-2-background-tracking` ·
+> **Status:** WP1–WP5 ✅ abgeschlossen & verifiziert · WP6a (Unit-Tests + Smoke-Checkliste) ✅ · **WP6b (Geräte-Smoke auf echtem Gerät) ⬜ offen**.
 > Lebendes Dokument — wird pro Work-Package fortgeschrieben (siehe [Decision-Log](#decision-log) & [Changelog](#changelog)).
 
 ## 1. Kontext & Ziel
@@ -33,28 +34,44 @@ auch wenn die App im Hintergrund ist.
 | B (später) | `continuousDaily` All-Day-Passiv-Tracking, überlebt App-Kill | **Option 2** — `flutter_background_service` (separates, sticky Isolate) |
 | — (verworfen) | Sehr robust, motion-getriggert | Option 3 — `flutter_background_geolocation` (kommerziell, Vendor-Lock-in) |
 
-Die Code-Naht (WP2) wird so gelegt, dass Phase B ohne Bruch andockt:
-[gps_tracking_config.dart](../../lib/core/config/gps_tracking_config.dart) hält bereits getrennte
-Profile (manual: high/5 m · continuous: 100 m/300 s).
+Die Code-Naht (WP2) ist gelegt: `GpsSensor.buildLocationSettings(platform, mode)` branch auf den
+`TrackingMode` ([gps_sensor.dart:253-283](../../lib/features/shared/sensors/gps_sensor.dart)).
+Die Stream-Werte sind derzeit **lokale Konstanten** im Sensor (`_manualDistanceFilter = 5 m`,
+`_continuousDistanceFilter = 50 m`, gps_sensor.dart:230-231). Getrennt davon hält
+[gps_tracking_config.dart](../../lib/core/config/gps_tracking_config.dart) die **Speicher**-Schwellen
+(manual 5 s/10 m · continuous 300 s/100 m) — die Zusammenführung beider Profile ist ein offener
+Phase-B-Punkt (s. WP2).
 
-## 3. Status quo — bestehende Tracking-Pipeline
+## 3. Ausgangslage vor WP1 (historisch)
 
-Die gesamte Pipeline existiert und funktioniert; sie läuft nur nicht im Hintergrund weiter:
+Die Tabelle beschreibt den Zustand **vor** WP1–WP5 und bleibt als Ausgangspunkt stehen.
+Aktueller Stand: Abschnitt 6 (Fahrplan) + [Changelog](#changelog).
+
+**Vorher:**
 
 ```
-GpsSensor (geolocator stream) → SensorManager → ActivityProvider
+GpsSensor (plain geolocator stream) → SensorManager → ActivityProvider
    → Puffer (_pendingGpsPoints, 10er-Batch) → GpsPointDao.insertBatch → SQLite
 ```
 
-| Baustein | Ort | Zustand |
-|---|---|---|
-| GPS-Stream | [gps_sensor.dart:153-172](../../lib/features/shared/sensors/gps_sensor.dart) | `const LocationSettings(accuracy: high, distanceFilter: 5)` — **plain**, kein FGS, kein BG-Flag |
-| GPS-Subscription/Buffer | [activity_provider.dart:657-699](../../lib/providers/activity_provider.dart) | funktioniert, plattformneutral |
-| Lifecycle | [main.dart](../../lib/main.dart) `didChangeAppLifecycleState` | flusht Puffer bei `paused` (führt nicht weiter) |
-| Dauer | [activity_provider.dart:636-642](../../lib/providers/activity_provider.dart) | 1-s-`Timer.periodic` → driftet im Hintergrund (s. Erkenntnisse) |
-| `continuousDaily` | [activity_provider.dart:602](../../lib/providers/activity_provider.dart) | **nur Gerüst** („placeholder for future continuous tracking module") |
-| Android-Manifest | [AndroidManifest.xml](../../android/app/src/main/AndroidManifest.xml) | Location-Perms da; **FGS-Perms fehlen** |
-| iOS-Plist | [Info.plist](../../ios/Runner/Info.plist) | NSLocation-Strings da; **`UIBackgroundModes` fehlt** |
+**Heute (nach WP5):**
+
+```
+GpsSensor (geolocator-FGS-Stream, plattformspez. Settings)
+   → SensorManager (reicht TrackingMode durch) → ActivityProvider
+   → Puffer (_pendingGpsPoints, 5er-Batch + 60-s-Alters-Flush)
+   → GpsPointDao.insertBatch → SQLite
+```
+
+| Baustein | Ort | Zustand vor WP1 | Heute |
+|---|---|---|---|
+| GPS-Stream | [gps_sensor.dart](../../lib/features/shared/sensors/gps_sensor.dart) (vor WP2: :148-172) | `const LocationSettings(accuracy: high, distanceFilter: 5)` — **plain**, kein FGS, kein BG-Flag | plattformspez. Settings inkl. FGS ([gps_sensor.dart:253-283](../../lib/features/shared/sensors/gps_sensor.dart)) ✅ WP2 |
+| GPS-Subscription/Buffer | [activity_provider.dart:823-890](../../lib/providers/activity_provider.dart) (heute) | funktioniert, plattformneutral | Batch **5** + 60-s-Alters-Flush ([activity_provider.dart:71-72, :849-851](../../lib/providers/activity_provider.dart)) ✅ WP5 |
+| Lifecycle | [main.dart](../../lib/main.dart) `didChangeAppLifecycleState` | flusht Puffer bei `paused` (führt nicht weiter) | unverändert (main.dart:237-241, :254-259) |
+| Dauer | [activity_provider.dart:692-702](../../lib/providers/activity_provider.dart) (heute) | 1-s-`Timer.periodic` als Tick-Zähler → driftet im Hintergrund (s. Erkenntnisse) | Timestamp-Akkumulator ([activity_provider.dart:125-130, :713-719](../../lib/providers/activity_provider.dart)); der 1-s-Timer treibt nur noch die UI (:697) ✅ WP4 |
+| `continuousDaily` | [activity_provider.dart:658-687](../../lib/providers/activity_provider.dart) (Kommentar :657) | **nur Gerüst** („placeholder for future continuous tracking module") | weiterhin nur Gerüst; auch der Storage-Pfad ist fest auf manual verdrahtet (:906 `isContinuousMode: false`) |
+| Android-Manifest | [AndroidManifest.xml](../../android/app/src/main/AndroidManifest.xml) | Location-Perms da; **FGS-Perms fehlen** | FGS-Perms da ([AndroidManifest.xml:10-15](../../android/app/src/main/AndroidManifest.xml)) ✅ WP1 |
+| iOS-Plist | [Info.plist](../../ios/Runner/Info.plist) | NSLocation-Strings da; **`UIBackgroundModes` fehlt** | `UIBackgroundModes:[location]` da ([Info.plist:56-59](../../ios/Runner/Info.plist)) ✅ WP1 |
 
 ## 4. Verifizierte Erkenntnisse
 
@@ -162,7 +179,8 @@ WP1–WP6 mappen auf die Intentionen von Sprint 4 (Permissions + Manifest/Plist)
 | WP3 | Permission-Flow (while-in-use + Runtime-POST_NOTIFICATIONS + LocationService-Check + Warn-UI/Retry) | gps_sensor.dart, sensor_manager.dart, activity_provider.dart, activity_screen.dart, main.dart | S–M | ✅ done |
 | WP4 | Dauer aus Timestamps (Background-Drift-Fix) | activity_provider.dart | S | ✅ done |
 | WP5 | Buffer-Robustheit: punkt-getriggerter Alters-Flush (**60 s**) + Batch 10 → **5** | activity_provider.dart | S | ✅ done |
-| WP6 | Tests + Geräte-Smoke (inkl. Logcat-FGS-Check) | test/…, DEVICE_SMOKE_CHECKLIST.md | M | ⬜ |
+| **WP6a** | Unit-Tests (LocationSettings-Builder, Warn-Kanal, Dauer, Buffer) + Smoke-Checkliste geschrieben | test/unit/features/shared/sensors/gps_location_settings_test.dart, test/unit/providers/activity_provider_test.dart, DEVICE_SMOKE_CHECKLIST.md | S | ✅ done (823 Tests grün) |
+| WP6b | **Geräte-Smoke auf echtem Gerät** (Xiaomi Mi 11 / Android 14) inkl. Logcat-FGS-Check | — | M | ⬜ offen |
 
 ### WP1 — Native Konfiguration (reine Config, kein Dart)
 **`android/app/src/main/AndroidManifest.xml`:**
@@ -182,19 +200,36 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 ### WP2 — GpsSensor (Foreground-Service)
 - [gps_sensor.dart](../../lib/features/shared/sensors/gps_sensor.dart) `startStreaming()`:
   `const LocationSettings` → Plattform-Branch (`defaultTargetPlatform`):
-  - **Android:** `AndroidSettings(foregroundNotificationConfig: ForegroundNotificationConfig(notificationTitle, notificationText, notificationIcon: @mipmap/ic_launcher, enableWakeLock: true, setOngoing: true), accuracy, distanceFilter)`
+  - **Android:** `AndroidSettings(foregroundNotificationConfig: ForegroundNotificationConfig(notificationTitle, notificationText, enableWakeLock: true, setOngoing: true), accuracy, distanceFilter)`
+    (die Implementierung übergibt **kein** `notificationIcon` — der geolocator-Default ist bereits
+    `AndroidResource(name: "ic_launcher", defType: "mipmap")`, geolocator_android 5.0.2
+    `foreground_settings.dart:56-57`; s. gps_sensor.dart:236-242.)
   - **iOS:** `AppleSettings(allowBackgroundLocationUpdates: true, pauseLocationUpdatesAutomatically: false, showBackgroundLocationIndicator: true, activityType: ActivityType.fitness, accuracy, distanceFilter)`
 - Stream erst starten, wenn die Session ACTIVE wird und die App im **Vordergrund** ist.
-- **Phase-B-Naht:** `startStreaming()` erhält ein `TrackingMode`/Profil-Argument → `accuracy`/
-  `distanceFilter` aus [gps_tracking_config.dart](../../lib/core/config/gps_tracking_config.dart).
+- **Phase-B-Naht (teilweise offen):** `startStreaming({sessionId, mode})` nimmt den `TrackingMode`
+  entgegen ✅ (gps_sensor.dart:162-165; `SensorManager` reicht durch, sensor_manager.dart:181-187).
+  `accuracy`/`distanceFilter` kommen aber noch aus **lokalen Konstanten** (gps_sensor.dart:230-231,
+  5 m/50 m) und **nicht** aus
+  [gps_tracking_config.dart](../../lib/core/config/gps_tracking_config.dart) — der Sensor importiert
+  die Config gar nicht.
+  ⬜ Offen für Phase B: Profile aus `GpsTrackingConfig` beziehen **und**
+  `ActivityProvider._shouldStoreGpsPoint` (activity_provider.dart:906) von `isContinuousMode: false`
+  auf den Session-Modus umstellen.
 
 ### WP3 — Permission-Flow
 - While-in-use (FINE/COARSE) + Runtime-`POST_NOTIFICATIONS` (Android 13+) + `isLocationServiceEnabled`-
   Check vor Session-Start. Zweistufiger „Always"-Flow erst Phase B.
 
-### WP4 — Dauer aus Timestamps
-- [activity_provider.dart](../../lib/providers/activity_provider.dart): `_elapsedSeconds` selbst-
-  korrigierend (`now − startTime`); `durationSeconds` final aus `endTime − startTime`.
+### WP4 — Dauer aus Timestamps ✅
+- [activity_provider.dart](../../lib/providers/activity_provider.dart): Dauer = Summe der **aktiven
+  Segmente** (`_accumulatedActive` + laufendes `_segmentStart`, UTC), bei jedem Lesen aus der
+  Wall-Clock berechnet (:125-130); `_finalizeSegment()` schließt ein Segment bei Pause/Stop
+  (:713-719). Der 1-s-`Timer.periodic` triggert nur noch `notifyListeners()` (:692-702).
+- Persistiert wird `durationSeconds: _elapsedSeconds` (:219, :401, :448, :516) — **nicht**
+  `endTime − startTime`, damit Pausen weiterhin nicht mitzählen.
+- Injizierbarer `now`-Seam (`DateTime Function()`, :54, :103-105) für deterministische Tests.
+- Bekannte Limitation: Wall-Clock-/NTP-Sprünge werden nicht kompensiert, und der Akkumulator ist
+  in-memory (überlebt keinen Prozess-Kill) — beides bewusst, s. Decision-Log.
 
 ### WP5 — Buffer-Robustheit ✅
 - Batch **10 → 5** und **punkt-getriggerter** Alters-Flush (`_maxBufferAge = 60 s`, geprüft in
@@ -203,9 +238,15 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
   Restrisiko: Inaktivitäts-Fenster (gepufferte Punkte + stationär + Kill) → Phase B.
 
 ### WP6 — Tests + Geräte-Smoke
-- Unit: LocationSettings-Builder (Plattform-Branch → korrekte Settings). Bestehende Suite grün.
-- Geräte-Smoke (Xiaomi Mi 11): Session starten → App in Hintergrund + Display aus → ~5–10 min →
-  `gps_points` laufen weiter, Notification sichtbar; **Logcat** auf FGS-Typ-Fehler prüfen.
+- **WP6a ✅** Unit: LocationSettings-Builder (Plattform-Branch → korrekte Settings) in
+  `test/unit/features/shared/sensors/gps_location_settings_test.dart`; Warn-Kanal, Dauer-Akkumulator
+  und Buffer-Verhalten in `test/unit/providers/activity_provider_test.dart`. Gesamtsuite **823 Tests
+  grün** (Stand 2026-08-28).
+- **WP6b ⬜ offen** — Geräte-Smoke (Xiaomi Mi 11): Session starten → App in Hintergrund + Display aus
+  → ~5–10 min → `gps_points` laufen weiter, Notification sichtbar; **Logcat** auf FGS-Typ-Fehler
+  prüfen. Ablauf: [DEVICE_SMOKE_CHECKLIST.md](../DEVICE_SMOKE_CHECKLIST.md).
+  Nicht durch Unit-Tests abgedeckt und daher zwingend on-device: `ensureNotificationPermission`,
+  der tatsächliche FGS-Start und die Notification-Sichtbarkeit.
 
 ## 7. Out-of-scope (offene Punkte → [ROADMAP.md](../ROADMAP.md) „Übergreifende Lücken")
 
@@ -229,7 +270,7 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | 2026-06-13 | `bluetooth-central` (iOS) deferren | Nicht für Background-GPS nötig; App-Store-2.5.4-Risiko bei ungenutztem Mode |
 | 2026-06-13 | WP2: `TrackingMode`-Naht via `GpsSensor`-Override (optionaler Zusatz-Param) statt `BaseSensor`-Erweiterung; `SensorManager` reicht über `is GpsSensor` durch | Hält das generische `BaseSensor`-Interface (auch `HeartRateSensor`) sauber; Mock läuft über Fallback-Zweig |
 | 2026-06-13 | continuous-`distanceFilter` provisorisch 50 m | Feintuning in Phase B; Phase A nutzt manual = 5 m |
-| 2026-06-13 | WP3: GPS-Ausfall via separatem `gpsStartWarning`-Kanal (nicht `_error`) melden | `_error` würde via [activity_screen.dart:190](../../lib/presentation/screens/activity/activity_screen.dart#L190) den ganzen Screen kapern; Session soll trotz fehlendem GPS sichtbar weiterlaufen |
+| 2026-06-13 | WP3: GPS-Ausfall via separatem `gpsStartWarning`-Kanal (nicht `_error`) melden | `_error` würde via [activity_screen.dart:218-219](../../lib/presentation/screens/activity/activity_screen.dart#L218) den ganzen Screen kapern; Session soll trotz fehlendem GPS sichtbar weiterlaufen |
 | 2026-06-13 | WP3: `POST_NOTIFICATIONS` best-effort (blockiert Tracking nicht) | FGS zeichnet auch ohne sichtbare Notification auf; Ablehnung wird nur geloggt + per Geräte-Smoke beobachtet |
 | 2026-06-13 | WP3: Resume-Retry (`retryGpsIfNeeded`) statt Mid-Session-Always-Flow | macht den „Open Settings"→zurück-Weg nutzbar, ohne `ACCESS_BACKGROUND_LOCATION` (das bleibt Phase B) |
 | 2026-06-13 | WP4: Dauer via Timestamp-Akkumulator (aktive Segmente, UTC) statt Timer-Tick-Zähler; injizierbarer `now`-Seam | Dart-`Timer` wird im Hintergrund gedrosselt → Tick-Zähler untercountet; Akkumulator rechnet aus der Wall-Clock und schließt Pausen aus. Monotone `Stopwatch` wäre clock-jump-immun, aber nicht deterministisch testbar + überlebt keinen Restart → verworfen; Clock-Sprung bleibt bekannte Minor-Limitation |
@@ -247,3 +288,4 @@ Manifest enthält `FOREGROUND_SERVICE(_LOCATION)` + `GeolocatorLocationService` 
 | 2026-06-13 | WP3 | Permission-Flow: `GpsSensor.ensureNotificationPermission` (Android best-effort) vor `startStreaming`; GPS-Ausfall über neuen `gpsStartWarning`-Kanal (+ `gpsNeedsSettings`) statt `_error`; `ActivityScreen` zeigt SnackBar (mit „Settings"→`openAppSettings`) + persistenten Warn-Banner; `retryGpsIfNeeded()` bei App-Resume (`main.dart`). 3 neue Provider-Tests; `ensureNotificationPermission`-Pfad nur per Geräte-Smoke (WP6) abgedeckt. `dart analyze` clean, **820 Tests** grün, Debug-APK baut. |
 | 2026-06-13 | WP4 | Session-Dauer aus Timestamp-Akkumulator aktiver Segmente (UTC) statt `Timer`-Tick-Zähler → kein Background-Untercount, Pausen weiter ausgeschlossen; 1-s-Timer treibt nur noch die UI; injizierbarer `now`-Seam. 2 neue deterministische Tests; Smoke-Punkt „Dauer korrekt nach Hintergrund" ergänzt. `dart analyze` clean, **822 Tests** grün, Debug-APK baut. |
 | 2026-06-13 | WP5 | Buffer-Robustheit: `_gpsBatchSize` 10 → 5 + punkt-getriggerter Alters-Flush (`_maxBufferAge` 60 s, `_lastFlush` via `_now()`) in `_onGpsPoint`; Re-Entrancy schon durch snapshot→clear→await abgesichert. Batch-Test auf 5 angepasst + neuer Staleness-Test. `dart analyze` clean, **823 Tests** grün, Debug-APK baut. |
+| 2026-08-28 | — | Doc-Review gegen den Code: Abschnitt 3 als **historisch** gekennzeichnet (+ Spalte „Heute"), Pipeline-Diagramm auf 5er-Batch aktualisiert, WP2-Naht (lokale Konstanten statt `GpsTrackingConfig`) und WP4 (`durationSeconds` = Akkumulator, nicht `endTime − startTime`) richtiggestellt, `notificationIcon` aus der WP2-Spec entfernt, WP6 in WP6a (✅) / WP6b (⬜) gesplittet, stale Zeilen-Anker nachgezogen. Keine Code-Änderung. |

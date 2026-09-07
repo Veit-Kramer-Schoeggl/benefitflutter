@@ -8,6 +8,10 @@
 
 # Profile Screen Implementation Plan
 
+> _Historical design document. Last verified against `lib/presentation/screens/profile/profile_screen.dart`
+> and `lib/providers/profile_provider.dart` on 2026-08-28 (branch `feat/phase-2-background-tracking`,
+> commit `fd7dfc1`)._
+
 > **⚠️ Implementation status (current code):** This is the original forward-looking
 > plan. The Profile Screen was ultimately built **differently** from the design below:
 > - A `ProfileProvider` (`lib/providers/profile_provider.dart`) **now exists** (added in
@@ -18,9 +22,12 @@
 >   plus local widget state.
 > - There is **no** edit-mode toggle (`_isEditing` / Edit / Cancel). Editing happens
 >   via selection cards, a settings dialog, and a persistent **Save Changes** button.
-> - The screen's **Save Changes** button persists `displayName`/`gender` (plus
->   biometrics — height/weight — and preferences — country), and handles avatar,
->   verification, biometric unlock, change-password, and account deletion.
+> - The **Save Changes** button (`_saveProfileData()`, profile_screen.dart:158-239) persists
+>   **only** `displayName` and `gender` on the `User`, plus biometrics (height/weight) and
+>   preferences (country → `UserPreferences.defaultLocationCity`).
+> - Avatar pick, identity verification, biometric-unlock toggle, change password and account
+>   deletion are separate handlers on the same screen; each writes immediately when its dialog
+>   is confirmed and does **not** go through Save Changes.
 >
 > For an accurate description of what currently ships, see
 > [`profile_screen.dart`](./profile_screen.dart) and the up-to-date
@@ -95,15 +102,26 @@ class User {
   final bool isVerified;
   final String verificationStatus;
 
-  // copyWith() accepts ALL fields (id, name, email, passwordHash,
-  // displayName, gender, dateOfBirth, timezone, profileImagePath,
-  // isVerified, verificationStatus) — each defaulting to the current value.
-  User copyWith({String? name, String? email, /* ...all other fields... */ }) {
+  // copyWith() accepts ALL fields, each defaulting to the current value
+  // (mirrors lib/features/user/domain/user.dart:71-97).
+  User copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? passwordHash,
+    String? displayName,
+    String? gender,
+    DateTime? dateOfBirth,
+    String? timezone,
+    String? profileImagePath,
+    bool? isVerified,
+    String? verificationStatus,
+  }) {
     return User(
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
-      // ...remaining fields...
+      // ...remaining fields, each `x ?? this.x`...
     );
   }
 }
@@ -128,8 +146,10 @@ User updatedUser = user.copyWith(displayName: 'John');
 
 ---
 
-### 2️⃣ **ProfileProvider** (PLANNED — not implemented)
-**File**: `lib/providers/profile_provider.dart`
+### 2️⃣ **ProfileProvider** (ORIGINAL PLAN — superseded by a different implementation)
+**Planned file**: `lib/providers/profile_provider.dart` — that path now holds a *different*,
+83-line data-ops provider (`updateUser`, `getLatestBiometrics`, `getPreferences`,
+`saveBiometrics`, `savePreferences`, `attachAuth`, `clearError`), **not** the view-model below.
 
 > **Status:** The view-model-style provider designed below was never created. A
 > different, thinner `ProfileProvider` (`lib/providers/profile_provider.dart`) was
@@ -735,6 +755,13 @@ ElevatedButton(
 
 ### 4️⃣ **Dialog for Profile Picture (Hero Animation)**
 
+> **Status: not shipped.** There is no Hero animation, no zoom dialog and no initials avatar in
+> the delivered screen (`grep 'Hero(' profile_screen.dart` → no hits). Tapping the avatar calls
+> `_pickImageFromGallery()` (profile_screen.dart:289-290, 545-588):
+> `ImagePicker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 80)`,
+> copied to `{userId}_profile.jpg` in the app documents directory (533-540) and saved immediately
+> via `ProfileProvider.updateUser()` (566-569). The code below is the original design only.
+
 ```dart
 // In Screen
 GestureDetector(
@@ -792,13 +819,18 @@ Consumer<ProfileProvider>(
 
 ## Summary: Interactivity with Provider
 
+> **Status: original design.** None of the provider methods in this table exist in the shipped
+> `ProfileProvider` (`updateUser`, `getLatestBiometrics`, `getPreferences`, `saveBiometrics`,
+> `savePreferences`, `attachAuth`, `clearError` — lib/providers/profile_provider.dart:29-82).
+> Edit state lives in the widget, not the provider.
+
 | Action | Provider Method | UI Reaction |
 |--------|----------------|-------------|
 | Click Edit button | `toggleEditMode()` | TextFields appear |
 | Enter name | `updateTempName()` | Controller updates |
 | Click Save | `saveChanges()` | Spinner → Success/Error |
 | Click Cancel | `cancelEdit()` | Back to view mode |
-| Click Avatar | - (UI only) | Dialog with Hero animation |
+| Click Avatar | - (UI only) | Dialog with Hero animation *(planned; shipped as a gallery image picker)* |
 
 **Key Principle:**
 → **Provider holds the state**, UI reacts automatically via `notifyListeners()`
@@ -813,7 +845,8 @@ Consumer<ProfileProvider>(
 > from `AuthProvider`. Phase 3+
 > (the screen, save feedback, profile-picture upload, change password) shipped in a
 > different form. Items remain unchecked because they describe the original plan, not
-> the delivered implementation.
+> the delivered implementation — the single exception is the Phase 2 registration item,
+> which shipped (in a different provider shape) and is therefore ticked.
 
 ### Phase 1: Create Provider
 - [ ] Create `lib/providers/profile_provider.dart`
@@ -822,7 +855,10 @@ Consumer<ProfileProvider>(
 - [ ] Implement validation in `saveChanges()`
 
 ### Phase 2: Register Provider
-- [ ] `lib/main.dart` → Add `ProfileProvider` to the list
+- [x] `lib/main.dart` → `ProfileProvider` **is** registered — but as
+  `ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>` whose `update` calls
+  `profileProvider.attachAuth(authProvider)` (lib/main.dart:155-161), not as a plain
+  `ChangeNotifierProvider`.
 
 ### Phase 3: Create Screen
 - [ ] Change `ProfileScreen` to `StatefulWidget`

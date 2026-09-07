@@ -2,6 +2,10 @@
 > **Documentation Type:** DESIGN (Planning & Decision Document)
 >
 > **Related:** [DATABASE.md](../../database/DATABASE.md) | [ACTIVITY_SCREEN_PLAN.md](../../lib/presentation/screens/activity/ACTIVITY_SCREEN_PLAN.md) | [SENSORS.md](../../lib/features/shared/sensors/SENSORS.md)
+>
+> **Sprint breakdown:** [SESSION_PLAN.md](./SESSION_PLAN.md) · **Phase-2 background-tracking roadmap:** [BACKGROUND_TRACKING_PLAN.md](./BACKGROUND_TRACKING_PLAN.md) (WP1–WP5 done, on-device smoke open)
+>
+> **Last updated:** 2026-08-28 · code state = branch `feat/phase-2-background-tracking`, commit `fd7dfc1` (WP5)
 ---
 
 # Session & Tracking System Design
@@ -14,6 +18,25 @@ BeneFit supports two tracking modes to capture user movement data:
 |------|---------|---------------|----------|
 | **Manual** | User-initiated workouts | High (~5s / 10m) | Minutes to hours |
 | **Continuous** | Passive daily tracking | Low (~5min / 100m) | Until next reset point |
+
+### GPS Sampling Has Two Layers (Plus a Quality Gate)
+
+The "GPS Frequency" column above describes only what gets **stored**. Since WP2 there is a second,
+independent layer in front of it — a reader tuning battery or accuracy from this table alone would
+change the wrong knob.
+
+| Layer | Where | Manual | Continuous | Effect |
+|-------|-------|--------|------------|--------|
+| **1. OS / geolocator stream** | `GpsSensor.buildLocationSettings()` (gps_sensor.dart:253-283), constants at :230-231 | `accuracy: high`, `distanceFilter: 5 m` | `accuracy: high`, `distanceFilter: 50 m` | Decides whether a fix ever reaches the app at all |
+| **2. App-side storage filter** | `GpsTrackingConfig.shouldStorePoint()` (gps_tracking_config.dart:115-129) | store if ≥ 5 s **or** ≥ 10 m since the last stored point | ≥ 300 s **or** ≥ 100 m | Decides what is persisted to `gps_points` |
+| **3. Quality gate** | `GpsTrackingConfig.meetsQualityRequirements()` (gps_tracking_config.dart:131-148), applied in `GpsSensor._onPositionUpdate` (gps_sensor.dart:300-304) | reject accuracy > 50 m or fix older than 10 s | same | Drops bad fixes before they even reach layer 2 |
+
+> **Status: continuous path not wired.** The two layers use different, unconnected sources of truth:
+> the stream filters are local constants inside `GpsSensor`, which never imports
+> `GpsTrackingConfig`. And `ActivityProvider._shouldStoreGpsPoint()` hardcodes
+> `isContinuousMode: false` (activity_provider.dart:906), so the continuous storage profile is
+> unreachable in production today. Merging both profiles into `GpsTrackingConfig` is an open
+> Phase-B item — see [BACKGROUND_TRACKING_PLAN.md](./BACKGROUND_TRACKING_PLAN.md) (WP2).
 
 ---
 
@@ -168,6 +191,87 @@ class ContinuousTrackingConfig {
 - Never delete without user warning
 
 See [DATABASE.md](../../database/DATABASE.md) sync_queue table for implementation.
+
+**Durability of in-flight GPS points:**
+
+Retention above is about *synced* data. Points that have not reached SQLite yet are a separate
+concern, because they live in the Dart heap:
+
+```
+GpsSensor → ActivityProvider._onGpsPoint (activity_provider.dart:823-890)
+   → _pendingGpsPoints buffer
+   → flush when: buffer reaches 5 points  (_gpsBatchSize, :71)
+              OR buffer is older than 60 s (_maxBufferAge, :72 — checked on point arrival, :849-851)
+              OR the session is paused (:390) or stopped (:497 -> _stopGpsTracking, :792)
+              OR the app is backgrounded (main.dart:254-259 → flushPendingGps)
+   → GpsPointDao.insertBatch → SQLite
+```
+
+The age flush is deliberately **point-triggered**, not a background `Timer`: the OS throttles Dart
+timers in the background — exactly the situation the flush exists for — while GPS fixes keep
+arriving through the foreground service.
+
+A flush is race-safe (buffer is swapped out before the `await`) and error-safe (a failed batch is
+re-queued rather than dropped, activity_provider.dart:804-818).
+
+> **Residual risk (accepted for Phase A):** if the user is stationary (no new fixes arrive, so no
+> flush is triggered) *and* the OS hard-kills the process, the buffered points are lost. Mitigation
+> — a background isolate plus session restore — is deferred to Phase B.
+
+---
+
+### 6. Session Duration (Active-Time Accumulator)
+
+**Problem:** A `Timer.periodic` tick counter is throttled or paused by the OS while the app is in the
+background, so it *under-counts* exactly during the background tracking Phase 2 enables.
+
+**Decision (WP4, 2026-06-13):** `durationSeconds` is the **sum of active segments**, derived from the
+wall clock on every read — never from timer ticks and never from `endTime − startTime`.
+
+```
+duration = _accumulatedActive                       // completed segments
+         + (now() − _segmentStart)                  // the running segment, if any
+```
+
+| Aspect | Implementation |
+|--------|----------------|
+| Accumulator | `_accumulatedActive` + `_segmentStart` (UTC), `ActivityProvider` (activity_provider.dart:50-54) |
+| Read path | `_elapsedSeconds` getter recomputes from the clock (:125-130) |
+| Segment close | `_finalizeSegment()` on pause and on stop (:713-719) |
+| Persisted value | `durationSeconds: _elapsedSeconds` (:219, :401, :448, :516) |
+| 1-second timer | drives `notifyListeners()` only — repaint, not measurement (:692-702) |
+| Testability | injectable clock seam `DateTime Function() now` (:54, :103-105) |
+
+**Consequences:**
+- **Pauses are excluded** by construction; a paused session accrues no duration.
+- `endTime − startTime` is deliberately *not* the duration and will be larger whenever the user paused.
+
+> **Known limits (accepted):** wall-clock jumps (manual time change, NTP correction) are not
+> compensated — a monotonic `Stopwatch` would be immune but is neither deterministically testable nor
+> restart-safe. The accumulator is **in-memory only**: a process kill loses it, because session
+> restore is Phase B. See [BACKGROUND_TRACKING_PLAN.md](./BACKGROUND_TRACKING_PLAN.md) decision log.
+
+---
+
+### 7. GPS Unavailable or Denied During a Session
+
+**Problem:** GPS can fail for reasons that are not the session's fault — permission denied, system
+location switched off, a transient sensor error. Routing these through the provider's fatal `error`
+channel would replace the entire Activity screen (`if (provider.hasError) return ErrorDisplayWidget(...)`,
+activity_screen.dart:218-219) and abort a run that is otherwise recording fine.
+
+**Decision (WP3, 2026-06-13):** GPS problems are **non-fatal**. The session keeps running.
+
+| Element | Behaviour | Implementation |
+|---------|-----------|----------------|
+| Separate channel | `gpsStartWarning` (a `String?`), never `_error` | activity_provider.dart:91, :144-149 |
+| Message per cause | location off / permanently blocked / permission required | `_gpsWarningForStatus()` (:761-771) |
+| Immediate feedback | SnackBar on session start | activity_screen.dart:146-163 |
+| Persistent feedback | warning banner inside the running-session card | activity_screen.dart:361-386 |
+| Escape hatch | "Settings" action → `openAppSettings()` when `gpsNeedsSettings` | activity_screen.dart:154-160 |
+| Recovery | `retryGpsIfNeeded()` on app resume, clears the warning if GPS now starts | activity_provider.dart:777-787, main.dart:274-276 |
+
+**What still records without GPS:** elapsed time and heart rate. What is lost: distance and route.
 
 ---
 
@@ -600,9 +704,22 @@ class DeviceProfiles {
 }
 ```
 
+> **Implementation note:** the shipped `device_profiles.dart` lower-cases the key
+> (`overrides[deviceId.toLowerCase()] ?? 1.0`, device_profiles.dart:58-59) — a caller copying the
+> sample above would get case-sensitive lookups that miss every override. The class additionally
+> exposes `buildDeviceId(manufacturer, model)` (:70) and `hasOverride(deviceId)` (:79). The
+> `overrides` map is still **empty in production** (only commented-out examples).
+
 ---
 
 ### Final Scoring Formula
+
+> **Status: config only, not wired.** The formula below exists as pure helper functions
+> (`TrackingConfig.calculateScore`, tracking_config.dart:126-136). Nothing in the app computes points
+> yet: a grep over `lib/` finds no caller of `calculateScore`, `DeviceProfiles.getDeviceMultiplier`,
+> `HrDeviceProfiles.getTrustMultiplier` or `StepValidationConfig.validateAndAdjust` outside
+> `lib/core/config/` — the only other references are their unit tests. Wiring scoring into session
+> completion is currently unowned; see [SESSION_PLAN.md](./SESSION_PLAN.md), Sprint 10.
 
 ```
 Points = base_distance_points
@@ -1014,9 +1131,12 @@ From `users` table:
 
 ## Database Schema (Refined)
 
-> **Implementation status:** All three tables below are now implemented (DB
-> schema version 11, created in `_createContinuousTrackingTables` /
-> `_migrateToV11` in `lib/features/shared/database/database_helper.dart`). The
+> **Implementation status:** All three tables below are now implemented. They were introduced with
+> schema **v11** via `_createContinuousTrackingTables` (database_helper.dart:111-175), which
+> `onCreate` (:107) and the `oldVersion < 11` branch of `_onUpgrade` (:225-227) share — there is no
+> `_migrateToV11` method. The database has since moved on: `DatabaseHelper.dbVersion = 12`
+> (database_helper.dart:36), v11 → v12 = `_migrateToV12` (data-integrity hardening, :230-231, :242).
+> The
 > *actual* shipped columns differ from the refined design sketched here — see
 > [DATABASE.md](../../database/DATABASE.md) for the authoritative schema. Key
 > differences: `continuous_tracking_config` also has `activity_detection TEXT`,
@@ -1083,7 +1203,15 @@ tracking_mode:
 
 **File:** `lib/features/security/services/session_timeout_service.dart`
 
-The session timeout service (Sprint 6 security feature) depends on continuous tracking state:
+> **Status: stub, not built.** `lib/features/security/services/session_timeout_service.dart` exists
+> but is an explicitly documented stub — `bool get isEnabled => false;` (:96) and
+> `recordActivity` / `startMonitoring` / `stopMonitoring` / `extendSession` only `debugPrint`
+> "NOT IMPLEMENTED" (:99-120). No `ContinuousTrackingService` class exists anywhere in `lib/`, so the
+> `ContinuousTracking.isActive` branch of the flow chart below is aspirational. The work is tracked as
+> **Sprint 9** in [SESSION_PLAN.md](./SESSION_PLAN.md) — this document previously called it a
+> "Sprint 6 security feature"; Sprint 9 is authoritative.
+
+The session timeout service depends (by design) on continuous tracking state:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -1124,8 +1252,9 @@ The session timeout service (Sprint 6 security feature) depends on continuous tr
 1. First: Implement `continuous_tracking_state` table and service
 2. Then: Session timeout can properly check `ContinuousTrackingService.isActive`
 
-**Required API for Session Timeout:**
+**Required API for Session Timeout** — *planned, not yet implemented (no such class exists):*
 ```dart
+// planned, not yet implemented
 abstract class ContinuousTrackingService {
   /// Whether continuous tracking is currently active
   bool get isActive;
@@ -1150,7 +1279,7 @@ abstract class ContinuousTrackingService {
 - [x] Create `lib/core/config/tracking_config.dart`
 - [x] Create `lib/core/config/device_profiles.dart` (also added `hr_device_profiles.dart` and `step_validation_config.dart`)
 - [ ] Implement sensor capability detection
-- [x] Implement trust multiplier calculation (`TrackingConfig.calculateScore`)
+- [x] Implement trust multiplier calculation (`TrackingConfig.calculateScore`, tracking_config.dart:126-136) — ⚠️ **config only, not wired**: no production code calls it (only `test/core/config/tracking_config_test.dart`); same for `DeviceProfiles.getDeviceMultiplier`, `HrDeviceProfiles.getTrustMultiplier` and `StepValidationConfig.validateAndAdjust`. Wiring scoring into session completion is unowned — see [SESSION_PLAN.md](./SESSION_PLAN.md), Sprint 10
 - [ ] Add pedometer integration (OS-level)
 
 ### Phase 3: Continuous Foundation
@@ -1161,16 +1290,26 @@ abstract class ContinuousTrackingService {
 - [ ] Reset point scheduler/alarm
 
 ### Phase 4: Manual-Continuous Integration
-- [ ] Detect manual session start → end continuous
-- [ ] Detect manual session end → restart continuous
+- [x] Detect manual session start → end continuous — `ActivityProvider._endActiveContinuousSessions()` (activity_provider.dart:597-652), called from `startSession` at :312
+- [x] Detect manual session end → restart continuous — `ActivityProvider._startContinuousSession()` (activity_provider.dart:658-687), called at :545-546 when `_wasContinuousActive`
 - [ ] Handle edge cases (crash during manual, etc.)
 - [ ] Seamless session transitions
 
-### Phase 5: Background Service
-- [ ] Background location service
-- [ ] Foreground notification (Android requirement)
-- [ ] Battery optimization handling
-- [ ] Wake lock management
+> **Status: session-record level only.** Both handlers complete/create rows in `sessions`, but
+> nothing writes `continuous_tracking_state` and no continuous GPS runtime exists (Phase 3), so the
+> path is inert in practice — continuous tracking never runs, so there is never anything to end.
+
+### Phase 5: Background Service — *Phase A done, see [BACKGROUND_TRACKING_PLAN.md](./BACKGROUND_TRACKING_PLAN.md)*
+- [x] Background location service — geolocator's built-in foreground service; **no own service class** (gps_sensor.dart:253-283, WP2)
+- [x] Foreground notification (Android requirement) — "BeneFit" / "Recording your activity session…", `setOngoing` (gps_sensor.dart:236-242, WP2); FGS permissions in AndroidManifest.xml:10-15 (WP1); iOS `UIBackgroundModes:[location]` in Info.plist:56-59 (WP1)
+- [ ] Battery optimization handling (Doze exemption, OEM whitelisting) — **still open**, no Doze/OEM code anywhere in `lib/`
+- [x] Wake lock management — `enableWakeLock: true` (gps_sensor.dart:240) + `WAKE_LOCK` permission (AndroidManifest.xml:15)
+- [ ] Phase B: `continuousDaily` runtime that survives a process kill (separate background isolate) — **still open**
+- [ ] On-device verification (background + screen off, Logcat FGS check) — open, WP6b
+
+> **Scope note:** Phase A covers *active* sessions only. Tracking stops when the process is killed,
+> and notification actions (pause/stop/open) are not available with geolocator's
+> `ForegroundNotificationConfig`.
 
 ### Phase 6: Server-Side Validation (Future)
 - [ ] Anomaly detection API
@@ -1196,7 +1335,8 @@ The following topics need detailed design before implementation:
 - [ ] App crash during continuous tracking - auto-restart?
 - [ ] Phone restart - resume continuous tracking automatically?
 - [ ] Low battery behavior - reduce GPS frequency? Stop tracking?
-- [ ] GPS signal loss during session - interpolate? Mark gap?
+- [x] GPS unavailable / denied at session start - **designed and shipped** (WP3): non-fatal warning channel, session keeps recording time + HR, see [7. GPS Unavailable or Denied During a Session](#7-gps-unavailable-or-denied-during-a-session)
+- [ ] GPS *signal* loss mid-session (fixes stop arriving) - interpolate? Mark gap? — still open
 - [ ] Health Connect unavailable - fallback behavior?
 - [ ] BLE device disconnects mid-session - how to handle?
 - [ ] Session data corruption - validation and recovery?
@@ -1204,12 +1344,15 @@ The following topics need detailed design before implementation:
 
 ### Android Foreground Service
 
-- [ ] Notification content and design
-- [ ] Notification actions (pause, stop, open app)
-- [ ] Notification channel configuration
-- [ ] When to show/hide notification
-- [ ] Behavior when user dismisses notification
-- [ ] Android 14+ foreground service type declaration
+*Mostly resolved by WP1–WP2 (2026-06-13) — see [BACKGROUND_TRACKING_PLAN.md](./BACKGROUND_TRACKING_PLAN.md).*
+
+- [x] Notification content and design — title "BeneFit", text "Recording your activity session…" (gps_sensor.dart:236-242); a monochrome tray icon is deferred (UI polish, Phase 3)
+- [ ] ~~Notification actions (pause, stop, open app)~~ — **not possible** with geolocator's `ForegroundNotificationConfig`; would require `flutter_background_service` (Phase B), see BACKGROUND_TRACKING_PLAN.md §5
+- [x] Notification channel configuration — plugin default channel ("Background Location"); **no app-side channel**
+- [x] When to show/hide notification — bound to the location stream: appears when the session goes ACTIVE, gone on `stopStreaming()` (gps_sensor.dart:214-223)
+- [x] Behavior when user dismisses notification — `setOngoing: true`, so it is not dismissible
+- [x] Android 14+ foreground service type declaration — `FOREGROUND_SERVICE_LOCATION` (AndroidManifest.xml:11); the `<service>` itself comes from geolocator_android with `foregroundServiceType="location"`
+- [ ] Verify on device via Logcat (no `MissingForegroundServiceTypeException`) — open, WP6b
 
 ### Battery Optimization
 
@@ -1223,13 +1366,15 @@ The following topics need detailed design before implementation:
 
 ### Permissions Required
 
-- [ ] Location "Always" vs "While Using" - when to request each
-- [ ] Activity Recognition permission (for step counting)
-- [ ] Bluetooth permissions (for wearables)
-- [ ] Notification permission (Android 13+)
-- [ ] Background location rationale dialog
-- [ ] Permission denial handling and re-request flow
-- [ ] Settings deep-link for manually enabling permissions
+*Mostly resolved by WP1–WP3 (2026-06-13).*
+
+- [x] Location "Always" vs "While Using" — decided: **while-in-use only** for Phase A (the FGS is started while the app is in the foreground); `ACCESS_BACKGROUND_LOCATION` deliberately commented out (AndroidManifest.xml:17-22) and returns in Phase B
+- [ ] Activity Recognition permission (for step counting) — permission is declared (AndroidManifest.xml:25) but **no pedometer code exists**, so nothing requests or uses it
+- [x] Bluetooth permissions (for wearables) — AndroidManifest.xml:31-37 (`BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT` + legacy ≤ API 30)
+- [x] Notification permission (Android 13+) — best-effort `GpsSensor.ensureNotificationPermission()` (gps_sensor.dart:138-157), called from sensor_manager.dart:184 before `startStreaming`; denial never blocks tracking
+- [ ] Background location rationale dialog — Phase B (not needed while "Always" is out of scope)
+- [x] Permission denial handling and re-request flow — non-fatal `gpsStartWarning` + banner/SnackBar (activity_provider.dart:749-771, activity_screen.dart:146-163) and `retryGpsIfNeeded()` on resume (activity_provider.dart:777-787, main.dart:274-276)
+- [x] Settings deep-link for manually enabling permissions — `openAppSettings()` (activity_screen.dart:154-160) when `gpsNeedsSettings`
 
 ---
 
@@ -1257,4 +1402,9 @@ The following topics need detailed design before implementation:
 | 2025-02-23 | Cross-validation using Health Connect + personalized step length | Detect gaming/vehicle, uses existing biometric data |
 | 2025-02-23 | Step length estimation based on height/gender/age | Gaussian distribution with ±12% σ for natural variation |
 | 2025-02-23 | GPS remains primary, Health APIs for validation | Battery flexibility, cross-check capability |
+| 2026-06-13 | Background tracking Phase A = geolocator's built-in foreground service; no own `foreground_service.dart` | Far less native code; trade-off: no notification actions |
+| 2026-06-13 | `ACCESS_BACKGROUND_LOCATION` dropped for Phase A | While-in-use suffices for an FGS started in the foreground; avoids the Play background-location review |
+| 2026-06-13 | Session duration = accumulated active segments read from the wall clock, not timer ticks | A background-throttled `Timer` under-counts; pauses stay excluded |
+| 2026-06-13 | GPS buffer: batch of 5 + point-triggered 60 s age flush | Bounds data loss on a process kill without relying on a throttled background timer |
+| 2026-06-13 | GPS failures use a separate non-fatal `gpsStartWarning` channel, not `error` | `error` swaps the whole Activity screen; a session without GPS should keep recording time and HR |
 

@@ -1,12 +1,13 @@
 # BeneFit — Roadmap (Maßnahmen-Checkliste)
 
-> **Stand:** 2026-06-11 · Kurzfassung von [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md).
+> **Stand:** 2026-08-28 · **Branch:** `feat/phase-2-background-tracking` · Kurzfassung von [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md).
 > Aufwand: **S** < 1 Tag · **M** 1–3 Tage · **L** ~1 Woche · **XL** > 1 Woche.
 
 ## 🔴 Phase 0 — Sofort-Blocker & Fundament
 
-> **Status (2026-06-11):** Phase 0 ✅ **abgeschlossen**, Phase 1 weit fortgeschritten (Round 2a/2b/3 erledigt;
-> offen nur noch der Widget-/Integration-Test-Layer). — Sofort-Blocker (Branch `chore/phase-0-sofort-blocker`,
+> **Status (2026-08-28):** Phase 0 ✅ **und** Phase 1 ✅ **abgeschlossen** (Round 2a/2b/3, Widget-/Integration-
+> Test-Layer, Bugfix-Runde `fix/smoke-findings`). **Laufend: Phase 2 — Background-Tracking-Runtime**:
+> WP1–WP5 sind im Code, **WP6 (Geräte-Smoke) offen**. — Sofort-Blocker (Branch `chore/phase-0-sofort-blocker`,
 > nach `main` gemerged, auf Xiaomi Mi 11 / Android 14 getestet) **und** Fundament (Branch
 > `chore/phase-0-foundation`: Error-Handler, Sentry DSN-gated, AppLogger, kuratierte Lints, CI).
 > Toolchain auf **Flutter 3.44.1 / Dart 3.12** angehoben. GPS-Batching wurde in Phase 1 / Round 2b nachgezogen.
@@ -36,7 +37,8 @@ Fundament:
 ## 🟠 Phase 1 — Korrektheit, Datenintegrität & Entkopplung
 
 > **Foundation-Slice (2026-06-11) ✅ erledigt** auf `chore/phase-1-foundation`: Test-Suite grün
-> (Unit-Suite mittlerweile auf **756 Tests** ausgebaut, 0 Failures), CI-`flutter test`-Gate jetzt **required**.
+> (Suite mittlerweile **823 Tests**, davon 50 `testWidgets`; 52 Test-Dateien unter `test/` + 1 unter
+> `integration_test/`; 0 Failures), CI-`flutter test`-Gate jetzt **required**.
 >
 > **Round 2a (Phase 1) ✅ erledigt:** Typisierte `AppConfig` (`lib/core/config/app_config.dart`,
 > `--dart-define-from-file`); `UserProvider`-Split (`AuthProvider` Identität/Session + `ProfileProvider`
@@ -50,7 +52,12 @@ Fundament:
 >
 > **Round 3 (Phase 1) ✅ erledigt:** Navigator 1.0 → **go_router** (`lib/core/router/app_router.dart`,
 > `MaterialApp.router`, Redirect-Auth-Gate, `StatefulShellRoute` für die 5 Tabs, Deep-Links über den Router).
-> **Nächste Runde:** der Widget-/Integration-Test-Layer.
+>
+> **Round 4/5 (Phase 1) ✅ erledigt:** Widget-Test-Layer über den gerouteten Harness
+> `test/helpers/app_harness.dart` (50 `testWidgets` in `test/widget/{screens,flows,navigation}`),
+> E2E-Smoke `integration_test/app_happy_path_test.dart` + nicht-blockierender Emulator-Workflow,
+> sowie die Bugfix-Runde `fix/smoke-findings` (F1 Datumsformat, F5 Custom-Scheme-Deep-Link,
+> F6 Biometrie-Erkennung). **Nächste Runde:** Phase 2 / WP6 — Geräte-Smoke der Background-Tracking-Runtime.
 
 - [x] **(S)** Schema-Single-Source-of-Truth (`onCreate` ruft idempotenten v11-Creator; Duplikat entfernt)
 - [x] **(M)** Migrationstests (In-Memory `sqflite_common_ffi`), in CI (fresh==upgraded, v12, FK-Check)
@@ -60,12 +67,31 @@ Fundament:
 - [x] **(L)** `UserProvider` → `AuthProvider` + `ProfileProvider` *(✅ Round 2a: Split umgesetzt — `AuthProvider` besitzt Identität/Session, `ProfileProvider` die editierbaren Profildaten; `_pending*` → screen-scoped State; `user_provider.dart` gelöscht)*
 - [x] **(M)** Typisierte `AppConfig` via `--dart-define-from-file` (dev/staging/prod) *(✅ Round 2a: `lib/core/config/app_config.dart`, release-sichere Defaults)*
 - [x] **(L)** `go_router` + Redirect-Auth-Guard (`StatefulShellRoute` für 5 Tabs) *(✅ Round 3: `lib/core/router/app_router.dart`, `MaterialApp.router`, Deep-Links über den Router)*
-- [ ] **(L)** Widget-Test-Layer für kritische Flows (`pump_app.dart`) *(nächste Runde)*
+- [x] **(L)** Widget-/Integration-Test-Layer für kritische Flows *(✅ Round 4/5: umgesetzt über den neuen Harness `test/helpers/app_harness.dart`; das ältere `test/helpers/pump_app.dart` blieb ungenutzt und sollte gelöscht werden. 50 `testWidgets` in `test/widget/{screens,flows,navigation}`)*
+- [x] **(M)** E2E-Smoke auf Android-Emulator (`integration_test/app_happy_path_test.dart`: Cold-Start → Login → Home-Tabs) über `.github/workflows/e2e.yml` — bewusst **nicht-blockierend** (nur `push: main` + `workflow_dispatch`, api-level 34, `profile: pixel_6`), weil der Emulator-Job ~8–12 min braucht und gelegentlich flaky ist. Blockierendes Gate bleibt `ci.yml`.
 - [x] **(S)** `strict-casts`/`fatal-infos` + Info-Backlog aufräumen → `dart analyze --fatal-infos lib` required *(✅ Round 2b)*
+
+## 🔧 Geräte-Smoke-Findings (Runde `fix/smoke-findings`, PR #9 / `cec0879`)
+
+Befunde aus dem manuellen Geräte-Smoke (Xiaomi Mi 11 / Android 14, 2026-06-12).
+Detail-Checkliste: [DEVICE_SMOKE_CHECKLIST.md](DEVICE_SMOKE_CHECKLIST.md) ·
+offene Punkte laufen im [Backlog](../Backlog.md) weiter.
+
+- [x] **F1** Session-Detail zeigt `dd.MM.yyyy, HH:mm` statt `DateTime.toString()` — `session_detail_screen.dart:132`, `6157ca6` *(auf Gerät verifiziert)*
+- [x] **F5** Custom-Scheme-Deep-Link `benefit://reset-password?token=…` wird auf `/reset-password` gemappt — `customSchemeRedirect()` in `app_router.dart:54`, 7 Unit-Tests, `f66fe50` *(warm + cold auf Gerät verifiziert)*
+- [x] **F6** Biometrie wird auf Android erkannt (`strong`/`weak` → fingerprint, `FlutterFragmentActivity`, `USE_BIOMETRIC`) — `biometric_service.dart:105`, `96d8cd2` *(auf Gerät verifiziert)*
+- [ ] **F3** Device-Pairing prüft die Berechtigungen nach Rückkehr aus den Systemeinstellungen nicht erneut → bleibt bei „connection failed"
+- [ ] **F4** BLE-Pairing an OS / Health Connect delegieren statt eigenem `flutter_blue_plus`-Scan *(Entscheidung getroffen; ersetzt den Custom-Flow und erledigt F3 mit — aufgeschoben, bis ein Testgerät verfügbar ist)*
 
 ## 🟡 Phase 2 — Echtes Backend, Sync & Auth *(der große Schritt)*
 
-- [ ] **(L)** Background-Tracking-Runtime (Android Foreground-Service / iOS `UIBackgroundModes`) — 🟡 in Arbeit · [Fahrplan](sessions/BACKGROUND_TRACKING_PLAN.md)
+> ⚠️ **Offen am Branch `feat/phase-2-background-tracking` (2026-08-28):** das CI-Gate
+> `dart format --set-exit-if-changed` ist **rot** — 3 Dateien aus den WP3/WP5-Commits sind
+> unformatiert (`lib/presentation/screens/activity/activity_screen.dart`,
+> `lib/providers/activity_provider.dart`, `test/unit/providers/activity_provider_test.dart`).
+> `dart analyze --fatal-infos lib`, `flutter test` (823/823) und `flutter build apk --debug` sind grün.
+
+- [ ] **(L)** Background-Tracking-Runtime — **Phase A ✅ im Code** (WP1–WP5: Manifest/Plist, `GpsSensor.buildLocationSettings` + `ForegroundNotificationConfig`, Permission-Flow inkl. `POST_NOTIFICATIONS`, Dauer aus Timestamps, Buffer-Bound 5 Punkte / 60 s); **offen: WP6 Geräte-Smoke**. Bewusste Grenze von Phase A: kein Background-Isolate → überlebt keinen Process-Kill. · [Fahrplan](sessions/BACKGROUND_TRACKING_PLAN.md)
 - [ ] **(L)** Sync funktionsfähig: `SyncManager` + `SyncQueueDao` (Drain/Backoff/Dead-Letter) **oder** Sync-Engine
 - [ ] **(Spike)** Backend-Entscheidung: PowerSync/Supabase vs. PostgREST → **Decision-Record** (Schritt 3)
 - [ ] **(M)** Versionierte, idempotente Konfliktauflösung; Benefits als append-only Ledger
@@ -84,7 +110,7 @@ Fundament:
 ## ⚖️ Übergreifende Lücken (Owner zuweisen — Launch-relevant)
 
 - [ ] DSGVO/Art. 9: Consent für GPS+HR, Datenexport, server-seitige Löschpropagierung, Datenschutzerklärung
-- [ ] Store-Policy Background-Location (Play-Deklaration + In-App-Disclosure; iOS „Always"-Rationale)
+- [ ] Store-Policy Background-Location (Play-Deklaration + In-App-Disclosure; iOS „Always"-Rationale) — **jetzt akut**, weil der Foreground-Service seit Phase 2 / WP1+WP2 aktiv ist; `ACCESS_BACKGROUND_LOCATION` wird bewusst **nicht** angefordert (`AndroidManifest.xml:22`), was die Deklaration vereinfacht, die In-App-Disclosure aber nicht ersetzt
 - [ ] Datenverlust offline-only: Export/Backup, `allowBackup`-Strategie
 - [ ] Reward-Integrity / Anti-Cheat (server-seitige Validierung)
 - [ ] Akku-Budget (mAh/h-Ziel, adaptive Sampling, Doze/App-Standby-Test)

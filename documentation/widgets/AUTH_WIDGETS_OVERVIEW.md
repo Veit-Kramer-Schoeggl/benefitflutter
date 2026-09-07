@@ -58,6 +58,10 @@ derived from that value.
 | **Good** | Amber | < 0.75 |
 | **Strong** | Green | >= 0.75 |
 
+> Edge case: an empty password scores 0.0 and renders a red bar with **no** label
+> (`password_strength_indicator.dart:129, 155`). Callers therefore gate the widget on
+> `password.isNotEmpty` — see `register_screen.dart:352` and `reset_password_screen.dart:280`.
+
 ## Password Requirements
 
 The password must meet these criteria (enforced by `PasswordValidator`):
@@ -71,15 +75,17 @@ The password must meet these criteria (enforced by `PasswordValidator`):
 ## Usage Context
 
 These widgets are intended for the authentication screens. Current usage:
-- **Registration Screen** - `PasswordStrengthIndicator` (checks-only) for password creation
-- **Password Reset Screen** - `VerificationCodeField` (reset code) and `PasswordStrengthIndicator` for the new password
-- **Email Verification Screen** - `VerificationCodeField` for code input
-- **Profile Screen** - `VerificationCodeField` (account-deletion flow, `_showDeletionVerificationDialog`)
+- **Registration Screen** - `PasswordStrengthIndicator` (checks-only) for password creation (`register_screen.dart:354`)
+- **Password Reset Screen** - `VerificationCodeField` for the reset code (`reset_password_screen.dart:232`) and `PasswordStrengthIndicator` for the new password (`:282`)
+- **Email Verification Screen** - `VerificationCodeField` for code input (`email_verification_screen.dart:118`)
+- **Profile Screen — change password** - three `PasswordTextField`s plus a checks-only `PasswordStrengthIndicator` in `_openChangePasswordDialog()` (`profile_screen.dart:978`; fields at `:999`, `:1006`, `:1025`; indicator at `:1020`)
+- **Profile Screen — account deletion** - `VerificationCodeField` in `_showDeletionVerificationDialog` (`profile_screen.dart:1236`, field at `:1256`)
 
-> Note: the Login Screen currently uses a plain `TextFormField` (with its own
-> visibility toggle) rather than `PasswordTextField`. `PasswordTextField`,
-> `PasswordFormField`, and `PasswordRequirementsText` are available but not yet
-> wired into any auth screen.
+> Note: the Login Screen uses a plain `TextFormField` with its own visibility toggle
+> (`login_screen.dart:336-357`) rather than `PasswordTextField`.
+> **Status: no call sites** — `PasswordFormField`, `PasswordRequirementsText` and
+> `VerificationCodeFormField` are implemented and exported, but are currently used
+> nowhere in `lib/`.
 
 ## Widget Architecture
 
