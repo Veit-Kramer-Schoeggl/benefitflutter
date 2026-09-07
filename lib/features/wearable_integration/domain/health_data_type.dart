@@ -231,11 +231,12 @@ class HealthDataPoint {
         startTime.day == now.day;
   }
 
-  /// Whether this is from this week
+  /// Whether this is from this week (Monday 00:00 onwards).
   bool get isThisWeek {
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    return startTime.isAfter(startOfWeek);
+    final startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    return !startTime.isBefore(startOfWeek);
   }
 
   @override
