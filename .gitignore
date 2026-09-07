@@ -52,6 +52,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Gradle writes its own reports here even though buildDir is redirected to /build
+/android/build/
+
 # Gradle
 .gradle/
 *.lock
