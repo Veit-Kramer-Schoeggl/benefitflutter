@@ -86,14 +86,11 @@ void main() {
 SentryEvent? _scrubSentryEvent(SentryEvent event, Hint hint) {
   final crumbs = event.breadcrumbs;
   if (crumbs == null) return event;
-  return event.copyWith(
-    breadcrumbs: [
-      for (final b in crumbs)
-        b.message == null
-            ? b
-            : b.copyWith(message: AppLogger.redact(b.message!)),
-    ],
-  );
+  for (final b in crumbs) {
+    final message = b.message;
+    if (message != null) b.message = AppLogger.redact(message);
+  }
+  return event;
 }
 
 /// App initialization + runApp. Shared by the no-Sentry path and Sentry's
