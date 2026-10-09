@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'package:benefitflutter/core/config/gps_tracking_config.dart';
 import 'package:benefitflutter/core/config/repository_config.dart';
+import 'package:benefitflutter/core/config/theme.dart';
 import 'package:benefitflutter/features/session/data/session_repository.dart';
 import 'package:benefitflutter/features/session/domain/session.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
@@ -32,6 +35,8 @@ class SessionDetailScreen extends StatefulWidget {
 }
 
 class _SessionDetailScreenState extends State<SessionDetailScreen> {
+  final Color brandGreen = const Color(0xFF71B33A);
+
   bool _isLoading = true;
   String? _error;
 
@@ -64,7 +69,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
       setState(() {
         _session = session;
-        _gpsPoints = points.where((p) => p.meetsQualityRequirements()).toList();
+        _gpsPoints = points.where(_isAccurateEnough).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -73,6 +78,15 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Tracked points already passed the full quality check at capture time
+  /// (GpsSensor). Re-running it here would also re-check the fix age (max
+  /// 10s) and reject every point of a past session (BL-072), so only the
+  /// accuracy threshold is re-applied; points without accuracy are kept.
+  static bool _isAccurateEnough(GpsPoint point) {
+    final accuracy = point.accuracyMeters;
+    return accuracy == null || accuracy <= GpsTrackingConfig.minAccuracyMeters;
   }
 
   // ===================== UI =====================
@@ -173,14 +187,19 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         borderRadius: BorderRadius.circular(16),
         child: FlutterMap(
           options: MapOptions(
-            initialCenter: routePoints.first,
-            initialZoom: 14,
+            // Show the whole route. maxZoom keeps the fit finite when all
+            // points share one position (zero-size bounds).
+            initialCameraFit: CameraFit.coordinates(
+              coordinates: routePoints,
+              padding: const EdgeInsets.all(32),
+              maxZoom: 17,
+            ),
           ),
           children: [
             // 🗺️ OpenStreetMap Tiles
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.benefitflutter',
+              userAgentPackageName: 'us.benefit4.benefitflutter',
               tileProvider: widget.tileProvider,
             ),
 
@@ -189,14 +208,69 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
               polylines: [
                 Polyline(
                   points: routePoints,
-                  strokeWidth: 4,
-                  color: Colors.blue,
+                  strokeWidth: 5,
+                  color: brandGreen,
+                  borderStrokeWidth: 2,
+                  borderColor: Colors.white,
                 ),
               ],
+            ),
+
+            // Start / end of the route
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: routePoints.first,
+                  width: 16,
+                  height: 16,
+                  child: _routeDot(brandGreen),
+                ),
+                Marker(
+                  point: routePoints.last,
+                  width: 16,
+                  height: 16,
+                  child: _routeDot(AppTheme.darkGrey),
+                ),
+              ],
+            ),
+
+            // OSM tile usage policy: visible "© OpenStreetMap contributors".
+            // The map is not at the screen edge, so drop the system insets
+            // the widget's SafeArea would otherwise lift it by.
+            MediaQuery.removePadding(
+              context: context,
+              removeLeft: true,
+              removeTop: true,
+              removeRight: true,
+              removeBottom: true,
+              child: SimpleAttributionWidget(
+                source: const Text('OpenStreetMap contributors'),
+                onTap: _openOsmCopyright,
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _routeDot(Color color) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3)],
+      ),
+    );
+  }
+
+  Future<void> _openOsmCopyright() async {
+    final url = Uri.parse('https://www.openstreetmap.org/copyright');
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Failed to open OSM copyright page: $e');
+    }
   }
 }
