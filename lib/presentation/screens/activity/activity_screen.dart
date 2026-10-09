@@ -243,13 +243,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final routePoints = provider.sessionGpsPoints
               .map((p) => LatLng(p.latitude, p.longitude))
               .toList();
+          final sessionActive = !provider.isIdle;
+          final online = context.select<ConnectivityProvider, bool>(
+            (c) => c.isOnline,
+          );
 
           return Stack(
             children: [
               // ---------- MAP BACKGROUND (live, decorative) ----------
               Positioned.fill(
                 child: IgnorePointer(
-                  child: LiveLocationMap(routePoints: routePoints, zoom: 15),
+                  child: LiveLocationMap(
+                    routePoints: routePoints,
+                    zoom: 15,
+                    sessionActive: sessionActive,
+                    online: online,
+                  ),
                 ),
               ),
 
@@ -439,6 +448,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                         routePoints: routePoints,
                                         zoom: 16,
                                         showAttribution: true,
+                                        sessionActive: sessionActive,
+                                        online: online,
                                       ),
                                     ),
                                   ),

@@ -6,6 +6,7 @@ import 'package:benefitflutter/main.dart' as app;
 import 'package:benefitflutter/presentation/navigation/main_navigation.dart';
 import 'package:benefitflutter/presentation/screens/auth/login_screen.dart';
 import 'package:benefitflutter/presentation/screens/activity/activity_screen.dart';
+import 'package:benefitflutter/presentation/screens/activity/widgets/live_location_map.dart';
 import 'package:benefitflutter/presentation/screens/community/community_screen.dart';
 import 'package:benefitflutter/presentation/screens/progress/progress_screen.dart';
 import 'package:benefitflutter/presentation/screens/benefit/benefit_screen.dart';
@@ -30,6 +31,10 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('happy path: cold start → login → home tabs', (tester) async {
+    // FLUTTER_TEST is not set on a device, so force the Activity screen's live
+    // maps into test mode: blank tiles, no network and no location lookups.
+    LiveLocationMap.testMode = true;
+
     // Boot the REAL app (real SQLite, providers, router). bootstrap() avoids
     // main()'s runZonedGuarded so runApp shares the test binding's zone.
     await app.bootstrap();
@@ -46,7 +51,8 @@ void main() {
     await pumpUntil(tester, find.byType(MainNavigationScreen));
     await pumpUntil(tester, find.byType(ActivityScreen));
 
-    // Walk the bottom-nav tabs (avoid Session Detail — its map fetches OSM tiles).
+    // Walk the bottom-nav tabs (avoid Session Detail — its map still fetches
+    // real OSM tiles; the Activity maps run in test mode, see above).
     await tester.tap(find.text('Progress'));
     await pumpUntil(tester, find.byType(ProgressScreen));
 

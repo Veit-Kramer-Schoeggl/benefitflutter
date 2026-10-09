@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:benefitflutter/features/session/domain/gps_point.dart';
 import 'package:benefitflutter/presentation/screens/activity/activity_screen.dart';
 import 'package:benefitflutter/presentation/screens/wearable/widgets/heart_rate_display.dart';
@@ -94,6 +95,16 @@ void main() {
         find.text('GAIN MORE INDEPENDENT YEARS\nWITH BENEFIT!'),
         findsOneWidget,
       );
+      // No position known yet: both cameras sit on the fallback centre, at
+      // the background (15) and preview (16) zooms.
+      final cameras = tester
+          .widgetList<FlutterMap>(find.byType(FlutterMap))
+          .map((m) => m.mapController!.camera);
+      expect(
+        cameras.map((c) => c.center),
+        everyElement(const LatLng(47.0697, 15.4086)),
+      );
+      expect(cameras.map((c) => c.zoom), unorderedEquals([15.0, 16.0]));
       expect(tester.takeException(), isNull);
     });
 
@@ -120,6 +131,13 @@ void main() {
       expect(find.byType(FlutterMap), findsNWidgets(2));
       expect(find.byType(PolylineLayer), findsNWidgets(2));
       expect(find.byType(MarkerLayer), findsNWidgets(2));
+      // Both cameras follow the newest fix (moved only after onMapReady).
+      expect(
+        tester
+            .widgetList<FlutterMap>(find.byType(FlutterMap))
+            .map((m) => m.mapController!.camera.center),
+        everyElement(const LatLng(47.0707, 15.4086)),
+      );
       expect(tester.takeException(), isNull);
     });
   });

@@ -33,11 +33,23 @@ class LiveLocationMap extends StatefulWidget {
   /// Shows the "© OpenStreetMap contributors" attribution (OSM tile policy).
   final bool showAttribution;
 
+  /// A session exists (tracking or paused). Idle lookups stop right at START,
+  /// not only once the first route point is stored: on iOS one-shot fixes and
+  /// errors share the tracking stream's handler, and on Android a second
+  /// location-settings dialog could stack on top of the tracking one.
+  final bool sessionActive;
+
+  /// Network state; tiles that failed while offline are retried when it
+  /// returns.
+  final bool online;
+
   const LiveLocationMap({
     super.key,
     required this.routePoints,
     required this.zoom,
     this.showAttribution = false,
+    this.sessionActive = false,
+    this.online = true,
   });
 
   /// Test seam: blank in-memory tiles, no Geolocator calls and no timers.
@@ -72,6 +84,13 @@ class _LiveLocationMapState extends State<LiveLocationMap>
       : NetworkTileProvider();
 
   late final MapOptions _mapOptions;
+
+  /// flutter_map never re-requests a failed tile on its own (no eviction, and
+  /// the HTTP retry only covers 503), so one network drop would leave grey
+  /// squares until the app restarts. Emitting here reloads the visible tiles;
+  /// tiles that already loaded come back from the cache.
+  final StreamController<void> _tileReset = StreamController<void>.broadcast();
+  bool _tileFailed = false;
 
   bool _mapReady = false;
   bool _appResumed = true;
@@ -133,12 +152,14 @@ class _LiveLocationMapState extends State<LiveLocationMap>
     } else if (oldWidget.zoom != widget.zoom) {
       _follow();
     }
+    if (widget.online && !oldWidget.online) _retryFailedTiles();
     _updatePolling();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _appResumed = state == AppLifecycleState.resumed;
+    if (_appResumed) _retryFailedTiles();
     _updatePolling(); // resuming refreshes the idle position
   }
 
@@ -148,7 +169,14 @@ class _LiveLocationMapState extends State<LiveLocationMap>
     _IdleLocation.position.removeListener(_onIdlePosition);
     if (_polling) _IdleLocation.release();
     _mapController.dispose();
+    _tileReset.close();
     super.dispose();
+  }
+
+  void _retryFailedTiles() {
+    if (!_tileFailed || _tileReset.isClosed) return;
+    _tileFailed = false;
+    _tileReset.add(null);
   }
 
   void _onMapReady() {
@@ -172,10 +200,11 @@ class _LiveLocationMapState extends State<LiveLocationMap>
   }
 
   /// Hold a reference on the shared idle-position polling only while it is
-  /// useful and visible: no route to follow, app resumed, tab on screen.
+  /// useful and visible: no session, app resumed, tab on screen.
   void _updatePolling() {
     final wanted =
         !LiveLocationMap.testMode &&
+        !widget.sessionActive &&
         widget.routePoints.isEmpty &&
         _appResumed &&
         _tickerEnabled;
@@ -217,6 +246,8 @@ class _LiveLocationMapState extends State<LiveLocationMap>
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'us.benefit4.benefitflutter',
             tileProvider: _tileProvider,
+            errorTileCallback: (_, _, _) => _tileFailed = true,
+            reset: _tileReset.stream,
           ),
 
           // Route of the running session
@@ -302,15 +333,25 @@ abstract final class _IdleLocation {
 
   static const Duration _interval = Duration(seconds: 20);
 
-  /// After a failed fresh fix (timeout, or a declined system "location
-  /// accuracy" dialog on Android) wait before asking again, instead of
-  /// re-asking on every resume.
+  /// After a failed fresh fix (e.g. a timeout indoors) wait before asking
+  /// again, instead of re-asking on every resume.
   static const Duration _failureCooldown = Duration(minutes: 2);
 
-  static const LocationSettings _settings = LocationSettings(
-    accuracy: LocationAccuracy.medium,
-    timeLimit: Duration(seconds: 10),
-  );
+  /// On Android the platform LocationManager answers the fresh fix: the fused
+  /// client would first run a settings check that can open the system
+  /// "location accuracy" dialog (geolocator_android FusedLocationClient.java
+  /// :237-257). The LocationManager client never shows a dialog.
+  static LocationSettings get _settings =>
+      defaultTargetPlatform == TargetPlatform.android
+      ? AndroidSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 10),
+          forceLocationManager: true,
+        )
+      : const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 10),
+        );
 
   static int _users = 0;
   static Timer? _timer;
