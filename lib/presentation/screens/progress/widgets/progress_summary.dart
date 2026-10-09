@@ -19,6 +19,23 @@ class ProgressSummary extends StatelessWidget {
   }
 
   // Helper function to display a single statistics card
+  /// The card's big number on one line, shrunk if it does not fit: a third of
+  /// the screen width cannot hold '479h 25m' or '193.8 km' at 22 pt, and a
+  /// wrap makes the card taller than its neighbours. With a larger system
+  /// font the user asked for bigger text, so it wraps instead of shrinking.
+  Widget _primaryValue(BuildContext context, String value, Color color) {
+    final text = Text(
+      value,
+      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color),
+    );
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.15) return text;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: text,
+    );
+  }
+
   Widget _buildStatCard({
     required String title,
     required String primaryValue,
@@ -49,14 +66,7 @@ class ProgressSummary extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                primaryValue,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
-                ),
-              ),
+              _primaryValue(context, primaryValue, primaryColor),
               const SizedBox(height: 4),
               Text(
                 secondaryValue,
