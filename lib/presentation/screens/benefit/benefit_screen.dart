@@ -65,31 +65,32 @@ class _BenefitScreenState extends State<BenefitScreen> {
       // Step 3: Create SeedService and trigger reseed
       final seedService = await SeedService.create(
         userRepository: RepositoryConfig.getUserRepository(),
-        sessionRepository: RepositoryConfig.getSessionRepository(),
         benefitRepository: RepositoryConfig.getBenefitRepository(),
       );
 
-      await seedService.clearAndReseed();
+      final summary = await seedService.clearAndReseed();
 
       // Step 4: Show success message
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 16),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Database reseeded successfully!\n1 user, 4 benefits, 6 sessions, 8 GPS points',
+                    'Database reseeded successfully!\n'
+                    '${summary['users']} users, ${summary['sessions']} sessions, '
+                    '${summary['gpsPoints']} GPS points',
                   ),
                 ),
               ],
             ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
 

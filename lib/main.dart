@@ -103,7 +103,6 @@ Future<void> bootstrap() async {
     try {
       final seedService = await SeedService.create(
         userRepository: RepositoryConfig.getUserRepository(),
-        sessionRepository: RepositoryConfig.getSessionRepository(),
         benefitRepository: RepositoryConfig.getBenefitRepository(),
       );
       await seedService.seedIfNeeded();

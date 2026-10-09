@@ -69,8 +69,8 @@ main()                                        (main.dart:30)
              : SentryFlutter.init(..., appRunner: bootstrap)   // opt-in via --dart-define
      )
 
-bootstrap() async                             (main.dart:103)
-  ├─> if (SeedConfig.isEnabled) SeedService.create(userRepository:, sessionRepository:,
+bootstrap() async                             (main.dart:100)
+  ├─> if (SeedConfig.isEnabled) SeedService.create(userRepository:,
   │      benefitRepository:) → seedIfNeeded()      (failures logged via AppLogger.e, non-fatal)
   ├─> SensorManager().initialize()
   ├─> tokenStorage = SecureTokenStorage()

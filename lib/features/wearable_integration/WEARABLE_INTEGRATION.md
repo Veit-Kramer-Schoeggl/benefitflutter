@@ -63,7 +63,7 @@ to tell the two apart before reading the ~900 lines that follow.
 | BLE scan + pair | **Working per screen instance** (device_pairing_screen.dart:83-146) |
 | Live heart rate during a session | **Code complete, not reachable** — no caller passes `heartRateDeviceId` (activity_screen.dart:107) |
 | Session HR summary (avg/max/min) | **Working only if live HR runs** (activity_provider.dart:508-538) |
-| Paired-device persistence | **Missing** — `wearable_devices` is written by the demo seeder only (seed_service.dart:302-315) |
+| Paired-device persistence | **Missing** — `wearable_devices` is written by the demo seeder only (seed_service.dart:344-357) |
 | Heart-rate zones | **Not implemented** — never computed; UI shows a hard-coded placeholder (session_summary_screen.dart:299-334) |
 | Health-platform session enrichment | **Not wired** — `enrichSession()` has no production caller |
 | 90-day health-data cleanup | **Not wired** — `cleanupOldData()` has no caller |
@@ -581,7 +581,7 @@ We separate wearable data into categories based on data characteristics and life
 > (database_helper.dart:309-327), but **no runtime code writes them**. Pairing and
 > connection state live only in the in-memory maps of `BleDataSource`
 > (ble_data_source.dart:13-15), and the only writer of `wearable_devices` in the whole
-> app is the demo seeder (`_seedWearableDevices`, seed_service.dart:302-315).
+> app is the demo seeder (`_seedWearableDevices`, seed_service.dart:344-357).
 > "Lifecycle: permanent" below therefore describes the *intent* — in reality device
 > pairings are lost as soon as the screen or the app is disposed.
 
@@ -601,7 +601,7 @@ We separate wearable data into categories based on data characteristics and life
   populated at runtime*: `_mapToWearableDevice()` passes no metadata
   (ble_data_source.dart:280-298), so the `WearableDevice.batteryLevel` /
   `.signalStrength` getters (wearable_device.dart:142-160) always return null for a
-  real device. Only seeded devices carry metadata (seed_data.dart:560, 585).
+  real device. Only seeded devices carry metadata (seed_data.dart:441, 466).
 
 **Why Separate**: Devices exist independently of sessions. Users may connect a device before ever starting a session.
 
@@ -713,15 +713,15 @@ not deduplicated, it grows faster than the data warrants).
 ### Demo and Seed Data
 
 **Status: seed data only.** `SeedService` writes all five wearable tables when the demo
-data set is loaded (seed_service.dart:302-370):
+data set is loaded (seed_service.dart:344-413):
 
 | Table | Seeder | Runtime writer |
 |---|---|---|
-| `wearable_devices` | `_seedWearableDevices()` (:302) | **none** |
-| `session_biometric_data` | `_seedBiometricSensorData()` (:317) | `ActivityProvider._onHeartRatePoint()` (activity_provider.dart:994) — only reachable via the dead BLE path |
-| `session_motion_data` | `_seedMotionSensorData()` (:330) | **none** |
-| `session_sensor_summary` | `_seedSensorSummaries()` (:343) | `SessionRepositoryImpl.finalizeSession()` (session_repository_impl.dart:111-129) |
-| `health_platform_data` | `_seedHealthPlatformData()` (:359) | `HealthSyncService` syncers (health_sync_service.dart:149 etc.) |
+| `wearable_devices` | `_seedWearableDevices()` (:344) | **none** |
+| `session_biometric_data` | `_seedBiometricSensorData()` (:359) | `ActivityProvider._onHeartRatePoint()` (activity_provider.dart:994) — only reachable via the dead BLE path |
+| `session_motion_data` | `_seedMotionSensorData()` (:372) | **none** |
+| `session_sensor_summary` | `_seedSensorSummaries()` (:385) | `SessionRepositoryImpl.finalizeSession()` (session_repository_impl.dart:111-129) |
+| `health_platform_data` | `_seedHealthPlatformData()` (:402) | `HealthSyncService` syncers (health_sync_service.dart:149 etc.) |
 
 Practical consequence for anyone inspecting the app or the database: any device shown in
 the wearable UI, any motion/cadence row, and the calories and step values on a session

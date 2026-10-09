@@ -5,7 +5,7 @@
 >
 > **Related:** [DATABASE Overview](./DATABASE_OVERVIEW.md) | [FEATURES Overview](../architecture/FEATURES_OVERVIEW.md)
 >
-> **Last verified:** 2026-08-28 against `lib/core/seed/` on branch `feat/phase-2-background-tracking`
+> **Last verified:** 2026-10-09 against `lib/core/seed/` on branch `feat/live-map-and-stats`
 ---
 
 # Database Seeding Overview
@@ -67,9 +67,13 @@ Full field-by-field data is in [SEED.md](../../lib/core/seed/SEED.md).
 
 ### Test Sessions
 Sample workout sessions:
-- Mix of walking, running, cycling, and yoga
-- Various durations and distances (including one active session)
-- Different time periods
+- A hand-written last week (including one active session) plus generated
+  history back to 2021 (`seed_history.dart`): about 560 sessions for the
+  developer account and 840 for the runner, so every Progress statistic has
+  data — six years of yearly distance, seasonal months, the current week
+- Running, walking, cycling, yoga and hiking at plausible times and paces;
+  deterministic, so a day older than a week always shows the same session
+- GPS routes for the last four weeks, as loops in each user's city
 
 ### Test Benefits
 Sample rewards and achievements:
@@ -82,7 +86,7 @@ Sample rewards and achievements:
 Seeding behavior is controlled through configuration:
 - **Enabled/Disabled:** Build-time `SEED_ENABLED` dart-define (`flutter run --dart-define-from-file=config/dev.json`); defaults to debug-only when the flag is absent
 - **Per-Entity Flags:** 12 compile-time flags in `SeedConfig` (users, preferences, biometrics, benefits, sessions, GPS points, wearable devices, biometric sensor data, motion sensor data, sensor summaries, health platform data, user benefits) - all enabled today
-- **Version Key:** `database_seeded_v4` in SharedPreferences; bump it to force a team-wide reseed
+- **Version Key:** `database_seeded_v5` in SharedPreferences; bump it to force a team-wide reseed
 - **Reset Option:** `forceReseed` flag, or the debug reseed buttons that clear all tables and reseed
 
 ## Resetting Data

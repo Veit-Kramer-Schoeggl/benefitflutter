@@ -7,7 +7,8 @@ class SeedConfig {
 
   // SharedPreferences key to track if DB has been seeded
   // Change the version number to force re-seeding (e.g., 'v2', 'v3')
-  static const String seedFlagKey = 'database_seeded_v4';
+  // v5: multi-year generated history + routes for the last four weeks.
+  static const String seedFlagKey = 'database_seeded_v5';
 
   // Feature flags - enable/disable seeding for specific entities
   static const bool seedUsers = true;

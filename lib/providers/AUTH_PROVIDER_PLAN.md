@@ -466,7 +466,7 @@ lib/
 > **Status: historical.** The migration was carried out and then superseded by the
 > `AuthProvider` / `ProfileProvider` split (commit `283f558`). The hardcoded `'test-user-123'` constants
 > are gone from the providers and screens — the only remaining occurrences in `lib/` are seed/test data
-> (`lib/core/seed/seed_data.dart:26`, `lib/features/auth/data/auth_service.dart:133`). The unticked boxes
+> (`lib/core/seed/seed_data.dart:27`, `lib/features/auth/data/auth_service.dart:133`). The unticked boxes
 > below are the original plan text, kept for traceability.
 
 ### Preparation

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:benefitflutter/core/seed/seed_config.dart';
@@ -5,7 +7,7 @@ import 'package:benefitflutter/core/seed/seed_data.dart';
 import 'package:benefitflutter/features/user/data/user_repository.dart';
 import 'package:benefitflutter/features/user/data/user_biometrics_dao.dart';
 import 'package:benefitflutter/features/user/data/user_preferences_dao.dart';
-import 'package:benefitflutter/features/session/data/session_repository.dart';
+import 'package:benefitflutter/features/session/data/session_dao.dart';
 import 'package:benefitflutter/features/session/data/gps_point_dao.dart';
 import 'package:benefitflutter/features/benefit/data/benefit_repository.dart';
 import 'package:benefitflutter/features/benefit/data/benefit_dao.dart';
@@ -23,19 +25,16 @@ import 'package:benefitflutter/features/wearable_integration/data/daos/health_pl
 ///   await seedService.seedIfNeeded();
 class SeedService {
   final UserRepository _userRepository;
-  final SessionRepository _sessionRepository;
   final BenefitRepository _benefitRepository;
   final DatabaseHelper _databaseHelper;
   final SharedPreferences _prefs;
 
   SeedService({
     required UserRepository userRepository,
-    required SessionRepository sessionRepository,
     required BenefitRepository benefitRepository,
     required DatabaseHelper databaseHelper,
     required SharedPreferences prefs,
   }) : _userRepository = userRepository,
-       _sessionRepository = sessionRepository,
        _benefitRepository = benefitRepository,
        _databaseHelper = databaseHelper,
        _prefs = prefs;
@@ -43,14 +42,12 @@ class SeedService {
   /// Factory constructor for easy creation
   static Future<SeedService> create({
     required UserRepository userRepository,
-    required SessionRepository sessionRepository,
     required BenefitRepository benefitRepository,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final databaseHelper = DatabaseHelper();
     return SeedService(
       userRepository: userRepository,
-      sessionRepository: sessionRepository,
       benefitRepository: benefitRepository,
       databaseHelper: databaseHelper,
       prefs: prefs,
@@ -84,14 +81,19 @@ class SeedService {
   }
 
   /// Force seed the database (ignores flag)
-  Future<void> seedDatabase() async {
+  ///
+  /// Returns the counts of what this run seeded (empty when seeding is off).
+  Future<Map<String, dynamic>> seedDatabase() async {
     if (!SeedConfig.isEnabled) {
       _log('❌ Seeding disabled (not in debug mode)');
-      return;
+      return const {};
     }
 
     final startTime = DateTime.now();
     _log('🌱 Starting database seeding...');
+    // Sessions and their GPS routes are generated from the same `now`, so
+    // every route lies inside its session's time window.
+    final now = startTime;
 
     try {
       // Seed in order of dependencies: Users → Prefs → Biometrics → Benefits → Sessions → GPS → Wearable Devices → Sensor Data → Summaries → Health Data → UserBenefits
@@ -99,11 +101,13 @@ class SeedService {
       if (SeedConfig.seedUserPreferences) await _seedUserPreferences();
       if (SeedConfig.seedUserBiometrics) await _seedUserBiometrics();
       if (SeedConfig.seedBenefits) await _seedBenefits();
-      if (SeedConfig.seedSessions) await _seedSessions();
-      if (SeedConfig.seedGpsPoints) await _seedGpsPoints();
+      if (SeedConfig.seedSessions) await _seedSessions(now);
+      if (SeedConfig.seedGpsPoints) await _seedGpsPoints(now);
       if (SeedConfig.seedWearableDevices) await _seedWearableDevices();
-      if (SeedConfig.seedBiometricSensorData) await _seedBiometricSensorData();
-      if (SeedConfig.seedMotionSensorData) await _seedMotionSensorData();
+      if (SeedConfig.seedBiometricSensorData) {
+        await _seedBiometricSensorData(now);
+      }
+      if (SeedConfig.seedMotionSensorData) await _seedMotionSensorData(now);
       if (SeedConfig.seedSensorSummaries) await _seedSensorSummaries();
       if (SeedConfig.seedHealthPlatformData) await _seedHealthPlatformData();
       if (SeedConfig.seedUserBenefits) await _seedUserBenefits();
@@ -113,7 +117,9 @@ class SeedService {
 
       final duration = DateTime.now().difference(startTime);
       _log('✅ Seeding completed in ${duration.inMilliseconds}ms');
-      _logSummary();
+      final summary = SeedData.getSeedSummary(now: now);
+      _logSummary(summary);
+      return summary;
     } catch (e, stackTrace) {
       _log('❌ Seeding failed: $e');
       if (SeedConfig.verboseLogging) {
@@ -142,7 +148,7 @@ class SeedService {
   /// - QA Testing: Need fresh seed data for testing
   /// - Demos: Reset to clean demo state
   /// - Fix: Remove duplicate benefits from multiple reseeds
-  Future<void> clearAndReseed() async {
+  Future<Map<String, dynamic>> clearAndReseed() async {
     // Safety check: Only allow in debug mode
     if (!SeedConfig.isEnabled) {
       _log('❌ Cannot reseed - not in debug mode');
@@ -162,9 +168,10 @@ class SeedService {
       _log('✓ Seed flag cleared');
 
       // Step 3: Force database seeding
-      await seedDatabase();
+      final summary = await seedDatabase();
 
       _log('✅ Reseed completed successfully');
+      return summary;
     } catch (e, stackTrace) {
       _log('❌ Reseed failed: $e');
       if (SeedConfig.verboseLogging) {
@@ -210,41 +217,76 @@ class SeedService {
     }
   }
 
-  Future<void> _seedSessions() async {
+  Future<void> _seedSessions(DateTime now) async {
     _log('🏃 Seeding sessions...');
-    final sessions = SeedData.getSessions();
+    final sessions = SeedData.getSessions(now: now);
+    final sessionDao = SessionDao();
 
-    for (final session in sessions) {
-      try {
-        await _sessionRepository.createSession(session);
-        final status = session.status.name;
-        final distance = session.distanceMeters != null
-            ? '${(session.distanceMeters! / 1000).toStringAsFixed(1)}km'
-            : 'N/A';
-        _log(
-          '  ✓ Created session: ${session.activityType.name} - $distance ($status)',
-        );
-      } catch (e) {
-        _log('  ✗ Failed to create session ${session.id}: $e');
-      }
+    // Years of generated history: batch them straight into the DAO instead of
+    // one repository call (its own transaction plus a connectivity check and
+    // sync) per row, which would hold the splash screen for seconds.
+    final failed = await _insertInChunks(
+      sessions,
+      insertBatch: sessionDao.insertBatch,
+      insertOne: sessionDao.insert,
+      describe: (session) => 'session ${session.id}',
+    );
+    for (final userId in {for (final s in sessions) s.userId}) {
+      final mine = sessions.where((s) => s.userId == userId).toList();
+      final km =
+          mine.fold<double>(0, (sum, s) => sum + (s.distanceMeters ?? 0)) /
+          1000;
+      _log('  ✓ $userId: ${mine.length} sessions, ${km.toStringAsFixed(0)} km');
     }
+    if (failed > 0) _log('  ✗ $failed sessions could not be inserted');
   }
 
-  Future<void> _seedGpsPoints() async {
+  Future<void> _seedGpsPoints(DateTime now) async {
     _log('📍 Seeding GPS points...');
-    final gpsPoints = SeedData.getGpsPoints();
+    final gpsPoints = SeedData.getGpsPoints(now: now);
     final gpsPointDao = GpsPointDao();
 
-    for (final gpsPoint in gpsPoints) {
+    final failed = await _insertInChunks(
+      gpsPoints,
+      insertBatch: gpsPointDao.insertBatch,
+      insertOne: gpsPointDao.insert,
+      describe: (point) => 'GPS point ${point.id}',
+      chunkSize: 1000,
+    );
+    final routes = gpsPoints.map((p) => p.sessionId).toSet().length;
+    _log('  ✓ ${gpsPoints.length - failed} GPS points on $routes routes');
+    if (failed > 0) _log('  ✗ $failed GPS points could not be inserted');
+  }
+
+  /// Inserts [rows] one batch per [chunkSize]. A failed batch rolls back as a
+  /// whole, so that chunk is retried row by row: one bad row then costs only
+  /// itself, as it did when everything was inserted row by row. Returns how
+  /// many rows failed.
+  Future<int> _insertInChunks<T>(
+    List<T> rows, {
+    required Future<void> Function(List<T> chunk) insertBatch,
+    required Future<void> Function(T row) insertOne,
+    required String Function(T row) describe,
+    int chunkSize = 500,
+  }) async {
+    var failed = 0;
+    for (var i = 0; i < rows.length; i += chunkSize) {
+      final chunk = rows.sublist(i, math.min(i + chunkSize, rows.length));
       try {
-        await gpsPointDao.insert(gpsPoint);
-        _log(
-          '  ✓ Created GPS point: ${gpsPoint.latitude.toStringAsFixed(4)}, ${gpsPoint.longitude.toStringAsFixed(4)}',
-        );
+        await insertBatch(chunk);
       } catch (e) {
-        _log('  ✗ Failed to create GPS point ${gpsPoint.id}: $e');
+        _log('  ✗ Batch of ${chunk.length} failed ($e), retrying row by row');
+        for (final row in chunk) {
+          try {
+            await insertOne(row);
+          } catch (e) {
+            failed++;
+            _log('  ✗ Failed to insert ${describe(row)}: $e');
+          }
+        }
       }
     }
+    return failed;
   }
 
   Future<void> _seedUserBenefits() async {
@@ -314,9 +356,9 @@ class SeedService {
     }
   }
 
-  Future<void> _seedBiometricSensorData() async {
+  Future<void> _seedBiometricSensorData(DateTime now) async {
     _log('💓 Seeding biometric sensor data...');
-    final dataPoints = SeedData.getBiometricSensorData();
+    final dataPoints = SeedData.getBiometricSensorData(now: now);
     final biometricDao = SessionBiometricDataDao();
 
     try {
@@ -327,9 +369,9 @@ class SeedService {
     }
   }
 
-  Future<void> _seedMotionSensorData() async {
+  Future<void> _seedMotionSensorData(DateTime now) async {
     _log('🏃 Seeding motion sensor data...');
-    final dataPoints = SeedData.getMotionSensorData();
+    final dataPoints = SeedData.getMotionSensorData(now: now);
     final motionDao = SessionMotionDataDao();
 
     try {
@@ -384,8 +426,7 @@ class SeedService {
     }
   }
 
-  void _logSummary() {
-    final summary = SeedData.getSeedSummary();
+  void _logSummary(Map<String, dynamic> summary) {
     _log('📊 Seed Summary:');
     _log('   Users: ${summary['users']}');
     _log('   User Biometrics: ${summary['userBiometrics']}');

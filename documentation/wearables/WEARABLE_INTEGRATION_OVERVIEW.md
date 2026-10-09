@@ -62,7 +62,7 @@ BLE half is built but not yet connected up:
 - ANT+ protocol support
 - Google Fit (intentionally skipped in favour of Health Connect)
 - Persistence of paired BLE devices — `wearable_devices` is written only by the demo
-  seeder (`seed_service.dart:302-315`)
+  seeder (`seed_service.dart:344-357`)
 - Heart-rate zone computation and display — the session summary shows a hard-coded
   placeholder behind a TODO (`session_summary_screen.dart:299-334`)
 - Health-platform enrichment at session completion — `enrichSession()` exists but has no

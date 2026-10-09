@@ -506,7 +506,7 @@ class SessionRepositoryImpl implements SessionRepository {
 
 Two conventions make this work and are worth copying into new modules:
 
-- **DAOs accept an `executor`.** `SessionDao.update(session, {DatabaseExecutor? executor})` (`session_dao.dart:123`) and `SessionSensorSummaryDao.upsert(summary, {DatabaseExecutor? executor})` (`session_sensor_summary_dao.dart:12-16`) fall back to the singleton database when no executor is passed, so they can either stand alone or join the caller's transaction.
+- **DAOs accept an `executor`.** `SessionDao.update(session, {DatabaseExecutor? executor})` (`session_dao.dart:152`) and `SessionSensorSummaryDao.upsert(summary, {DatabaseExecutor? executor})` (`session_sensor_summary_dao.dart:12-16`) fall back to the singleton database when no executor is passed, so they can either stand alone or join the caller's transaction.
 - **Network work stays outside the transaction.** `_syncCompletedSession` runs only after the commit returns.
 
 Source: `lib/features/session/data/session_repository_impl.dart:110-129`.

@@ -1,4 +1,5 @@
 import 'package:benefitflutter/core/utils/password_utils.dart';
+import 'package:benefitflutter/core/seed/seed_history.dart';
 import 'package:benefitflutter/features/user/domain/user.dart';
 import 'package:benefitflutter/features/user/domain/user_biometrics_reported.dart';
 import 'package:benefitflutter/features/user/domain/user_preferences.dart';
@@ -106,74 +107,49 @@ class SeedData {
   // SESSIONS (Historical Activity)
   // ========================================
 
-  static List<Session> getSessions() {
-    final now = DateTime.now();
+  static List<Session> getSessions({DateTime? now}) {
+    now ??= DateTime.now();
     return [
-      // Recent completed runs
-      Session(
-        id: 'session-1',
-        userId: testUserId,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.running,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 1, hours: 8)),
-        endTime: now.subtract(const Duration(days: 1, hours: 7, minutes: 30)),
-        durationSeconds: 1800, // 30 minutes
-        distanceMeters: 5000, // 5km
-        trackingDate: now.subtract(const Duration(days: 1)),
-        createdAt: now.subtract(const Duration(days: 1)),
+      // Recent completed sessions (last 7 days), at plausible times of day.
+      _recent(
+        'session-1',
+        testUserId,
+        ActivityType.running,
+        _session1Start(now),
+        minutes: 30,
+        meters: 5000, // 5 km
       ),
-      Session(
-        id: 'session-2',
-        userId: testUserId,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.walking,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 2, hours: 9)),
-        endTime: now.subtract(const Duration(days: 2, hours: 8)),
-        durationSeconds: 3600, // 1 hour
-        distanceMeters: 4000, // 4km
-        trackingDate: now.subtract(const Duration(days: 2)),
-        createdAt: now.subtract(const Duration(days: 2)),
+      _recent(
+        'session-2',
+        testUserId,
+        ActivityType.walking,
+        _at(now, 2, 12, 15),
+        minutes: 60,
+        meters: 4000, // 4 km
       ),
-      Session(
-        id: 'session-3',
-        userId: testUserId,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.cycling,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 3, hours: 18)),
-        endTime: now.subtract(const Duration(days: 3, hours: 17)),
-        durationSeconds: 3600, // 1 hour
-        distanceMeters: 15000, // 15km
-        trackingDate: now.subtract(const Duration(days: 3)),
-        createdAt: now.subtract(const Duration(days: 3)),
+      _recent(
+        'session-3',
+        testUserId,
+        ActivityType.cycling,
+        _at(now, 3, 17, 45),
+        minutes: 60,
+        meters: 15000, // 15 km
       ),
-      Session(
-        id: 'session-4',
-        userId: testUserId,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.running,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 5, hours: 7)),
-        endTime: now.subtract(const Duration(days: 5, hours: 6, minutes: 45)),
-        durationSeconds: 2700, // 45 minutes
-        distanceMeters: 7500, // 7.5km
-        trackingDate: now.subtract(const Duration(days: 5)),
-        createdAt: now.subtract(const Duration(days: 5)),
+      _recent(
+        'session-4',
+        testUserId,
+        ActivityType.running,
+        _at(now, 5, 18, 30),
+        minutes: 45,
+        meters: 7500, // 7.5 km
       ),
-      Session(
-        id: 'session-5',
-        userId: testUserId,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.walking,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 7, hours: 10)),
-        endTime: now.subtract(const Duration(days: 7, hours: 9, minutes: 30)),
-        durationSeconds: 1800, // 30 minutes
-        distanceMeters: 3000, // 3km
-        trackingDate: now.subtract(const Duration(days: 7)),
-        createdAt: now.subtract(const Duration(days: 7)),
+      _recent(
+        'session-5',
+        testUserId,
+        ActivityType.walking,
+        _at(now, 7, 10, 0),
+        minutes: 30,
+        meters: 3000, // 3 km
       ),
 
       // One active session (for Activity screen testing)
@@ -193,64 +169,73 @@ class SeedData {
       // ========================================
       // SESSIONS FOR USER 2 (Sarah Runner)
       // ========================================
+      _recent(
+        'session-u2-1',
+        testUserId2,
+        ActivityType.yoga,
+        _at(now, 1, 6, 30),
+        minutes: 60,
+        meters: null, // No distance for yoga
+      ),
+      _recent(
+        'session-u2-2',
+        testUserId2,
+        ActivityType.running,
+        _at(now, 2, 7, 0),
+        minutes: 40,
+        meters: 6000, // 6 km
+      ),
+      _recent(
+        'session-u2-3',
+        testUserId2,
+        ActivityType.walking,
+        _at(now, 3, 19, 0),
+        minutes: 30,
+        meters: 2500, // 2.5 km
+      ),
+      _recent(
+        'session-u2-4',
+        testUserId2,
+        ActivityType.cycling,
+        _at(now, 4, 9, 0),
+        minutes: 120,
+        meters: 35000, // 35 km
+      ),
 
-      // Recent yoga session
-      Session(
-        id: 'session-u2-1',
-        userId: testUserId2,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.yoga,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 1, hours: 6)),
-        endTime: now.subtract(const Duration(days: 1, hours: 5)),
-        durationSeconds: 3600, // 1 hour
-        distanceMeters: null, // No distance for yoga
-        trackingDate: now.subtract(const Duration(days: 1)),
-        createdAt: now.subtract(const Duration(days: 1)),
-      ),
-      // Morning run
-      Session(
-        id: 'session-u2-2',
-        userId: testUserId2,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.running,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 2, hours: 7)),
-        endTime: now.subtract(const Duration(days: 2, hours: 6, minutes: 20)),
-        durationSeconds: 2400, // 40 minutes
-        distanceMeters: 6000, // 6km
-        trackingDate: now.subtract(const Duration(days: 2)),
-        createdAt: now.subtract(const Duration(days: 2)),
-      ),
-      // Evening walk
-      Session(
-        id: 'session-u2-3',
-        userId: testUserId2,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.walking,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 3, hours: 19)),
-        endTime: now.subtract(const Duration(days: 3, hours: 18, minutes: 30)),
-        durationSeconds: 1800, // 30 minutes
-        distanceMeters: 2500, // 2.5km
-        trackingDate: now.subtract(const Duration(days: 3)),
-        createdAt: now.subtract(const Duration(days: 3)),
-      ),
-      // Long cycling session
-      Session(
-        id: 'session-u2-4',
-        userId: testUserId2,
-        trackingMode: TrackingMode.manual,
-        activityType: ActivityType.cycling,
-        status: SessionStatus.completed,
-        startTime: now.subtract(const Duration(days: 4, hours: 10)),
-        endTime: now.subtract(const Duration(days: 4, hours: 8)),
-        durationSeconds: 7200, // 2 hours
-        distanceMeters: 35000, // 35km
-        trackingDate: now.subtract(const Duration(days: 4)),
-        createdAt: now.subtract(const Duration(days: 4)),
-      ),
+      // Years of history before that week, so the statistics have data.
+      ...SeedHistory.sessions(now),
     ];
+  }
+
+  /// Start of session-1, shared with its sensor data below.
+  static DateTime _session1Start(DateTime now) => _at(now, 1, 7, 30);
+
+  /// [hour]:[minute] local time, [daysAgo] calendar days before [now].
+  static DateTime _at(DateTime now, int daysAgo, int hour, int minute) =>
+      DateTime(now.year, now.month, now.day - daysAgo, hour, minute);
+
+  static Session _recent(
+    String id,
+    String userId,
+    ActivityType type,
+    DateTime start, {
+    required int minutes,
+    required double? meters,
+  }) {
+    final end = start.add(Duration(minutes: minutes));
+    return Session(
+      id: id,
+      userId: userId,
+      trackingMode: TrackingMode.manual,
+      activityType: type,
+      status: SessionStatus.completed,
+      startTime: start,
+      endTime: end,
+      durationSeconds: minutes * 60,
+      distanceMeters: meters,
+      trackingDate: DateTime(start.year, start.month, start.day),
+      createdAt: end,
+    );
   }
 
   // ========================================
@@ -283,116 +268,12 @@ class SeedData {
   // GPS POINTS (Tracking Data)
   // ========================================
 
-  static List<GpsPoint> getGpsPoints() {
-    final now = DateTime.now();
-    // GPS points for session-1 (5km run, 30 minutes, completed 1 day ago)
-    final sessionStartTime = now.subtract(const Duration(days: 1, hours: 8));
-
-    return [
-      // Point 1: Start of run (0km)
-      GpsPoint(
-        id: 'gps-1-1',
-        sessionId: 'session-1',
-        latitude: 52.520008,
-        longitude: 13.404954,
-        altitude: 34.0,
-        accuracyMeters: 8.5,
-        speedMetersPerSecond: 0.0,
-        timestamp: sessionStartTime,
-        createdAt: sessionStartTime,
-      ),
-
-      // Point 2: ~600m into run (4 min)
-      GpsPoint(
-        id: 'gps-1-2',
-        sessionId: 'session-1',
-        latitude: 52.524012,
-        longitude: 13.408120,
-        altitude: 36.5,
-        accuracyMeters: 6.2,
-        speedMetersPerSecond: 2.5, // ~9 km/h
-        timestamp: sessionStartTime.add(const Duration(minutes: 4)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 4)),
-      ),
-
-      // Point 3: ~1200m into run (8 min)
-      GpsPoint(
-        id: 'gps-1-3',
-        sessionId: 'session-1',
-        latitude: 52.527890,
-        longitude: 13.411450,
-        altitude: 38.2,
-        accuracyMeters: 5.8,
-        speedMetersPerSecond: 2.7, // ~9.7 km/h
-        timestamp: sessionStartTime.add(const Duration(minutes: 8)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 8)),
-      ),
-
-      // Point 4: ~2000m into run (13 min)
-      GpsPoint(
-        id: 'gps-1-4',
-        sessionId: 'session-1',
-        latitude: 52.531245,
-        longitude: 13.414890,
-        altitude: 35.8,
-        accuracyMeters: 7.1,
-        speedMetersPerSecond: 2.4, // ~8.6 km/h (slowing down)
-        timestamp: sessionStartTime.add(const Duration(minutes: 13)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 13)),
-      ),
-
-      // Point 5: ~3000m into run (19 min)
-      GpsPoint(
-        id: 'gps-1-5',
-        sessionId: 'session-1',
-        latitude: 52.534678,
-        longitude: 13.418234,
-        altitude: 37.5,
-        accuracyMeters: 6.5,
-        speedMetersPerSecond: 2.6, // ~9.4 km/h
-        timestamp: sessionStartTime.add(const Duration(minutes: 19)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 19)),
-      ),
-
-      // Point 6: ~3800m into run (24 min)
-      GpsPoint(
-        id: 'gps-1-6',
-        sessionId: 'session-1',
-        latitude: 52.537890,
-        longitude: 13.421567,
-        altitude: 39.0,
-        accuracyMeters: 5.5,
-        speedMetersPerSecond: 2.8, // ~10 km/h (final push)
-        timestamp: sessionStartTime.add(const Duration(minutes: 24)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 24)),
-      ),
-
-      // Point 7: ~4500m into run (28 min)
-      GpsPoint(
-        id: 'gps-1-7',
-        sessionId: 'session-1',
-        latitude: 52.540456,
-        longitude: 13.424789,
-        altitude: 38.2,
-        accuracyMeters: 6.8,
-        speedMetersPerSecond: 3.0, // ~10.8 km/h (sprinting)
-        timestamp: sessionStartTime.add(const Duration(minutes: 28)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 28)),
-      ),
-
-      // Point 8: End of run (~5000m, 30 min)
-      GpsPoint(
-        id: 'gps-1-8',
-        sessionId: 'session-1',
-        latitude: 52.542789,
-        longitude: 13.427890,
-        altitude: 36.8,
-        accuracyMeters: 7.2,
-        speedMetersPerSecond: 0.5, // Slowing to stop
-        timestamp: sessionStartTime.add(const Duration(minutes: 30)),
-        createdAt: sessionStartTime.add(const Duration(minutes: 30)),
-      ),
-    ];
+  /// Routes for every distance session of the last four weeks (see
+  /// [SeedHistory.routesFor]): loops in the user's city whose length and
+  /// timing match the session.
+  static List<GpsPoint> getGpsPoints({DateTime? now}) {
+    now ??= DateTime.now();
+    return SeedHistory.routesFor(getSessions(now: now), now);
   }
 
   // ========================================
@@ -593,9 +474,9 @@ class SeedData {
   // BIOMETRIC SENSOR DATA (Heart Rate during sessions)
   // ========================================
 
-  static List<SensorDataPoint> getBiometricSensorData() {
-    final now = DateTime.now();
-    final sessionStartTime = now.subtract(const Duration(days: 1, hours: 8));
+  static List<SensorDataPoint> getBiometricSensorData({DateTime? now}) {
+    // Tied to session-1, so take the same `now` as getSessions when seeding.
+    final sessionStartTime = _session1Start(now ?? DateTime.now());
     final List<SensorDataPoint> dataPoints = [];
 
     // Heart rate data for session-1 (5km run, 30 minutes)
@@ -647,9 +528,9 @@ class SeedData {
   // MOTION SENSOR DATA (Steps, Cadence during sessions)
   // ========================================
 
-  static List<SensorDataPoint> getMotionSensorData() {
-    final now = DateTime.now();
-    final sessionStartTime = now.subtract(const Duration(days: 1, hours: 8));
+  static List<SensorDataPoint> getMotionSensorData({DateTime? now}) {
+    // Tied to session-1, so take the same `now` as getSessions when seeding.
+    final sessionStartTime = _session1Start(now ?? DateTime.now());
     final List<SensorDataPoint> dataPoints = [];
 
     // Cadence data for session-1 (running cadence: steps per minute)
@@ -887,24 +768,28 @@ class SeedData {
   // SUMMARY STATS (for logging)
   // ========================================
 
-  static Map<String, dynamic> getSeedSummary() {
+  /// Counts of everything the seed inserts. Pass the seeding run's `now` to
+  /// describe exactly that run.
+  static Map<String, dynamic> getSeedSummary({DateTime? now}) {
+    now ??= DateTime.now();
+    final sessions = getSessions(now: now);
     return {
       'users': getUsers().length,
       'benefits': getBenefits().length,
-      'sessions': getSessions().length,
+      'sessions': sessions.length,
       'userBenefits': getUserBenefits().length,
-      'gpsPoints': getGpsPoints().length,
+      'gpsPoints': getGpsPoints(now: now).length,
       'userBiometrics': getUserBiometrics().length,
       'userPreferences': getUserPreferences().length,
       'wearableDevices': getWearableDevices().length,
-      'biometricSensorData': getBiometricSensorData().length,
-      'motionSensorData': getMotionSensorData().length,
+      'biometricSensorData': getBiometricSensorData(now: now).length,
+      'motionSensorData': getMotionSensorData(now: now).length,
       'sensorSummaries': getSensorSummaries().length,
       'healthPlatformData': getHealthPlatformData().length,
-      'totalDistance': getSessions()
+      'totalDistance': sessions
           .where((s) => s.distanceMeters != null)
           .fold(0.0, (sum, s) => sum + s.distanceMeters!),
-      'totalDuration': getSessions()
+      'totalDuration': sessions
           .where((s) => s.durationSeconds != null)
           .fold(0, (sum, s) => sum + s.durationSeconds!),
     };

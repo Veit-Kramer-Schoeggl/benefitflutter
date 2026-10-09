@@ -153,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // Step 4: Create SeedService and trigger reseed
       final seedService = await SeedService.create(
         userRepository: RepositoryConfig.getUserRepository(),
-        sessionRepository: RepositoryConfig.getSessionRepository(),
         benefitRepository: RepositoryConfig.getBenefitRepository(),
       );
 

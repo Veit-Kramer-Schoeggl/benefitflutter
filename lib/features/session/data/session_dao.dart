@@ -119,6 +119,35 @@ class SessionDao {
     );
   }
 
+  /// Insert many sessions (REPLACE), one batch per [chunkSize] rows.
+  ///
+  /// Each batch commits in a single transaction and a single platform-channel
+  /// call, instead of one of each per row; chunking keeps the payload bounded.
+  /// Used by the dev seeder, which writes years of history before runApp.
+  ///
+  /// REPLACE deletes an existing row with the same id first, and with foreign
+  /// keys on that cascades to its GPS points, sensor data and user benefits.
+  Future<void> insertBatch(
+    List<Session> sessions, {
+    int chunkSize = 500,
+  }) async {
+    assert(chunkSize > 0, 'chunkSize must be positive');
+    if (sessions.isEmpty) return;
+
+    final db = await _dbHelper.database;
+    for (var i = 0; i < sessions.length; i += chunkSize) {
+      final batch = db.batch();
+      for (final session in sessions.skip(i).take(chunkSize)) {
+        batch.insert(
+          'sessions',
+          _toMap(session),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    }
+  }
+
   /// Update existing session
   Future<void> update(Session session, {DatabaseExecutor? executor}) async {
     final db = executor ?? await _dbHelper.database;
