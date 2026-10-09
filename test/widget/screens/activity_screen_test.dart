@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:benefitflutter/features/session/domain/gps_point.dart';
 import 'package:benefitflutter/presentation/screens/activity/activity_screen.dart';
 import 'package:benefitflutter/presentation/screens/wearable/widgets/heart_rate_display.dart';
 
 import '../../helpers/app_harness.dart';
+
+/// A fix that passes the GPS filters: accuracy ≤ 50 m, fresh (≤ 10 s old).
+GpsPoint _fix(String id, double lat, double lng) => GpsPoint(
+  id: id,
+  sessionId: 'live-map',
+  latitude: lat,
+  longitude: lng,
+  accuracyMeters: 5,
+  timestamp: DateTime.now(),
+);
 
 void main() {
   group('Activity screen', () {
@@ -65,6 +77,50 @@ void main() {
 
       await pumpUntilFound(tester, find.text('12.50 €'));
       expect(find.text('EARNED SO FAR'), findsOneWidget);
+    });
+
+    testWidgets('live map: idle builds both maps without a route', (
+      tester,
+    ) async {
+      await pumpApp(tester, authenticated: true);
+      await pumpUntilFound(tester, find.text('START Running'));
+
+      // Background + preview card; no route and no fix yet (no GPS in tests).
+      expect(find.byType(FlutterMap), findsNWidgets(2));
+      expect(find.byType(PolylineLayer), findsNothing);
+      // OSM tile policy: attribution always visible (once, on the preview).
+      expect(find.text('OpenStreetMap contributors'), findsOneWidget);
+      expect(
+        find.text('GAIN MORE INDEPENDENT YEARS\nWITH BENEFIT!'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('live map: GPS fixes after START draw the route', (
+      tester,
+    ) async {
+      final h = await pumpApp(
+        tester,
+        authenticated: true,
+        initializeSensors: true,
+      );
+      await pumpUntilFound(tester, find.text('START Running'));
+
+      await tester.tap(find.text('START Running'));
+      await pumpUntilFound(tester, find.text('Pause'));
+
+      // ~110 m apart, so the second fix clears the 10 m store threshold.
+      h.gpsSensor.emitMockPoint(_fix('p1', 47.0697, 15.4086));
+      await tester.pump();
+      h.gpsSensor.emitMockPoint(_fix('p2', 47.0707, 15.4086));
+      await pumpUntilFound(tester, find.byType(PolylineLayer));
+
+      // Route + position dot on both maps (background + preview).
+      expect(find.byType(FlutterMap), findsNWidgets(2));
+      expect(find.byType(PolylineLayer), findsNWidgets(2));
+      expect(find.byType(MarkerLayer), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
     });
   });
 }

@@ -67,10 +67,15 @@ class AppHarness {
 /// Pass [sessions] to pre-seed the session repository before the providers are
 /// wired — [ProgressProvider] loads sessions during pumping (no delay seam to
 /// seed against afterwards).
+///
+/// Pass [initializeSensors] to initialize the [SensorManager] up front (as
+/// `main()` does), so START streams GPS fixes emitted on
+/// [AppHarness.gpsSensor]. Without it a session runs without GPS.
 Future<AppHarness> pumpApp(
   WidgetTester tester, {
   bool authenticated = false,
   List<Session> sessions = const [],
+  bool initializeSensors = false,
 }) async {
   // ProgressProvider.loadActivities() reads SharedPreferences before the
   // session repo; without a mock it throws and the session load is skipped.
@@ -110,6 +115,8 @@ Future<AppHarness> pumpApp(
   final biometric = FakeBiometricService();
   final health = FakeHealthSyncService();
   final gpsSensor = MockGpsSensor();
+  final sensorManager = SensorManager(gpsSensor: gpsSensor);
+  if (initializeSensors) await sensorManager.initialize();
 
   final router = createAppRouter(auth);
 
@@ -144,7 +151,7 @@ Future<AppHarness> pumpApp(
         ChangeNotifierProxyProvider<AuthProvider, ActivityProvider>(
           create: (_) => ActivityProvider(
             sessionRepo,
-            sensorManager: SensorManager(gpsSensor: gpsSensor),
+            sensorManager: sensorManager,
             gpsPointDao: FakeGpsPointDao(),
           ),
           update: (_, a, act) {

@@ -151,6 +151,9 @@ class ActivityProvider extends ChangeNotifier {
   /// Current distance in meters
   double get currentDistance => _currentDistance;
 
+  /// Stored GPS points of the running session (read-only, empty when idle).
+  List<GpsPoint> get sessionGpsPoints => List.unmodifiable(_sessionGpsPoints);
+
   /// Current heart rate (BPM)
   int? get currentHeartRate => _currentHeartRate;
 

@@ -2,6 +2,7 @@ import 'dart:ui'; // for ImageFilter.blur
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:benefitflutter/providers/activity_provider.dart';
@@ -9,6 +10,7 @@ import 'package:benefitflutter/providers/connectivity_provider.dart';
 import 'package:benefitflutter/core/enums/activity_type.dart';
 import 'package:benefitflutter/core/enums/tracking_state.dart';
 import 'package:benefitflutter/presentation/shared/widgets/error_display_widget.dart';
+import 'package:benefitflutter/presentation/screens/activity/widgets/live_location_map.dart';
 import 'package:benefitflutter/presentation/screens/wearable/widgets/heart_rate_display.dart';
 import 'package:benefitflutter/providers/benefit_provider.dart';
 
@@ -237,20 +239,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final formattedTime = _formatTime(elapsedSeconds);
           final distanceKm = _formatDistance(distance);
 
+          // Route of the running session for the live maps (empty when idle)
+          final routePoints = provider.sessionGpsPoints
+              .map((p) => LatLng(p.latitude, p.longitude))
+              .toList();
+
           return Stack(
             children: [
-              // ---------- MAP BACKGROUND ----------
+              // ---------- MAP BACKGROUND (live, decorative) ----------
               Positioned.fill(
-                child: Image.asset(
-                  "assets/images/backgrounds/activity/activity_map.png",
-                  fit: BoxFit.cover,
+                child: IgnorePointer(
+                  child: LiveLocationMap(routePoints: routePoints, zoom: 15),
                 ),
               ),
 
               // ---------- BLUR + DARK OVERLAY ----------
+              // Light blur so the streets stay recognisable behind the card.
               Positioned.fill(
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+                  filter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
                   child: Container(color: Colors.black.withValues(alpha: 0.25)),
                 ),
               ),
@@ -422,20 +429,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // MAP PREVIEW
+                                  // MAP PREVIEW (live position + route)
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(16),
-                                    child: Image.asset(
-                                      "assets/images/backgrounds/activity/activity_map.png",
+                                    child: SizedBox(
                                       height: 120,
                                       width: double.infinity,
-                                      fit: BoxFit.cover,
+                                      child: LiveLocationMap(
+                                        routePoints: routePoints,
+                                        zoom: 16,
+                                        showAttribution: true,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 18),
 
+                                  // Slogan follows the team's research concept:
+                                  // "selbstständige Jahre" (independent years =
+                                  // years without long-term care dependence).
+                                  // "Healthy life years" names an EU indicator
+                                  // that measures something else.
                                   const Text(
-                                    "GAIN MORE HEALTHY LIFE YEARS\nWITH BENEFIT!",
+                                    "GAIN MORE INDEPENDENT YEARS\nWITH BENEFIT!",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: 18,

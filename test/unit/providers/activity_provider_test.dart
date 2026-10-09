@@ -495,4 +495,73 @@ void main() {
       p.dispose();
     });
   });
+
+  group('sessionGpsPoints (live map)', () {
+    late MockGpsSensor mockGps;
+    late ActivityProvider provider;
+
+    setUp(() async {
+      mockGps = MockGpsSensor();
+      final sensorManager = SensorManager(gpsSensor: mockGps);
+      await sensorManager.initialize();
+      provider = ActivityProvider(
+        MockSessionRepository(),
+        userId: 'u1',
+        sensorManager: sensorManager,
+        gpsPointDao: FakeGpsPointDao(),
+      );
+      await provider.startSession(); // subscribes to the GPS stream
+    });
+
+    tearDown(() => provider.dispose());
+
+    // Passes every filter: accuracy ≤ 50 m, fix ≤ 10 s old, and ~110 m from
+    // the previous point (store threshold: 5 s or 10 m).
+    GpsPoint fix(int i) => GpsPoint(
+      id: 'p$i',
+      sessionId: 'x',
+      latitude: 47.0697 + 0.001 * i,
+      longitude: 15.4086,
+      accuracyMeters: 5,
+      timestamp: DateTime.now(),
+    );
+
+    Future<void> emit(int count) async {
+      for (var i = 0; i < count; i++) {
+        mockGps.emitMockPoint(fix(i));
+        await pumpEventQueue(); // let _onGpsPoint fully run before the next
+      }
+    }
+
+    test('returns the stored points of the running session', () async {
+      expect(provider.sessionGpsPoints, isEmpty);
+
+      await emit(3);
+
+      expect(provider.sessionGpsPoints.map((p) => p.id).toList(), [
+        'p0',
+        'p1',
+        'p2',
+      ]);
+    });
+
+    test('is unmodifiable', () async {
+      await emit(1);
+
+      final points = provider.sessionGpsPoints;
+      expect(() => points.add(fix(9)), throwsUnsupportedError);
+      expect(points.clear, throwsUnsupportedError);
+      expect(provider.sessionGpsPoints, hasLength(1));
+    });
+
+    test('is empty after stop', () async {
+      await emit(2);
+      expect(provider.sessionGpsPoints, hasLength(2));
+
+      await provider.stopSession();
+
+      expect(provider.isIdle, isTrue);
+      expect(provider.sessionGpsPoints, isEmpty);
+    });
+  });
 }

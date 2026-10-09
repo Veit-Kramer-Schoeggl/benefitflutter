@@ -191,7 +191,8 @@ class GpsSensor extends BaseSensor<GpsPoint> {
         mode: mode,
       );
 
-      // Start position stream
+      // Start position stream. Only GpsSensor may call getPositionStream —
+      // the plugin caches a single stream (geolocator_android.dart:169-171).
       _positionSubscription =
           Geolocator.getPositionStream(
             locationSettings: locationSettings,
