@@ -1,0 +1,11 @@
+{
+  // Flutter-Projekt: kein Java-/Gradle-Import durch die VS-Code-Java-Extensions (verursachte Gradle-Daemon-Flut + OOM)
+  "java.import.gradle.enabled": false,
+  "java.import.maven.enabled": false,
+  "java.import.exclusions": [
+    "**/node_modules/**", "**/.metadata/**", "**/archetype-resources/**", "**/META-INF/maven/**",
+    "**/flutter/ephemeral/**", "**/.dart_tool/**", "**/build/**"
+  ],
+  "gradle.autoDetect": "off",
+  "java.gradle.buildServer.enabled": "off"
+}
