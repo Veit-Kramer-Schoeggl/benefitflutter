@@ -46,6 +46,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   late final SessionRepository _sessionRepository;
   late final GpsPointDao _gpsPointDao;
 
+  /// Created once: without it TileLayer builds a new NetworkTileProvider (and
+  /// HTTP client) on every rebuild. TileLayer disposes it with the map.
+  late final TileProvider _tileProvider =
+      widget.tileProvider ?? NetworkTileProvider();
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +192,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         borderRadius: BorderRadius.circular(16),
         child: FlutterMap(
           options: MapOptions(
+            // The fit is applied after the first frame; start that frame on
+            // the route too, or flutter_map's default camera (50.5, 30.51)
+            // loads tiles nobody sees.
+            initialCenter: LatLngBounds.fromPoints(routePoints).center,
+            initialZoom: 14,
             // Show the whole route. maxZoom keeps the fit finite when all
             // points share one position (zero-size bounds).
             initialCameraFit: CameraFit.coordinates(
@@ -200,7 +210,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'us.benefit4.benefitflutter',
-              tileProvider: widget.tileProvider,
+              tileProvider: _tileProvider,
             ),
 
             // 📍 Route Polyline
@@ -210,7 +220,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                   points: routePoints,
                   strokeWidth: 5,
                   color: brandGreen,
-                  borderStrokeWidth: 2,
+                  borderStrokeWidth: 4,
                   borderColor: Colors.white,
                 ),
               ],
@@ -236,16 +246,24 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
 
             // OSM tile usage policy: visible "© OpenStreetMap contributors".
             // The map is not at the screen edge, so drop the system insets
-            // the widget's SafeArea would otherwise lift it by.
-            MediaQuery.removePadding(
-              context: context,
-              removeLeft: true,
-              removeTop: true,
-              removeRight: true,
-              removeBottom: true,
-              child: SimpleAttributionWidget(
-                source: const Text('OpenStreetMap contributors'),
-                onTap: _openOsmCopyright,
+            // the widget's SafeArea would otherwise lift it by. The Builder
+            // keeps that MediaQuery dependency out of the screen (rebuilds),
+            // and the smaller text keeps the unshrinkable row from overflowing
+            // on narrow phones at large font sizes.
+            Builder(
+              builder: (context) => MediaQuery.removePadding(
+                context: context,
+                removeLeft: true,
+                removeTop: true,
+                removeRight: true,
+                removeBottom: true,
+                child: DefaultTextStyle.merge(
+                  style: const TextStyle(fontSize: 11),
+                  child: SimpleAttributionWidget(
+                    source: const Text('OpenStreetMap contributors'),
+                    onTap: _openOsmCopyright,
+                  ),
+                ),
               ),
             ),
           ],
