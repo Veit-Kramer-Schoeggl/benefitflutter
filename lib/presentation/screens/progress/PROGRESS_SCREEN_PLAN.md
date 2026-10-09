@@ -30,10 +30,12 @@
 >   `removeActivity`) and statistics aggregations
 >   (`getDistancePerWeekday`, `getDurationPerWeekdayMinutes`,
 >   `getDistancePerMonth`, `getDurationPerMonth`, `getDistancePerYear`,
->   `getTotalStats`).
+>   `getTotalStats`, since 2026-10-09 also `getMetHoursThisWeek`); the weekly
+>   ones cover only the current calendar week (`isInCurrentWeek`).
 > - The screen is a two-tab UI (`STATISTICS` / `ACTIVITIES`) built from
 >   `StatisticsTab`, `ActivitiesTab`, `ActivityListItem`, `CustomBarChart` /
->   `CustomLineChart` (`custom_charts.dart`) and `ProgressSummary`, plus a
+>   `CustomLineChart` (`custom_charts.dart`), `ProgressSummary` and (since
+>   2026-10-09) `ActivityDoseCard`, plus a
 >   manual-entry dialog and an "EARNED SO FAR" bottom bar (no `RefreshIndicator`).
 > - Tapping *any* activity — manual or recorded — opens `SessionDetailScreen`
 >   via `_openSessionDetails` → `context.push('/session/<sessionId>')`

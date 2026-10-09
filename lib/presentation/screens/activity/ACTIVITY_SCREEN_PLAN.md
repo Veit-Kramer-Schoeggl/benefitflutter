@@ -5,7 +5,7 @@
 >
 > **Related:** [DATABASE.md](../../../../database/DATABASE.md) | [PROVIDER_GUIDE.md](../../PROVIDER_GUIDE.md) | [Session Feature](../../../features/session/)
 >
-> **Last updated:** 2026-08-28 · branch `feat/phase-2-background-tracking` (background-tracking WP1–WP5 done, WP6 on-device smoke still open)
+> **Last updated:** 2026-10-09 · branch `feat/live-map-and-stats` (live OpenStreetMap background and map preview; background-tracking WP1–WP5 done, WP6 on-device smoke still open)
 ---
 
 # Activity Screen Implementation Plan
@@ -15,9 +15,10 @@
 | File | Status |
 |------|--------|
 | `activity_screen.dart` | **Live.** The tracking screen, routed at `/home/activity`. |
-| `session_summary_screen.dart` | **Dead code — not routed, not referenced.** A 603-line stats/HR-zones summary built for a `Session`; `grep` finds only its own declaration and no `GoRoute` builds it (`lib/core/router/app_router.dart`). Either wire it up or delete it. |
+| `widgets/live_location_map.dart` | **Live.** `LiveLocationMap`, the decorative OpenStreetMap view used twice by `activity_screen.dart`: as the full-screen background and as the map preview in the white card (see **ActivityScreen → Live map** below). |
+| `session_summary_screen.dart` | **Dead code — not routed, not referenced.** A 603-line stats/HR-zones summary built for a `Session`; `grep` finds only its own declaration and no `GoRoute` builds it (`lib/core/router/app_router.dart`). Either wire it up or delete it. It is also the last user of `assets/images/backgrounds/activity/activity_map.png`. |
 
-The screen actually shown after a session is **`SessionDetailScreen`** (`lib/presentation/screens/session/session_detail_screen.dart`, route `/session/:id`), reached from the Progress screen; it draws the stored GPS points as a `flutter_map` polyline.
+The screen actually shown after a session is **`SessionDetailScreen`** (`lib/presentation/screens/session/session_detail_screen.dart`, route `/session/:id`), reached from the Progress screen; it draws the stored GPS points as a brand-green `flutter_map` polyline with start/end markers, fits the camera to the route from the first frame and keeps "© OpenStreetMap contributors" visible. Stored points are filtered **by accuracy only** (no accuracy, or ≤ `GpsTrackingConfig.minAccuracyMeters`) — the live 10 s freshness check would reject every stored point (BL-072, `7cda1df`).
 
 ---
 
@@ -74,7 +75,7 @@ The Activity Screen is **the most complex screen** because it works with **real-
 **File**: `lib/providers/activity_provider.dart`
 
 ```dart
-// Abridged from lib/providers/activity_provider.dart (1045 lines).
+// Abridged from lib/providers/activity_provider.dart (1050 lines).
 // Names, signatures and semantics match the shipped code; logging, the
 // heart-rate helpers and the continuous-session helpers are elided.
 
@@ -140,6 +141,8 @@ class ActivityProvider extends ChangeNotifier {
   // ===== GETTERS =====
   TrackingState get trackingState => _trackingState;
   double get currentDistance => _currentDistance;
+  /// Read-only view of the running session's points, for the live maps.
+  List<GpsPoint> get sessionGpsPoints => List.unmodifiable(_sessionGpsPoints);
   String? get gpsStartWarning => _gpsStartWarning;
   bool get gpsNeedsSettings =>
       _sensorManager.gpsSensor.status == SensorStatus.permanentlyDenied;
@@ -460,7 +463,7 @@ the completion write is atomic — sync only runs after the commit.
 
 ### 2️⃣ **ActivityScreen** (UI with Real-time Updates)
 
-**File**: `lib/presentation/screens/activity/activity_screen.dart` (590 lines)
+**File**: `lib/presentation/screens/activity/activity_screen.dart` (618 lines)
 
 The shipped screen is a branded tracking view, not a generic timer demo, so this
 section describes the real widget tree instead of sketching one.
@@ -472,10 +475,45 @@ in red when offline).
 
 **Body.** A `Stack`, back to front:
 
-1. `Image.asset('assets/images/backgrounds/activity/activity_map.png')` filling the screen
-2. a `BackdropFilter` blur (σ 6) over a 25 % black scrim
+1. a live **`LiveLocationMap`** (zoom 15) filling the screen, wrapped in `IgnorePointer` — purely decorative, no gestures. It replaced the static Uni-Graz screenshot `activity_map.png` (BL-074, `fa4bbe1`)
+2. a `BackdropFilter` blur (σ 3, formerly 6, so the streets stay recognisable) over a 25 % black scrim
 3. an optional 30 % black loading overlay with a white `CircularProgressIndicator`, shown while `provider.isLoading`
-4. the foreground `Column`: a scrollable area — `HeartRateDisplayCompact` pill → glowing "`<x.x>` KM" pill → "New running session!" pill → **optional orange GPS-warning banner** → the white card (map preview, slogan, button, status text, timer) — above a fixed green **"EARNED SO FAR"** bar bound to `BenefitProvider.totalSavings`
+4. the foreground `Column`: a scrollable area — `HeartRateDisplayCompact` pill → glowing "`<x.x>` KM" pill → "New running session!" pill → **optional orange GPS-warning banner** → the white card (**live map preview** — a second `LiveLocationMap`, 120 px high, zoom 16, with visible attribution — then the slogan, button, status text, timer) — above a fixed green **"EARNED SO FAR"** bar bound to `BenefitProvider.totalSavings`
+
+The slogan reads **"GAIN MORE INDEPENDENT YEARS / WITH BENEFIT!"** (formerly "healthy life
+years"): the team's research replaced "healthy life years", an EU indicator that measures
+something else, with "selbstständige Jahre" — years without long-term care dependence.
+
+**Live map** (`widgets/live_location_map.dart`). Both maps get the same inputs, computed once
+per build inside the `Consumer<ActivityProvider>`: `routePoints` (the read-only
+`provider.sessionGpsPoints` mapped to `LatLng`, empty when idle), `sessionActive`
+(`!provider.isIdle`) and `online` (`ConnectivityProvider.isOnline`).
+
+- **During a session** the map draws the route as a brand-green polyline (`0xFF71B33A`, width 5,
+  white border) with a position dot on the last point and keeps the camera on it. After STOP it
+  stays on the route's end until a newer idle fix arrives.
+- **While idle** it shows the device's own position from **one-shot** geolocator lookups
+  (`getLastKnownPosition`, then `getCurrentPosition` at medium accuracy with a 10 s limit),
+  shared by both maps through a ref-counted poller: on mount, on resume and every 20 s, but only
+  while the app is resumed, the tab is on screen and **no session exists**; after a failed fix it
+  waits 2 min. On Android the fresh fix is answered by the platform `LocationManager`, so the
+  system "location accuracy" dialog never opens. Without any fix the camera sits on a fallback
+  centre in Graz.
+- **GPS rule.** The widget never calls `Geolocator.getPositionStream` and never requests a
+  permission (only the read-only `isLocationServiceEnabled` / `checkPermission`). The plugin caches
+  a single position stream per process, so a second opener would make tracking run without its
+  foreground service — or keep that service alive after the session. Only `GpsSensor` opens the
+  stream.
+- **OSM tile policy and robustness.** User-Agent `us.benefit4.benefitflutter`; the preview shows
+  a tappable "© OpenStreetMap contributors" (opens openstreetmap.org/copyright); no prefetch; one
+  `NetworkTileProvider` per map instead of one per 1 Hz rebuild. Failed tiles are re-requested
+  when the app resumes and when the device comes back online. `android.permission.INTERNET` is
+  declared explicitly in the main manifest (BL-088) instead of arriving only via the Sentry AAR.
+- **Test seam.** `LiveLocationMap.testMode` (`@visibleForTesting`, true under `flutter test`)
+  swaps in blank in-memory tiles and skips all Geolocator calls and timers. Widget tests that need
+  a GPS-streaming session pass the opt-in `initializeSensors: true` to `pumpApp`
+  (`test/helpers/app_harness.dart`) — without `SensorManager.initialize()` a test session never
+  streams GPS.
 
 **There is no activity picker.** `initState` forces running on the first frame and
 the copy is hard-coded to "START Running" / "New running session!":
@@ -615,6 +653,9 @@ at most the points buffered since the last flush.
 | Stream distance filter | 5 m | 50 m |
 | Quality filter (both modes) | accuracy ≤ 50 m **and** fix age ≤ 10 s | same |
 
+The quality filter applies to **live** fixes. `SessionDetailScreen` re-applies only the accuracy
+limit to stored points; the fix-age check would reject every point of a past session (BL-072).
+
 **Foreground service (WP2) and permissions (WP3).**
 
 - **Android** — `AndroidSettings(accuracy: high, distanceFilter: …,
@@ -661,7 +702,8 @@ String _gpsWarningForStatus(SensorStatus status) {
 app is resumed.
 
 **Dependencies actually used** (`pubspec.yaml`): `geolocator: ^14.0.2`,
-`permission_handler: ^12.0.1`.
+`permission_handler: ^12.0.1`; the live map adds `flutter_map: ^8.2.2`, `latlong2: ^0.9.1` and
+`url_launcher: ^6.3.2` (attribution link).
 
 ---
 

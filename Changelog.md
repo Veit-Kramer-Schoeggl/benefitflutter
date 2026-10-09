@@ -1,6 +1,6 @@
 # Changelog
 
-> **Stand:** 2026-08-28 · **Branch:** `feat/phase-2-background-tracking` · Ergänzt
+> **Stand:** 2026-10-09 · **Branch:** `feat/live-map-and-stats` · Ergänzt
 > [documentation/ROADMAP.md](documentation/ROADMAP.md) (Maßnahmen), [Backlog.md](Backlog.md) (offene Punkte)
 > und [documentation/ARCHITECTURE_REVIEW.md](documentation/ARCHITECTURE_REVIEW.md) (Befunde).
 
@@ -26,8 +26,9 @@ Commit-Kurz-Hashes, über die er nachprüfbar ist (`git show <hash>`).
 ## [Unreleased]
 
 **Phase 2 — Background-Tracking-Runtime, WP1–WP5** · Branch `feat/phase-2-background-tracking`
-(2026-06-13, 8 Commits) · ⚠️ **Noch nicht nach `main` gemergt** — es existiert bisher kein Pull Request;
-`main` steht unverändert auf 1.8.0 (`9fd1a87`).
+(2026-06-13, 8 Commits) · ⚠️ **Noch nicht nach `main` gemergt** — es existiert bisher kein Pull Request.
+`main` steht seit PR #16 (`b5e41ef`, Toolchain- und Sentry-Upgrade) nicht mehr auf 1.8.0; dieser Stand ist
+in `69c15b5` in den Branch gemergt (siehe *Build*).
 
 **Offen:** WP6a (Unit-Tests + Smoke-Checkliste) ist erledigt, **WP6b — der Geräte-Smoke auf echtem Gerät
 (Xiaomi Mi 11 / Android 14) inklusive Logcat-Prüfung des Foreground-Service-Typs — ist noch offen**. Siehe
@@ -37,6 +38,11 @@ und [documentation/DEVICE_SMOKE_CHECKLIST.md](documentation/DEVICE_SMOKE_CHECKLI
 **Abgrenzung:** Alle Arbeitspakete beschränken sich auf **Phase A** (aktive, nutzergestartete Sessions).
 `ACCESS_BACKGROUND_LOCATION`, der zweistufige „Immer erlauben"-Dialog und die Session-Wiederaufnahme nach
 einem harten OS-Kill sind bewusst auf **Phase B** (`continuousDaily`) vertagt.
+
+**Live-Karte und Wochenstatistik** · Branch `feat/live-map-and-stats` (2026-10-09, 3 Feature- und 3 Review-Fix-Commits), setzt auf
+dem Phase-2-Branch nach dem `main`-Merge auf und ist ebenfalls noch nicht gemergt. Schließt **BL-072**,
+**BL-074** und **BL-088** aus dem [Backlog](Backlog.md); die Einträge dazu stehen unten jeweils nach den
+WP-Einträgen.
 
 ### Added
 - **WP1 — Natives Fundament für Hintergrund-Tracking.** Android deklariert jetzt `FOREGROUND_SERVICE`,
@@ -59,6 +65,38 @@ einem harten OS-Kill sind bewusst auf **Phase B** (`continuousDaily`) vertagt.
   „Einstellungen öffnen" plus dauerhaftem Hinweisbanner — statt wie bisher als bildschirmfüllender Fehler;
   die Session läuft ohne Distanz sichtbar weiter. `retryGpsIfNeeded()` nimmt das GPS beim Zurückkehren in
   die App automatisch wieder auf. (`1ef548f`)
+- **Live-OSM-Karte im Activity-Screen (BL-074).** Das neue Widget `LiveLocationMap`
+  (`lib/presentation/screens/activity/widgets/live_location_map.dart`) ersetzt die statische Uni-Graz-PNG —
+  als Bildschirmhintergrund (Zoom 15, ohne Gesten, Blur σ 3 statt 6 unter 25 % dunklem Overlay, damit die
+  Straßen erkennbar bleiben) und als 120-px-Kartenvorschau in der weißen Karte (Zoom 16, sichtbare
+  OSM-Attribution). Während einer Session zeichnet sie die Route aus dem neuen Getter
+  `ActivityProvider.sessionGpsPoints`, im Leerlauf die eigene Position aus einmaligen geolocator-Abfragen.
+  Sie öffnet nie `getPositionStream` und fragt nie eine Berechtigung an: Das Plugin hält nur einen
+  Positions-Stream pro Prozess, ein zweiter Öffner würde dem Tracking den Foreground-Service entziehen. Die
+  Leerlauf-Abfragen ruhen, sobald eine Session existiert; auf Android beantwortet sie der
+  Plattform-`LocationManager`, sodass nie ein System-Dialog „Standortgenauigkeit" aufgeht. Fehlgeschlagene
+  Kacheln werden beim Zurückkehren in die App und bei wiederhergestellter Verbindung neu geladen.
+  (`fa4bbe1`, Review-Fixes `a34389d`)
+- **Wöchentliche Aktivitätsdosis im STATISTICS-Tab.** `ActivityDoseCard` direkt unter den Summary-Karten
+  zeigt die MET-Stunden der laufenden Kalenderwoche gegen die WHO-Empfehlung (150 min moderat =
+  11,25 MET-h) als Prozentwert und Fortschrittsbalken — unterhalb der Empfehlung nie als „100 %". Darunter
+  ein Modellsatz in „selbstständigen Monaten" aus der Tabelle der Bachelorarbeit (Startalter 40, immer mit
+  Spannbreite; Dosis bei 22,5 MET-h gedeckelt, unter 2 MET-h keine Zahl) und ein Info-Dialog mit
+  Definitionen und Grenzen. Gerechnet wird im reinen Dart-Helper
+  `lib/features/session/utils/activity_dose.dart`: MET Gehen 4,0 / Rad 6,8 / Laufen 9,0 (Annahme) /
+  übrige Sportarten 4,5. Weil die App jede Aufzeichnung als „running" speichert, entscheidet die
+  Durchschnittsgeschwindigkeit: unter 2 km/h und über 25 km/h zählt 0, ab 7 km/h Laufen, ohne Distanz
+  Gehen. Neu dazu `ProgressProvider.getMetHoursThisWeek()`. Alle Modellwerte sind vorläufig. (`68a9dc8`, Review-Fixes `2356eed`)
+
+### Changed
+- **Slogan „GAIN MORE INDEPENDENT YEARS / WITH BENEFIT!"** statt „GAIN MORE HEALTHY LIFE YEARS": Die
+  Recherche des Teams hat die „gesunden Lebensjahre" (ein EU-Indikator, der etwas anderes misst) durch
+  „selbstständige Jahre" ersetzt. (`fa4bbe1`)
+- **Wochen-Charts zeigen nur noch die laufende Kalenderwoche.** „Weekly Distance (km)" und
+  „Weekly Duration (min)" summierten bisher alle je aufgezeichneten Aktivitäten pro Wochentag. Ein
+  gemeinsames Wochenfenster (`ProgressProvider.isInCurrentWeek`, Montag 00:00 Ortszeit bis zum nächsten
+  Montag) speist jetzt die beiden Charts, die Aktivitätsdosis und die „This Week"-Karte; eine leere Woche
+  zeigt unter beiden Chart-Titeln „No activity recorded this week yet.". (`68a9dc8`; gemeinsames Fenster und Leerzustand `2356eed`)
 
 ### Removed
 - **WP1 —** `ACCESS_BACKGROUND_LOCATION` entfernt (auskommentiert dokumentiert): Aktive Sessions starten
@@ -71,6 +109,15 @@ einem harten OS-Kill sind bewusst auf **Phase B** (`continuousDaily`) vertagt.
   laufendes Segment) und korrigiert sich beim nächsten Auslesen selbst; Pausen bleiben wie bisher
   ausgenommen, der Timer treibt nur noch die Anzeige. Injizierbare Uhr für deterministische Tests.
   (`457c253`)
+- **Die Routen-Karte im Session-Detail zeigt gespeicherte Sessions (BL-072).** Gespeicherte Punkte werden
+  nur noch nach Genauigkeit gefiltert (ohne Angabe oder ≤ `GpsTrackingConfig.minAccuracyMeters`) statt mit
+  dem 10-Sekunden-Frischekriterium für Live-Fixes, an dem bisher jede gespeicherte Session scheiterte
+  („Not enough GPS data to display route."). Außerdem: Die Kamera passt sich an die Route an und steht
+  schon im ersten Frame darauf, Start-/Endmarker, Polyline in Markengrün, dauerhaft sichtbares
+  „© OpenStreetMap contributors" (auch auf kleinen Displays passend), Tile-User-Agent
+  `us.benefit4.benefitflutter` statt `com.example.benefitflutter`. (`7cda1df`, Review-Fixes `103424b`)
+- **`android.permission.INTERNET` explizit im Hauptmanifest (BL-088).** Der Release-Build bekam sie bisher
+  nur transitiv über das Sentry-AAR. (`fa4bbe1`)
 
 ### Performance
 - **WP5 — Weniger GPS-Verlust bei hartem Beenden durch das Betriebssystem.** Die Schreib-Charge sinkt von
@@ -87,6 +134,19 @@ einem harten OS-Kill sind bewusst auf **Phase B** (`continuousDaily`) vertagt.
 - Unit-Tests für den `LocationSettings`-Builder (Plattform-Branch), den GPS-Warnkanal, die
   timestampbasierte Dauer und den Puffer-Alters-Flush. Suite von 813 auf **823 Tests** gewachsen
   (`75743f7` 817 → `1ef548f` 820 → `457c253` 822 → `fd7dfc1` 823).
+- Regressionstest für BL-072 mit Punkten von gestern sowie Tests für Genauigkeitsfilter, Kamera-Fit,
+  Zoom-Deckel und Tile-Policy (`7cda1df`). Unit-Tests für `sessionGpsPoints` und Widget-Tests beider
+  Activity-Karten im Leerlauf und mit Route nach START — dafür die Test-Naht `LiveLocationMap.testMode`
+  (leere In-Memory-Kacheln, keine Geolocator-Aufrufe, keine Timer) und das Opt-in `initializeSensors` im
+  Harness `test/helpers/app_harness.dart`, ohne das eine Test-Session nie GPS streamt (`fa4bbe1`).
+  `ActivityDose`-Unit-Tests, Wochenfenster-Tests für `ProgressProvider` und Widget-Tests der Dosis-Karte
+  (`68a9dc8`).
+
+### Build
+- **`main` in den Branch gemergt** (`69c15b5`): PR #16 (`b5e41ef`) bringt Gradle 9.3.1, AGP 9.1.0 und
+  Kotlin 2.4.0 ohne Jetifier, `sentry_flutter` 9.29.0 und CI/e2e auf Flutter 3.47.2 (`a10d3eb`, `2026c16`,
+  `3914d1c`, `d237158`), dazu den auf Montag 00:00 verankerten `isThisWeek`-Fix im Wearable-Bereich
+  (`cefdfd7`). README und Architektur-Review nennen seither die neue Toolchain (`752313d`).
 
 ### Verifizierter Stand (2026-08-28)
 | Prüfung | Ergebnis |

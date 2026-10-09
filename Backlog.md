@@ -1,6 +1,6 @@
 # BeneFit — Backlog (Audit-Befunde, priorisiert)
 
-> **Stand:** 2026-08-28 · **Branch:** `feat/phase-2-background-tracking` · **100 offene Einträge (BL-001 – BL-100).**
+> **Stand:** 2026-10-09 · **Branch:** `feat/live-map-and-stats` · **97 offene Einträge (BL-001 – BL-100; BL-072, BL-074 und BL-088 erledigt).**
 > Detailebene zur Maßnahmen-Checkliste [documentation/ROADMAP.md](documentation/ROADMAP.md);
 > Begründungen im [Architektur-Review](documentation/ARCHITECTURE_REVIEW.md);
 > was bereits geliefert wurde, steht im [Changelog](Changelog.md).
@@ -24,20 +24,18 @@
 
 ## 🚨 Sofort / vor der nächsten Demo
 
-Zehn Befunde, die eine Vorführung auf einem Gerät sichtbar beschädigen oder die Qualitäts-Pipeline
+Acht Befunde, die eine Vorführung auf einem Gerät sichtbar beschädigen oder die Qualitäts-Pipeline
 blockieren. Details jeweils unten in der Kategorie.
 
 | ID | Was | P/Aufwand |
 |----|-----|-----------|
 | **BL-054** | **Das CI-Format-Gate ist rot.** `dart format --set-exit-if-changed` meldet 3 geänderte Dateien aus den WP3/WP5-Commits — und weil es der **erste** Schritt in `ci.yml` ist, laufen Analyze, Tests und Build am Branch gar nicht erst. | P0 · S |
 | **BL-087** | **Die App installiert sich als „benefitflutter".** Unter dem Launcher-Icon steht der Projekt-Slug, nicht „BeneFit" — das Erste, was eine Jury sieht. | P0 · S |
-| **BL-072** | **Die Routen-Karte rendert für keine gespeicherte Session.** Der Detail-Screen filtert gespeicherte Punkte mit einem 10-Sekunden-Frische-Kriterium — nach dem Speichern ist jeder Punkt zu alt. Die Karte bleibt immer leer. | P0 · S |
 | **BL-073** | **Aus echter Aktivität entsteht nie ein Benefit.** `awardBenefit` hat genau einen Aufrufer: den Debug-Seeder. Die namensgebende Kernschleife läuft im Release-Build nicht. | P0 · M |
 | **BL-046** | **Der Benefit-Katalog ist auf jedem Non-Debug-Install leer.** Seeding hängt an `kDebugMode`; ein Release-/Profile-Build startet ohne Benefits, ohne Testnutzer, ohne Sessions. | P0 · M |
 | **BL-010** | **GPS zählt während der Pause weiter.** Pausieren stoppt Timer und Segment, aber nicht den GPS-Stream — Distanz wächst weiter, während die Dauer korrekt stehen bleibt. Ergebnis: unmögliche Pace-Werte. | P0 · S |
 | **BL-011** | **Beim Logout wird die laufende Session nie abgeschlossen.** Ein nicht awaiteter async-Aufruf rennt gegen einen synchronen State-Reset; die Session bleibt für immer `active` in der DB. | P0 · S |
 | **BL-037** | **Manuelle Aktivitäten lecken zwischen Accounts.** Sie liegen unter einem geräteglobalen SharedPreferences-Key ohne User-ID — nach einem Account-Wechsel sieht der neue Nutzer die Einträge des alten. | P0 · S |
-| **BL-088** | **`android.permission.INTERNET` fehlt im Release-Manifest.** Sie kommt nur transitiv aus dem Sentry-AAR; ohne Sentry hätte der Release-Build keine Netzwerkberechtigung. | P0 · S |
 | **BL-009** | **WP6 — der Geräte-Smoke des Foreground-Service steht noch aus.** WP1–WP5 sind im Code und unit-getestet, aber keine der 11 Phase-2-Checkboxen (8 Foreground-Service + 3 Permissions) ist auf einem Gerät abgehakt. | P0 · M |
 
 > Die übrigen 13 **P0**-Einträge — **BL-001–003** (Backend & Sync), **BL-028–036** (echte Auth,
@@ -431,7 +429,8 @@ blockieren. Details jeweils unten in der Kategorie.
 
 ## 🎨 UX & Features
 
-- [ ] **BL-072 · P0 · S — Die Routen-Karte rendert für keine einzige gespeicherte Session**
+- [x] **BL-072 · P0 · S — Die Routen-Karte rendert für keine einzige gespeicherte Session**
+  - *Erledigt (2026-10-09):* `7cda1df` — Beleg siehe „Bereits erledigt".
   - *Warum:* Der Session-Detail-Screen filtert die aus der Datenbank geladenen Punkte mit demselben Qualitätskriterium, das für **Live**-Fixes gedacht ist — und das enthält eine Altersgrenze von 10 Sekunden gegenüber `DateTime.now()`. Jeder gespeicherte Punkt ist per Definition älter. Die Liste ist danach immer leer, die Karte immer ohne Route. Das ist die einzige echte Karte der App und damit der sichtbarste Demo-Defekt überhaupt.
   - *Evidenz:* `lib/presentation/screens/session/session_detail_screen.dart:67` — `_gpsPoints = points.where((p) => p.meetsQualityRequirements()).toList();`; `lib/features/session/domain/gps_point.dart:186-191` delegiert an `lib/core/config/gps_tracking_config.dart:132-147`, dessen Prüfung `if (ageSeconds > maxGpsAgeSeconds) return false;` mit `maxGpsAgeSeconds = 10` (`gps_tracking_config.dart:46`) enthält.
   - *Abnahme:* Beim Laden gespeicherter Punkte wird nur noch nach Genauigkeit gefiltert, nicht nach Alter; ein Widget-Test mit gespeicherten Punkten von gestern rendert eine Polyline mit allen Punkten.
@@ -441,7 +440,8 @@ blockieren. Details jeweils unten in der Kategorie.
   - *Evidenz:* `grep awardBenefit` über `lib/`, `test/`, `integration_test/` liefert vier Codetreffer: Interface (`lib/features/benefit/data/benefit_repository.dart:23`), Implementierung (`benefit_repository_impl.dart:53`), Test-Fake (`test/helpers/benefit_fakes.dart:40`) und den einzigen Aufrufer `lib/core/seed/seed_service.dart:256` (debug-gated über `SeedConfig.isEnabled`). `lib/providers/activity_provider.dart:481-573` (`stopSession`) vergibt nichts. Partner: `benefit_repository_impl.dart:129-148` („Phase 1: Hardcoded mock partners", FitCafe/SportShop Pro). Label: `lib/presentation/screens/benefit/widgets/total_savings_card.dart:21` gegenüber `lib/features/benefit/data/benefit_dao.dart:114-133` (`SUM(b.discount_amount) … WHERE ub.user_id = ?` — kein Datumsfilter).
   - *Abnahme:* Eine abgeschlossene Session, die die Schwelle erreicht, erzeugt einen `UserBenefit`, der ohne Seeder im Benefit-Tab erscheint (Integrationstest); Partner kommen aus einer Datenquelle; das Ersparnis-Label und die Abfrage decken denselben Zeitraum ab.
 
-- [ ] **BL-074 · P1 · M — Der Activity-Screen zeigt eine statische, unscharfe PNG statt der Live-Route**
+- [x] **BL-074 · P1 · M — Der Activity-Screen zeigt eine statische, unscharfe PNG statt der Live-Route**
+  - *Erledigt (2026-10-09):* `fa4bbe1` — Beleg siehe „Bereits erledigt".
   - *Warum:* Der Standard-Landing-Tab der App rendert während des Trackings **keine** Karte. Er zeichnet eine 868 KB große PNG vollflächig als Hintergrund, legt einen Blur und ein Schwarz-Overlay darüber und benutzt dieselbe Datei nochmals als „MAP PREVIEW"-Thumbnail. Die aufgezeichnete Route ist während der Session nirgends sichtbar — bei einer Vorführung fällt genau das zuerst auf.
   - *Evidenz:* `lib/presentation/screens/activity/activity_screen.dart:245` (`assets/images/backgrounds/activity/activity_map.png` als Hintergrund), `:253` (`ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0)`), `:427` (dieselbe Datei als Thumbnail); die einzige echte Karte (`flutter_map` + OSM) liegt in `lib/presentation/screens/session/session_detail_screen.dart:174-182` — also erst *nach* der Session, und dort greift BL-072.
   - *Abnahme:* Während einer laufenden Session zeigt der Activity-Screen die live wachsende Polyline auf einer echten Karte; die statische PNG ist entfernt oder auf einen Leerzustand beschränkt.
@@ -515,7 +515,8 @@ blockieren. Details jeweils unten in der Kategorie.
   - *Evidenz:* `android/app/src/main/AndroidManifest.xml:56` — `android:label="benefitflutter"` (im gemergten Manifest identisch); `ios/Runner/Info.plist:8` `CFBundleDisplayName = Benefitflutter`, `:16` `CFBundleName = benefitflutter`, während `CFBundleURLName` noch `com.example.benefitflutter` lautet und Androids `applicationId` `us.benefit4.benefitflutter` ist; `lib/presentation/screens/session/session_detail_screen.dart:183` — `userAgentPackageName: 'com.example.benefitflutter'`, und der Kartenblock (`:170-195`) enthält keinen OSM-Attributionshinweis.
   - *Abnahme:* Beide Plattformen zeigen „BeneFit" unter dem Icon (auf dem Gerät verifiziert); Bundle-IDs und URL-Schemes stimmen plattformübergreifend überein; der Tile-User-Agent nennt die echte Anwendungs-ID, und „© OpenStreetMap contributors" ist auf der Karte sichtbar.
 
-- [ ] **BL-088 · P0 · S — `android.permission.INTERNET` fehlt im Release-Manifest**
+- [x] **BL-088 · P0 · S — `android.permission.INTERNET` fehlt im Release-Manifest**
+  - *Erledigt (2026-10-09):* `fa4bbe1` — Beleg siehe „Bereits erledigt".
   - *Warum:* Das Hauptmanifest deklariert die Berechtigung nicht; Debug und Profile ergänzen sie jeweils selbst. Im Release-Build kommt sie ausschließlich **transitiv** aus dem Sentry-AAR — die Netzwerkfähigkeit der App hängt damit an einem Crash-Reporting-Abhängigkeitsdetail. Wird Sentry entfernt oder ausgetauscht, verliert der Release-Build ohne Vorwarnung jede Netzwerkverbindung (und damit die OSM-Kartenkacheln, das einzige heute sichtbare Netzwerkfeature).
   - *Evidenz:* `grep -c INTERNET android/app/src/main/AndroidManifest.xml` = **0** bei 26 deklarierten Berechtigungen; `android/app/src/debug/AndroidManifest.xml:6` und `android/app/src/profile/AndroidManifest.xml:6` deklarieren sie je selbst; kein pub-Plugin der App bringt sie mit — nur `sentry-android-core-7.22.4.aar`.
   - *Abnahme:* `android/app/src/main/AndroidManifest.xml` deklariert `android.permission.INTERNET` explizit; das gemergte Release-Manifest enthält sie nachweislich.
@@ -610,6 +611,9 @@ Punkte, die das Audit noch als offen geführt hat, die aber am Code bzw. an den 
 | **`ROADMAP.md` und `DEVICE_SMOKE_CHECKLIST.md` sind auf dem aktuellen Stand** | Beide tragen „Stand: 2026-08-28 · Branch: `feat/phase-2-background-tracking`" und weisen WP1–WP5 als erledigt, WP6 als offen aus. |
 | **Analyzer-Härtung `strict-casts` + CI `--fatal-infos`** | `analysis_options.yaml` (`strict-casts: true`); `.github/workflows/ci.yml` Schritt „Analyze (lib, fatal-infos)". Offen bleibt nur die Ausweitung auf `test/` → BL-061. |
 | **Geräte-Smoke-Findings F1, F5, F6** | ROADMAP.md „🔧 Geräte-Smoke-Findings": Datumsformat (`6157ca6`), Custom-Scheme-Deep-Link (`f66fe50`), Biometrie-Erkennung (`96d8cd2`) — alle drei auf dem Gerät verifiziert. F3 und F4 laufen als BL-024 weiter. |
+| **BL-072 · Routen-Karte zeigt gespeicherte Sessions** | `7cda1df` — `SessionDetailScreen` filtert die gespeicherten Punkte nur noch nach Genauigkeit (ohne Angabe oder ≤ `GpsTrackingConfig.minAccuracyMeters`) statt mit dem 10-s-Frischekriterium der Live-Fixes. Dazu: Kamera auf die Route eingepasst (schon ab dem ersten Frame), Start-/Endmarker, Polyline in Markengrün, dauerhaft sichtbares „© OpenStreetMap contributors" (passt auch auf kleine Displays), Tile-User-Agent `us.benefit4.benefitflutter`. Regressionstest mit Punkten von gestern in `test/widget/screens/session_detail_screen_test.dart`. |
+| **BL-074 · Live-Karte statt statischer PNG im Activity-Screen** | `fa4bbe1` — `LiveLocationMap` (`lib/presentation/screens/activity/widgets/live_location_map.dart`, OpenStreetMap) ist Bildschirmhintergrund und 120-px-Kartenvorschau; die Route der laufenden Session kommt aus `ActivityProvider.sessionGpsPoints`, im Leerlauf die eigene Position aus einmaligen Abfragen (nie ein zweiter Positions-Stream, nie eine Berechtigungsanfrage). Die PNG nutzt nur noch der tote `SessionSummaryScreen` (BL-075). Widget-Tests in `test/widget/screens/activity_screen_test.dart`. |
+| **BL-088 · `INTERNET` explizit im Hauptmanifest** | `fa4bbe1` — `android/app/src/main/AndroidManifest.xml:4` deklariert `android.permission.INTERNET`; die Netzwerkberechtigung des Release-Builds hängt nicht mehr am Sentry-AAR. |
 
 ---
 
