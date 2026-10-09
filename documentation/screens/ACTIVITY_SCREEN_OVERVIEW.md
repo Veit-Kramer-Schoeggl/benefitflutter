@@ -24,7 +24,6 @@ The Activity Screen is the central hub for starting, pausing, and stopping worko
 | **Distance Tracking** | GPS-based distance calculation, displayed in km |
 | **Background Recording** | Android foreground service keeps a session recording while the app is backgrounded (not across a process kill) |
 | **Heart Rate Display** | Live BPM from a connected BLE monitor (optional) |
-| **Earnings Bar** | Shows total savings earned so far (from `BenefitProvider`) |
 | **Session Persistence** | Data saved to the database during the session |
 
 ## User Flow

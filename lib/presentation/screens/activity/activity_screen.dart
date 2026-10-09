@@ -12,7 +12,6 @@ import 'package:benefitflutter/core/enums/tracking_state.dart';
 import 'package:benefitflutter/presentation/shared/widgets/error_display_widget.dart';
 import 'package:benefitflutter/presentation/screens/activity/widgets/live_location_map.dart';
 import 'package:benefitflutter/presentation/screens/wearable/widgets/heart_rate_display.dart';
-import 'package:benefitflutter/providers/benefit_provider.dart';
 
 /// Activity screen - Running session with real GPS tracking
 ///
@@ -571,40 +570,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           const SizedBox(height: 20),
                         ],
                       ),
-                    ),
-                  ),
-
-                  // BOTTOM BAR (fixed at bottom)
-                  Container(
-                    width: double.infinity,
-                    color: brandGreen,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "EARNED SO FAR",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Consumer<BenefitProvider>(
-                          builder: (context, benefitProvider, _) {
-                            return Text(
-                              "${benefitProvider.totalSavings.toStringAsFixed(2)} €",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
                     ),
                   ),
                 ],

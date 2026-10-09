@@ -21,7 +21,8 @@ void main() {
   group('Benefit screen', () {
     testWidgets('empty state when no benefits are earned', (tester) async {
       await pumpApp(tester, authenticated: true);
-      // No seed → the auto-fetch (kicked off in pumpApp) resolves to empty.
+      // No seed → the fetch that starts when the tab first reads the lazy
+      // BenefitProvider resolves to empty.
       await openBenefitTab(tester);
 
       await pumpUntilFound(tester, find.byType(EmptyBenefitsWidget));
@@ -32,8 +33,8 @@ void main() {
       tester,
     ) async {
       final h = await pumpApp(tester, authenticated: true);
-      // Seed BEFORE pumping past the fakes' 50ms delay: the in-flight
-      // fetchBenefits() reads these fields when its delayed futures resolve.
+      // Seed before opening the tab: the lazy BenefitProvider is created
+      // there, and its first fetchBenefits() reads these fields.
       h.benefitRepo
         ..mockUserBenefits = MockData.sampleUserBenefits(userId: harnessUserId)
         ..mockBenefits = MockData.sampleBenefits()

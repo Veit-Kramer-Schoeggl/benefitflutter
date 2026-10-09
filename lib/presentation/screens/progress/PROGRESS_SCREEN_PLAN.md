@@ -36,11 +36,12 @@
 >   `StatisticsTab`, `ActivitiesTab`, `ActivityListItem`, `CustomBarChart` /
 >   `CustomLineChart` (`custom_charts.dart`), `ProgressSummary` and (since
 >   2026-10-09) `ActivityDoseCard`, plus a
->   manual-entry dialog and an "EARNED SO FAR" bottom bar (no `RefreshIndicator`).
+>   manual-entry dialog (no `RefreshIndicator`). The "EARNED SO FAR" bottom bar
+>   was removed on 2026-10-09; total savings are shown on the Benefit tab only.
 > - Tapping *any* activity — manual or recorded — opens `SessionDetailScreen`
 >   via `_openSessionDetails` → `context.push('/session/<sessionId>')`
->   (`progress_screen.dart:454` and `:363-365`). The manual edit/delete dialog
->   (`_handleTapOrSwipeAction`, `progress_screen.dart:368`) is present but
+>   (`progress_screen.dart:453` and `:362-364`). The manual edit/delete dialog
+>   (`_handleTapOrSwipeAction`, `progress_screen.dart:367`) is present but
 >   **dead code**: it carries an `// ignore: unused_element` marker and has no
 >   call site.
 > - Manual entries have no database row — their `sessionId` is a locally
@@ -881,11 +882,11 @@ lines of hand-rolled Flutter.
       `main.dart:172-179`)
 - [x] Update `progress_screen.dart` with `Consumer<ProgressProvider>`
 - [x] Implement the states — loading and error in the screen
-      (`progress_screen.dart:439-446`), empty inside each tab widget
+      (`progress_screen.dart:438-445`), empty inside each tab widget
 - [x] Extract widgets — shipped as `activities_tab.dart`,
       `activity_list_item.dart`, `custom_charts.dart`, `progress_summary.dart`,
       `statistics_tab.dart` (not `session_card.dart`)
-- [x] Covered by `test/widget/screens/progress_screen_test.dart` (5 widget tests)
+- [x] Covered by `test/widget/screens/progress_screen_test.dart` (11 widget tests)
 
 ---
 

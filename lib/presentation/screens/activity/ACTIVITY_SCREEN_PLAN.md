@@ -463,7 +463,7 @@ the completion write is atomic — sync only runs after the commit.
 
 ### 2️⃣ **ActivityScreen** (UI with Real-time Updates)
 
-**File**: `lib/presentation/screens/activity/activity_screen.dart` (618 lines)
+**File**: `lib/presentation/screens/activity/activity_screen.dart` (583 lines)
 
 The shipped screen is a branded tracking view, not a generic timer demo, so this
 section describes the real widget tree instead of sketching one.
@@ -478,7 +478,7 @@ in red when offline).
 1. a live **`LiveLocationMap`** (zoom 15) filling the screen, wrapped in `IgnorePointer` — purely decorative, no gestures. It replaced the static Uni-Graz screenshot `activity_map.png` (BL-074, `fa4bbe1`)
 2. a `BackdropFilter` blur (σ 3, formerly 6, so the streets stay recognisable) over a 25 % black scrim
 3. an optional 30 % black loading overlay with a white `CircularProgressIndicator`, shown while `provider.isLoading`
-4. the foreground `Column`: a scrollable area — `HeartRateDisplayCompact` pill → glowing "`<x.x>` KM" pill → "New running session!" pill → **optional orange GPS-warning banner** → the white card (**live map preview** — a second `LiveLocationMap`, 120 px high, zoom 16, with visible attribution — then the slogan, button, status text, timer) — above a fixed green **"EARNED SO FAR"** bar bound to `BenefitProvider.totalSavings`
+4. the foreground `Column`: a scrollable area — `HeartRateDisplayCompact` pill → glowing "`<x.x>` KM" pill → "New running session!" pill → **optional orange GPS-warning banner** → the white card (**live map preview** — a second `LiveLocationMap`, 120 px high, zoom 16, with visible attribution — then the slogan, button, status text, timer)
 
 The slogan reads **"GAIN MORE INDEPENDENT YEARS / WITH BENEFIT!"** (formerly "healthy life
 years"): the team's research replaced "healthy life years", an EU indicator that measures

@@ -14,7 +14,7 @@
 
 The Progress Screen shows the user's activity history and statistics. It combines completed workout sessions from the local database with manually entered activities (stored in `SharedPreferences`). It serves as the primary example for implementing the Provider pattern with loading states, error handling, list displays, and chart visualisations.
 
-The screen is organised into two tabs (`STATISTICS` and `ACTIVITIES`) driven by a `TabBar` in the AppBar, and shows an "EARNED SO FAR" bar at the bottom that reads the total savings from `BenefitProvider`.
+The screen is organised into two tabs (`STATISTICS` and `ACTIVITIES`) driven by a `TabBar` in the AppBar.
 
 ## Key Features
 
@@ -26,7 +26,6 @@ The screen is organised into two tabs (`STATISTICS` and `ACTIVITIES`) driven by 
 | **Activity List** | Activities grouped by date (Today / Yesterday / This Week / Older) |
 | **Manual Entry** *(planned)* | Add, edit, and delete manual activities via a dialog — provider methods and dialog code exist but are not yet wired to a UI entry point |
 | **Session Details** | Tapping any activity pushes `/session/<id>` via go_router. Works for recorded sessions; manual entries have no DB row and land on an error screen — see [Interactions](#interactions) |
-| **Earned So Far Bar** | Bottom bar showing total savings from `BenefitProvider` |
 | **Empty State** | Friendly message when no activities exist |
 
 ## Screen States
@@ -49,7 +48,7 @@ The Progress Screen handles the following states:
 
 ## User Interface
 
-The screen is a `Scaffold` with a green AppBar titled "Progress" that carries a `TabBar` (`STATISTICS` / `ACTIVITIES`), a `TabBarView` body, and an "EARNED SO FAR" bar as the `bottomNavigationBar`.
+The screen is a `Scaffold` with a green AppBar titled "Progress" that carries a `TabBar` (`STATISTICS` / `ACTIVITIES`) and a `TabBarView` body.
 
 ### Activities tab
 
@@ -71,8 +70,6 @@ Activities are grouped under date section headers (`TODAY`, `YESTERDAY`, `THIS W
 │  │        17.02.2026, 17:45     00:45:30     │  │
 │  └───────────────────────────────────────────┘  │
 │                                                  │
-│  ─────────────────────────────────────────────  │
-│  EARNED SO FAR                          12.50 €  │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -180,7 +177,7 @@ The Progress Screen demonstrates:
 |------|-------|--------|
 | `test/features/session/utils/activity_dose_test.dart` | Unit (pure Dart) | `ActivityDose`: the speed rule (running, walking, stationary/GPS drift, vehicle, no distance), the fixed MET values per type (walking/hiking, cycling incl. the 40 km/h cut-off, moderate sports), MET-hours = MET × active hours, and `estimateGainMonths` — no number below 2 MET-hours, the women/men rows at the support points, linear interpolation, rounding to whole months, the cap at 22.5 MET-hours — plus `modelSexForGender` |
 | `test/unit/providers/progress_provider_test.dart` | Unit | The weekly statistics of `ProgressProvider`: `getMetHoursThisWeek` (this week only, manual entries included), `getDistancePerWeekday` / `getDurationPerWeekdayMinutes` counting only this week, the week boundary (Monday 00:00 inclusive, next Monday exclusive, also via `isInCurrentWeek`), and an empty week |
-| `test/widget/screens/progress_screen_test.dart` | Widget, driven through `MainNavigationScreen` via the shared `pumpApp` harness | The Statistics and Activities empty states ("Perform activities to see statistics." / "No activities yet."); a seeded 30-day-old session under `OLDER` as `running` / `5.00 km` / `00:30:00` whose tap pushes `SessionDetailScreen`; the three summary card titles plus the `Weekly Distance (km)` chart title; the dose card — share of the recommendation and both model rows, never "100 %" below the recommendation, the profile-gender row, no model number below 2 MET-hours, the cap at twice the recommendation, the info dialog; both weekly chart titles with "No activity recorded this week yet." in an empty week; the `EARNED SO FAR` bar rendering `12.50 €` |
+| `test/widget/screens/progress_screen_test.dart` | Widget, driven through `MainNavigationScreen` via the shared `pumpApp` harness | The Statistics and Activities empty states ("Perform activities to see statistics." / "No activities yet."); a seeded 30-day-old session under `OLDER` as `running` / `5.00 km` / `00:30:00` whose tap pushes `SessionDetailScreen`; the three summary card titles plus the `Weekly Distance (km)` chart title; the dose card — share of the recommendation and both model rows, never "100 %" below the recommendation, the profile-gender row, no model number below 2 MET-hours, the cap at twice the recommendation, the info dialog; both weekly chart titles with "No activity recorded this week yet." in an empty week |
 
 Axis labels are canvas-painted and are deliberately not asserted. Renaming any of the asserted user-visible strings breaks the suite.
 

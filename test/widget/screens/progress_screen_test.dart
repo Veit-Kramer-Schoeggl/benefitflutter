@@ -323,18 +323,5 @@ void main() {
       await tester.pump(const Duration(seconds: 1)); // and let it finish
       expect(find.byType(AlertDialog), findsNothing);
     });
-
-    testWidgets('shows the EARNED SO FAR bar with total savings', (
-      tester,
-    ) async {
-      final h = await pumpApp(tester, authenticated: true);
-      // 50ms seam: the in-flight benefit fetch reads this before resolving.
-      h.benefitRepo.mockTotalSavings = 12.5;
-
-      await openProgress(tester);
-
-      await pumpUntilFound(tester, find.text('12.50 €'));
-      expect(find.text('EARNED SO FAR'), findsOneWidget);
-    });
   });
 }

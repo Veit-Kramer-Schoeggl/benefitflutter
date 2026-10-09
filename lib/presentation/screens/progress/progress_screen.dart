@@ -7,7 +7,6 @@ import 'package:benefitflutter/features/session/domain/activity_entry.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/statistics_tab.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/activities_tab.dart';
 import 'package:benefitflutter/core/config/theme.dart';
-import 'package:benefitflutter/providers/benefit_provider.dart';
 import 'package:benefitflutter/providers/auth_provider.dart';
 
 class ProgressScreen extends StatefulWidget {
@@ -458,46 +457,6 @@ class _ProgressScreenState extends State<ProgressScreen>
           );
         },
       ),
-
-      bottomNavigationBar: _buildEarnedSoFarBar(context),
-    );
-  }
-
-  Widget _buildEarnedSoFarBar(BuildContext context) {
-    final Color primaryColor = Theme.of(context).colorScheme.primary;
-    final Color darkGrey = AppTheme.darkGrey;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          color: primaryColor.withValues(alpha: 0.1),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'EARNED SO FAR',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
-                ),
-              ),
-              Consumer<BenefitProvider>(
-                builder: (context, benefitProvider, _) {
-                  return Text(
-                    '${benefitProvider.totalSavings.toStringAsFixed(2)} €',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: darkGrey,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

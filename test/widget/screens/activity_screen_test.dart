@@ -28,7 +28,8 @@ void main() {
       expect(find.text('Ready to start recording'), findsOneWidget);
       expect(find.text('0.0 KM'), findsOneWidget);
       expect(find.text('New running session!'), findsOneWidget);
-      expect(find.text('EARNED SO FAR'), findsOneWidget);
+      // The earnings bar is gone; savings live on the Benefit tab only.
+      expect(find.text('EARNED SO FAR'), findsNothing);
       expect(find.byType(HeartRateDisplayCompact), findsOneWidget);
     });
 
@@ -67,17 +68,6 @@ void main() {
         tester,
         find.byIcon(Icons.signal_cellular_connected_no_internet_0_bar),
       );
-    });
-
-    testWidgets('shows the EARNED SO FAR bar with total savings', (
-      tester,
-    ) async {
-      final h = await pumpApp(tester, authenticated: true);
-      // 50ms seam: the in-flight benefit fetch reads this before resolving.
-      h.benefitRepo.mockTotalSavings = 12.5;
-
-      await pumpUntilFound(tester, find.text('12.50 €'));
-      expect(find.text('EARNED SO FAR'), findsOneWidget);
     });
 
     testWidgets('live map: idle builds both maps without a route', (

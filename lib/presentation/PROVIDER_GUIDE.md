@@ -170,12 +170,15 @@ class BenefitProvider extends ChangeNotifier {
 **Key Parts**:
 ```dart
 class _BenefitScreenState extends State<BenefitScreen> {
-  // NOTE: there is deliberately NO fetch in initState. The first load is
-  // triggered by BenefitProvider.updateUserId(...) from the
-  // ChangeNotifierProxyProvider in lib/main.dart:163-170, as soon as
-  // AuthProvider exposes a userId. (The screen's own post-frame callback is
-  // empty — benefit_screen.dart:30-34. The only in-screen fetchBenefits()
-  // call is the refresh after a debug database reseed, line 97.)
+  // NOTE: there is deliberately NO fetch in initState. BenefitProvider is a
+  // lazy ChangeNotifierProxyProvider (lib/main.dart:159-166): it is created on
+  // its first read, this screen's Consumer, and the first update() calls
+  // BenefitProvider.updateUserId(...), which loads the benefits. Nothing else
+  // reads it at startup since the EARNED SO FAR bar left the Activity screen
+  // (2026-10-09), so the first visit to the tab shows a short loading state.
+  // (The screen's own post-frame callback is empty — benefit_screen.dart:30-34.
+  // The only in-screen fetchBenefits() call is the refresh after a debug
+  // database reseed, line 98.)
 
   @override
   Widget build(BuildContext context) {
