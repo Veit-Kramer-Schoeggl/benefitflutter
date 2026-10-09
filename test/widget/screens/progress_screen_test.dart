@@ -154,6 +154,60 @@ void main() {
       expect(find.text('INDEPENDENT YEARS · MODEL'), findsOneWidget);
     });
 
+    testWidgets('dose card never shows 100 % below the recommendation', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        authenticated: true,
+        sessions: [
+          // 12.44 km in 4480 s = 10 km/h -> running, 9.0 MET x 4480 s
+          // = 11.2 MET-h: 99.6 % of 11.25 would round up to 100 %.
+          completedSession(
+            id: 'session-almost',
+            startTime: startOfThisWeek(),
+            durationSeconds: 4480,
+            distanceMeters: 12444.4,
+          ),
+        ],
+      );
+      await openProgress(tester);
+
+      await pumpUntilFound(tester, find.text('ACTIVITY THIS WEEK'));
+      expect(find.text('99 %'), findsOneWidget);
+      expect(find.text('100 %'), findsNothing);
+    });
+
+    testWidgets('weekly charts keep their titles in an empty week', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        authenticated: true,
+        sessions: [
+          // Only last week: the weekly charts have nothing to show
+          completedSession(
+            id: 'session-last-week',
+            startTime: startOfThisWeek().subtract(const Duration(days: 3)),
+          ),
+        ],
+      );
+      await openProgress(tester);
+
+      await pumpUntilFound(tester, find.text('Weekly Distance (km)'));
+      await tester.dragUntilVisible(
+        find.text('Weekly Duration (min)'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      expect(find.text('Weekly Duration (min)'), findsOneWidget);
+      expect(
+        find.text('No activity recorded this week yet.'),
+        findsNWidgets(2),
+      );
+      expect(find.textContaining('No data recorded for'), findsNothing);
+    });
+
     testWidgets('dose card uses the model row of the profile gender', (
       tester,
     ) async {

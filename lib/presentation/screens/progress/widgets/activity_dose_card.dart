@@ -81,7 +81,13 @@ class ActivityDoseCard extends StatelessWidget {
                 'MET-hours = duration × intensity (MET). Walking counts 4.0, '
                     'cycling 6.8 and running 9.0 (an assumption: twice the '
                     'moderate 4.5). Whether a recording was walking or running '
-                    'is estimated from its average speed.',
+                    'is estimated from its average speed. Recordings that '
+                    'average under 2 km/h (standing still, GPS drift) or over '
+                    '25 km/h (a vehicle; cycling over 40 km/h) are not '
+                    'counted, and a recording without a distance counts as '
+                    'walking. Other sports count as moderate activity (4.5). '
+                    'These speed limits are BeneFit\'s own assumptions, not '
+                    'part of the model.',
               ),
               _buildInfoSection(
                 'What the model shows',
@@ -94,10 +100,13 @@ class ActivityDoseCard extends StatelessWidget {
               ),
               _buildInfoSection(
                 'Time balance',
-                'At 150 minutes a week from age 40, each hour of activity is '
-                    'matched by about 1.9 (men) / 1.5 (women) waking hours of '
-                    'life, 1.6 / 1.2 of them independent. This is a lower '
-                    'bound.',
+                'On average over a lifetime, 150 minutes of moderate activity '
+                    'a week from age 40 is matched by about 1.9 (men) / 1.5 '
+                    '(women) waking hours of life per hour of activity, '
+                    '1.6 / 1.2 of them independent. It is a lower bound '
+                    'because the time spent active is itself lived time and '
+                    'benefits during life are not counted; no range is '
+                    'computed for it.',
               ),
               _buildInfoSection(
                 'Limits',
@@ -153,8 +162,14 @@ class ActivityDoseCard extends StatelessWidget {
 
     // Rounded to the one decimal shown, so the line and the model agree on
     // the 2 MET-hour threshold and the cap
-    final metHours = (provider.getMetHoursThisWeek() * 10).round() / 10;
-    final share = metHours / ActivityDose.recommendedMetHours;
+    final rawMetHours = provider.getMetHoursThisWeek();
+    final metHours = (rawMetHours * 10).round() / 10;
+    final share = rawMetHours / ActivityDose.recommendedMetHours;
+    // Never round up to "100 %" while the recommendation is not yet met
+    final rawPercent = (share * 100).round();
+    final percent = rawMetHours < ActivityDose.recommendedMetHours
+        ? math.min(rawPercent, 99)
+        : rawPercent;
     // The weekday minutes only cover the current week, so their sum is the
     // time recorded this week.
     final weekMinutes = provider.getDurationPerWeekdayMinutes().values.fold(
@@ -191,7 +206,7 @@ class ActivityDoseCard extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '${(share * 100).round()} %',
+                    '$percent %',
                     style: const TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.bold,

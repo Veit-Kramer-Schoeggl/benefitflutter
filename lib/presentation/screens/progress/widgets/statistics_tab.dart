@@ -74,12 +74,41 @@ class StatisticsTab extends StatelessWidget {
     );
   }
 
+  // The weekly charts cover only the current calendar week, so an empty week
+  // is normal (e.g. Monday before the first session). Both keep their title
+  // (same style as the charts) instead of an empty grid or a bare message.
+  Widget _buildEmptyWeeklyChart(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: AppTheme.darkGrey),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'No activity recorded this week yet.',
+            style: const TextStyle(color: AppTheme.mediumGrey),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Helper function for weekly distance chart (BAR CHART)
-  Widget _buildWeeklyDistanceChart() {
+  Widget _buildWeeklyDistanceChart(BuildContext context) {
     final distanceWeeklyDataFromProvider = provider.getDistancePerWeekday();
     final Map<int, double> fullWeeklyDistanceData = {};
     for (int i = 1; i <= 7; i++) {
       fullWeeklyDistanceData[i] = distanceWeeklyDataFromProvider[i] ?? 0.0;
+    }
+
+    if (fullWeeklyDistanceData.values.every((d) => d == 0.0)) {
+      return _buildEmptyWeeklyChart(context, 'Weekly Distance (km)');
     }
 
     return CustomBarChart(
@@ -88,7 +117,7 @@ class StatisticsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyDurationChart() {
+  Widget _buildWeeklyDurationChart(BuildContext context) {
     final durationWeeklyDataFromProvider = provider
         .getDurationPerWeekdayMinutes();
 
@@ -105,6 +134,10 @@ class StatisticsTab extends StatelessWidget {
 
     for (int i = 1; i <= 7; i++) {
       fullWeeklyDurationData[i] = durationWeeklyDataFromProvider[i] ?? 0.0;
+    }
+
+    if (fullWeeklyDurationData.values.every((d) => d == 0.0)) {
+      return _buildEmptyWeeklyChart(context, 'Weekly Duration (min)');
     }
 
     return CustomLineChart(
@@ -183,10 +216,10 @@ class StatisticsTab extends StatelessWidget {
         ActivityDoseCard(provider: provider),
         const SizedBox(height: 10),
 
-        _buildWeeklyDistanceChart(),
+        _buildWeeklyDistanceChart(context),
         const SizedBox(height: 10),
 
-        _buildWeeklyDurationChart(),
+        _buildWeeklyDurationChart(context),
         const SizedBox(height: 20),
 
         _buildMonthlyDistanceChart(context, distanceMonthlyData),

@@ -140,6 +140,30 @@ void main() {
       expect(provider.getMetHoursThisWeek(), closeTo(4.5, 1e-9));
     });
 
+    test('isInCurrentWeek: Monday 00:00 inclusive, next Monday exclusive', () {
+      final provider = ProgressProvider(MockSessionRepository());
+      final nextMonday = DateTime(
+        weekStart.year,
+        weekStart.month,
+        weekStart.day + 7,
+      );
+
+      expect(provider.isInCurrentWeek(weekStart), isTrue);
+      expect(
+        provider.isInCurrentWeek(
+          nextMonday.subtract(const Duration(seconds: 1)),
+        ),
+        isTrue,
+      );
+      expect(provider.isInCurrentWeek(nextMonday), isFalse);
+      expect(
+        provider.isInCurrentWeek(
+          weekStart.subtract(const Duration(seconds: 1)),
+        ),
+        isFalse,
+      );
+    });
+
     test('is empty without activity this week', () async {
       final provider = await loadedProvider([
         _session(

@@ -100,20 +100,10 @@ class ProgressSummary extends StatelessWidget {
     ).colorScheme.primary; // primaryGreen
     final Color darkGrey = AppTheme.darkGrey; // darkGrey
 
-    // 1. Weekly statistics (Monday to today)
-    final startOfWeek = now
-        .subtract(Duration(days: now.weekday - 1))
-        .copyWith(
-          hour: 0,
-          minute: 0,
-          second: 0,
-          millisecond: 0,
-          microsecond: 0,
-        );
+    // 1. Weekly statistics (calendar week, same window as the activity dose
+    //    and the weekly charts)
     final weekStats = _getStatsForRange(
-      (entry) => entry.startTime.isAfter(
-        startOfWeek.subtract(const Duration(milliseconds: 1)),
-      ),
+      (entry) => provider.isInCurrentWeek(entry.startTime),
     );
 
     // 2. Monthly statistics

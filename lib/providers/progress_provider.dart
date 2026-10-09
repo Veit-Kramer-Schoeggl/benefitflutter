@@ -245,9 +245,10 @@ class ProgressProvider extends ChangeNotifier {
 
   // ===================== STATISTICS METHODS =====================
 
-  /// Activities of the current calendar week: Monday 00:00 (local time) up to
-  /// next Monday. Same start as the "This Week" card in ProgressSummary.
-  Iterable<ActivityEntry> _activitiesThisWeek() {
+  /// Whether [time] lies in the current calendar week: Monday 00:00 (local
+  /// time) up to, not including, next Monday. The one week window of the
+  /// statistics tab ("This Week" card, activity dose, weekly charts).
+  bool isInCurrentWeek(DateTime time) {
     final now = DateTime.now();
     // Calendar arithmetic (not Duration) so a DST switch cannot shift the day
     final weekStart = DateTime(
@@ -260,13 +261,11 @@ class ProgressProvider extends ChangeNotifier {
       weekStart.month,
       weekStart.day + 7,
     );
-
-    return _combinedActivities.where(
-      (entry) =>
-          !entry.startTime.isBefore(weekStart) &&
-          entry.startTime.isBefore(nextWeekStart),
-    );
+    return !time.isBefore(weekStart) && time.isBefore(nextWeekStart);
   }
+
+  Iterable<ActivityEntry> _activitiesThisWeek() =>
+      _combinedActivities.where((entry) => isInCurrentWeek(entry.startTime));
 
   /// Weekly activity dose in MET-hours (see [ActivityDose]) of the current
   /// calendar week.
