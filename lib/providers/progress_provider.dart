@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:benefitflutter/features/session/domain/activity_entry.dart';
 import 'package:benefitflutter/features/session/data/session_repository.dart';
 import 'package:benefitflutter/features/session/domain/session.dart';
+import 'package:benefitflutter/features/session/utils/activity_dose.dart';
 import 'package:benefitflutter/core/enums/session_status.dart';
 
 class ProgressProvider extends ChangeNotifier {
@@ -244,11 +245,45 @@ class ProgressProvider extends ChangeNotifier {
 
   // ===================== STATISTICS METHODS =====================
 
-  /// Calculates summed distance (km) per weekday (Monday=1 to Sunday=7)
+  /// Activities of the current calendar week: Monday 00:00 (local time) up to
+  /// next Monday. Same start as the "This Week" card in ProgressSummary.
+  Iterable<ActivityEntry> _activitiesThisWeek() {
+    final now = DateTime.now();
+    // Calendar arithmetic (not Duration) so a DST switch cannot shift the day
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day - (now.weekday - 1),
+    );
+    final nextWeekStart = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + 7,
+    );
+
+    return _combinedActivities.where(
+      (entry) =>
+          !entry.startTime.isBefore(weekStart) &&
+          entry.startTime.isBefore(nextWeekStart),
+    );
+  }
+
+  /// Weekly activity dose in MET-hours (see [ActivityDose]) of the current
+  /// calendar week.
+  double getMetHoursThisWeek() {
+    double metHours = 0.0;
+    for (final entry in _activitiesThisWeek()) {
+      metHours += ActivityDose.metHoursForEntry(entry);
+    }
+    return metHours;
+  }
+
+  /// Calculates summed distance (km) per weekday (Monday=1 to Sunday=7) of
+  /// the current calendar week
   Map<int, double> getDistancePerWeekday() {
     final Map<int, double> distanceMap = {};
 
-    for (final entry in _combinedActivities) {
+    for (final entry in _activitiesThisWeek()) {
       if (entry.distanceKm != null && entry.distanceKm! > 0) {
         final int weekday = entry.startTime.weekday;
         final double distance = entry.distanceKm!;
@@ -264,10 +299,11 @@ class ProgressProvider extends ChangeNotifier {
   }
 
   /// Calculates summed duration (minutes) per weekday (Monday=1 to Sunday=7)
+  /// of the current calendar week
   Map<int, double> getDurationPerWeekdayMinutes() {
     final Map<int, double> durationMap = {};
 
-    for (final entry in _combinedActivities) {
+    for (final entry in _activitiesThisWeek()) {
       if (entry.duration != null && entry.duration!.inSeconds > 0) {
         final int weekday = entry.startTime.weekday;
         final double minutes = entry.duration!.inSeconds / 60.0;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:benefitflutter/core/config/theme.dart';
 import 'package:benefitflutter/providers/progress_provider.dart';
+import 'package:benefitflutter/presentation/screens/progress/widgets/activity_dose_card.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/custom_charts.dart';
 import 'package:benefitflutter/presentation/screens/progress/widgets/progress_summary.dart';
 
@@ -179,6 +180,7 @@ class StatisticsTab extends StatelessWidget {
     return ListView(
       children: [
         ProgressSummary(provider: provider),
+        ActivityDoseCard(provider: provider),
         const SizedBox(height: 10),
 
         _buildWeeklyDistanceChart(),
