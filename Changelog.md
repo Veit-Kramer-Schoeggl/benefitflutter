@@ -87,6 +87,15 @@ WP-Einträgen.
   übrige Sportarten 4,5. Weil die App jede Aufzeichnung als „running" speichert, entscheidet die
   Durchschnittsgeschwindigkeit: unter 2 km/h und über 25 km/h zählt 0, ab 7 km/h Laufen, ohne Distanz
   Gehen. Neu dazu `ProgressProvider.getMetHoursThisWeek()`. Alle Modellwerte sind vorläufig. (`68a9dc8`, Review-Fixes `2356eed`)
+- **Mehrjährige Testdaten, damit die Statistik etwas zeigt.** `SeedHistory`
+  (`lib/core/seed/seed_history.dart`) erzeugt für beide Testnutzer Sessions vom 1.1.2021 bis acht Tage
+  vor dem Seed, dazu je eine Session am Morgen des Seed-Tags (ab 08:30), damit auch eine Montagswoche
+  Daten hat: Test Developer rund 560 Sessions (298 km 2021 bis 1.223 km 2025), Sarah Runner rund 840
+  (1.177 bis 2.002 km, jedes Jahr mehr als der Developer). Jahreszeiten, ein bis zwei Pausen pro Jahr,
+  bevorzugte Wochentage und plausible Uhrzeiten; deterministisch und so dimensioniert, dass die Charts
+  alles beschriften können. Jede Distanz-Session der letzten 28 Tage bekommt eine GPS-Route als Schleife
+  in der Stadt aus den Nutzereinstellungen (Wien, Berlin), passend zu Distanz und Dauer. Seed-Version
+  `database_seeded_v5`. (`082e340`)
 
 ### Changed
 - **Slogan „GAIN MORE INDEPENDENT YEARS / WITH BENEFIT!"** statt „GAIN MORE HEALTHY LIFE YEARS": Die
@@ -97,11 +106,20 @@ WP-Einträgen.
   gemeinsames Wochenfenster (`ProgressProvider.isInCurrentWeek`, Montag 00:00 Ortszeit bis zum nächsten
   Montag) speist jetzt die beiden Charts, die Aktivitätsdosis und die „This Week"-Karte; eine leere Woche
   zeigt unter beiden Chart-Titeln „No activity recorded this week yet.". (`68a9dc8`; gemeinsames Fenster und Leerzustand `2356eed`)
+- **Die handgeschriebene letzte Woche der Seed-Daten beginnt zu festen, plausiblen Uhrzeiten** statt
+  „jetzt minus N Stunden" (eine Radtour konnte um 02:30 liegen); die Ids bleiben, Benefits und
+  Sensordaten verweisen weiter darauf. Die Debug-Meldung nach „Reset Seed Data" nennt die tatsächlich
+  eingefügten Zahlen statt eines veralteten festen Texts. `SeedService` braucht kein
+  `SessionRepository` mehr. (`082e340`)
 
 ### Removed
 - **WP1 —** `ACCESS_BACKGROUND_LOCATION` entfernt (auskommentiert dokumentiert): Aktive Sessions starten
   den Standort-Vordergrunddienst noch im Vordergrund, daher genügt „während der Nutzung". Das erspart die
   gesonderte Hintergrundstandort-Prüfung von Google Play. (`728f73c`)
+- **Die „EARNED SO FAR"-Leisten** unter dem Activity-Screen und am Fuß des Progress-Screens. Ersparnisse
+  zeigt nur noch die Karte „Total Savings this week" im Benefit-Tab, vorerst als Platzhalter. Weil die
+  Activity-Leiste den lazy `BenefitProvider` als Einzige beim Start las, entsteht er jetzt erst beim
+  ersten Besuch des Benefit-Tabs, der dann einmal kurz lädt. (`2d68c9f`)
 
 ### Fixed
 - **WP4 — Die Sessiondauer stimmt nach Hintergrundphasen.** Statt eines vom Betriebssystem gedrosselten
@@ -118,17 +136,30 @@ WP-Einträgen.
   `us.benefit4.benefitflutter` statt `com.example.benefitflutter`. (`7cda1df`, Review-Fixes `103424b`)
 - **`android.permission.INTERNET` explizit im Hauptmanifest (BL-088).** Der Release-Build bekam sie bisher
   nur transitiv über das Sentry-AAR. (`fa4bbe1`)
+- **Die Werte der Statistik-Karten bleiben einzeilig.** „479h 25m" oder „193.8 km" passten bei 22 pt
+  nicht in ein Drittel der Bildschirmbreite, brachen um und machten die Karte höher als ihre Nachbarn.
+  Sie schrumpfen jetzt passend; bei vergrößerter Systemschrift (über 115 %) brechen sie weiter um, damit
+  die Einstellung nicht ausgehebelt wird. (`764ed91`)
 
 ### Performance
 - **WP5 — Weniger GPS-Verlust bei hartem Beenden durch das Betriebssystem.** Die Schreib-Charge sinkt von
   10 auf 5 Punkte, und ein Alterscheck leert den Puffer, sobald er älter als 60 Sekunden ist — geprüft
   beim Eintreffen eines Punktes, weil Dart-Timer im Hintergrund gedrosselt werden. (`fd7dfc1`)
+- **Seeding schreibt Sessions und GPS-Punkte blockweise** (`SessionDao.insertBatch`,
+  `GpsPointDao.insertBatch`) statt einzeln über das Repository mit eigener Transaktion,
+  Konnektivitätsprüfung und Sync je Zeile; ein fehlgeschlagener Block wird zeilenweise wiederholt.
+  1.393 Sessions und 3.090 GPS-Punkte brauchen auf dem Xiaomi Mi 11i (Debug-Build) rund eine Sekunde.
+  (`082e340`)
 
 ### Docs
 - Lebender Umsetzungsplan `documentation/sessions/BACKGROUND_TRACKING_PLAN.md` (Status quo, verifizierte
   Befunde, Abgleich mit SESSION_DESIGN/SESSION_PLAN, Arbeitspakete WP1–WP6, Entscheidungslog) sowie die
   zugehörigen Gerätetests für Hintergrund-GPS, Dienstbenachrichtigung, FGS-Typ im Logcat, Wakelock,
   App-Wisch-Grenze, OEM-Akkusparmodus und die WP3-Berechtigungswege. (`614b87c`, `0db8bf7`, `3e0c371`)
+- `lib/core/seed/SEED.md` und `SEED_OVERVIEW.md` beschreiben die neuen Testdaten, ein echtes
+  Konsolenprotokoll und den Hinweis, dass ein Seed-Bump die Aufzeichnungen unter den Testkonten löscht.
+  Screen-Übersichten, Pläne und `PROVIDER_GUIDE.md` ohne die Earned-Leisten; Zeilenverweise in Backlog,
+  FEATURES, MAIN_AUTH, AUTH_PROVIDER_PLAN und der Wearable-Doku folgen dem Code. (`2d68c9f`, `082e340`)
 
 ### Tests
 - Unit-Tests für den `LocationSettings`-Builder (Plattform-Branch), den GPS-Warnkanal, die
@@ -141,6 +172,12 @@ WP-Einträgen.
   Harness `test/helpers/app_harness.dart`, ohne das eine Test-Session nie GPS streamt (`fa4bbe1`).
   `ActivityDose`-Unit-Tests, Wochenfenster-Tests für `ProgressProvider` und Widget-Tests der Dosis-Karte
   (`68a9dc8`).
+- `test/core/seed/seed_history_test.dart` (18 Tests): Determinismus (auch nach Leeren des Caches),
+  Invarianten der Sessions und Routen, Chart-Grenzen, die Sessions des Tages, die laufende Woche an
+  jedem Wochentag und das Einfügen der gesamten Historie in eine In-Memory-SQLite mit Fremdschlüsseln
+  (`082e340`). Widget-Test der Summary-Karten bei Handybreite, mit Standard- und vergrößerter Schrift
+  (`764ed91`). Die beiden Tests der Earned-Leisten entfallen; der Activity-Leerlauf-Test prüft ihr
+  Fehlen (`2d68c9f`). Suite von 864 auf **882 Tests**.
 
 ### Build
 - **`main` in den Branch gemergt** (`69c15b5`): PR #16 (`b5e41ef`) bringt Gradle 9.3.1, AGP 9.1.0 und
