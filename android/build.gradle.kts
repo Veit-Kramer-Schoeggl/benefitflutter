@@ -34,10 +34,14 @@ subprojects {
         }
     }
 
-    // Force Kotlin JVM target for all tasks
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
+    // Force Kotlin JVM target for all tasks, to match the Java 17 compileOptions
+    // set above. afterEvaluate so this wins over plugins that pin an older target
+    // in their own build.gradle (several still hardcode JVM 1.8).
+    afterEvaluate {
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            }
         }
     }
 }
